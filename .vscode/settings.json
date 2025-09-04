@@ -1,0 +1,54 @@
+{
+  "javascript.format.insertSpaceAfterOpeningAndBeforeClosingEmptyBraces": false,
+  "typescript.tsdk": "node_modules\\typescript\\lib",
+  "editor.tabSize": 2,
+  "prettier.singleQuote": true,
+  "javascript.preferences.quoteStyle": "single",
+  "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
+  "editor.formatOnType": false,
+  "editor.formatOnSaveMode": "file",
+  "javascript.format.enable": false,
+  "typescript.format.enable": false,
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
+  },
+  "eslint.format.enable": true,
+  "editor.wordWrap": "wordWrapColumn",
+  "editor.wordWrapColumn": 120,
+  "cSpell.words": [
+    "DATETIME",
+    "dotenvflow",
+    "fontsource",
+    "formik",
+    "hqdefault",
+    "khtml",
+    "linkto",
+    "maxresdefault",
+    "mqdefault",
+    "Navs",
+    "nestjs",
+    "nextjs",
+    "Noto",
+    "nprogress",
+    "pangea",
+    "reduxjs",
+    "sddefault",
+    "signin",
+    "simplebar",
+    "SimpleBar",
+    "smmd",
+    "Systemadmin",
+    "tailwindcss",
+    "toastify",
+    "typeorm",
+    "uiball",
+    "uuidv"
+  ],
+  "editor.formatOnSave": true
+}

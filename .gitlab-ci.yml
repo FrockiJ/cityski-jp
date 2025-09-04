@@ -1,0 +1,164 @@
+stages:
+  - check
+  - build
+  - deploy
+
+
+
+
+.job_check_uat:
+  stage: check
+  script:
+    - whoami
+    - id
+    - df -h | grep -E "(ubuntu--vg-ubuntu--lv|Filesystem)"
+    - export PROJECT_PWD=$(pwd)
+    - cd /home/gitlab-runner/ci-vault ; git fetch ; git checkout origin/master -f
+    - cd $PROJECT_PWD
+    - AUTH_CREDENTIALS=$(eval "$(cat /home/gitlab-runner/ci-vault/sdlc/ci-dockerhub-self-u.sh)")
+    - DEV_DEPS_IMAGE_EXISTS=$(curl -s -u $AUTH_CREDENTIALS https://dockerhub.cloud-interactive.com/v2/_catalog | grep -q "cityski-deps-${ENV}" && echo "true" || echo "false")
+    - |
+      ([ "$DEV_DEPS_IMAGE_EXISTS" == "false" ] || [ "$(git diff --name-only HEAD^ HEAD | grep -c -E ".devops-trigger|package-lock.json|package.json|apps/server/package.json|apps/admin/package.json|apps/client/package.json|packages/shared/package.json|packages/eslint-config/package.json|packages/typescript-config/package.json")" -gt 0 ]) || exit 0
+      (cd /home/gitlab-runner/pj-devops ; git fetch ; git checkout origin/master -f) && \
+      (cd $PROJECT_PWD) && \
+      (ls -la) && \
+      (cp /home/gitlab-runner/pj-devops/cityski/${ENV}/Dockerfile.deps Dockerfile.deps) && \
+      (docker build -t dockerhub.cloud-interactive.com/cityski-deps-${ENV}:latest -f Dockerfile.deps --no-cache . ) && \
+      (eval "$(cat /home/gitlab-runner/ci-vault/sdlc/ci-dockerhub-self.sh)") && \
+      (docker push dockerhub.cloud-interactive.com/cityski-deps-${ENV}:latest) && \
+      (echo "---------------- build cityski-deps-${ENV} image ----------------")
+
+
+
+
+
+.job_build_uat:
+  stage: build
+  script:
+    - whoami
+    - id
+    - df -h | grep -E "(ubuntu--vg-ubuntu--lv|Filesystem)"
+    - printenv | sort
+    - set -x
+    - export TAG=${CI_COMMIT_TAG:-latest}
+    - echo "TAG is set to - ${TAG}"
+    - export PROJECT_PWD=$(pwd)
+    - cd /home/gitlab-runner/ci-vault ; git fetch ; git checkout origin/master -f
+    - cd /home/gitlab-runner/pj-devops ; git fetch ; git checkout origin/master -f
+    - cd /home/gitlab-runner/devoops ; git fetch ; git checkout origin/master -f
+    - cd $PROJECT_PWD
+    - cp /home/gitlab-runner/pj-devops/${PJ_NAME}/${ENV}/lib-gen.linux ./packages/shared/lib-gen
+    - cp /home/gitlab-runner/ci-vault/env/${PJ_NAME}/.env.${ENV} .env
+    - cp /home/gitlab-runner/pj-devops/${PJ_NAME}/${ENV}/Dockerfile.server Dockerfile.server
+    - cp /home/gitlab-runner/pj-devops/${PJ_NAME}/${ENV}/Dockerfile.admin Dockerfile.admin
+    - cp /home/gitlab-runner/pj-devops/${PJ_NAME}/${ENV}/Dockerfile.client Dockerfile.client
+    - cp /home/gitlab-runner/pj-devops/${PJ_NAME}/${ENV}/docker-compose-build.yml docker-compose.yml
+    - docker-compose -f ./docker-compose.yml build --progress=plain --compress --force-rm --parallel --no-cache
+    - eval "$(cat /home/gitlab-runner/ci-vault/sdlc/ci-dockerhub-self.sh)"
+    - docker logout
+    - eval "$(cat /home/gitlab-runner/ci-vault/cloud-aws/${PJ_NAME}/${ENV}/aws_access)"
+    - cat ~/.aws/credentials
+    - AWS_ACCESS_KEY_ID=$(aws --profile ${AWS_PROFILE} configure get aws_access_key_id)
+    - AWS_SECRET_ACCESS_KEY=$(aws --profile ${AWS_PROFILE} configure get aws_secret_access_key)
+    - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY aws --profile ${AWS_PROFILE} ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ECR_REPO}
+    - set -e
+    - export DOCKER_CLIENT_TIMEOUT=300
+    - export COMPOSE_HTTP_TIMEOUT=300
+    - docker-compose push client &
+    - docker-compose push admin &
+    - docker-compose push server &
+    - wait
+
+
+
+.job_deploy_uat:
+  stage: deploy
+  script:
+    - whoami
+    - id
+    - df -h | grep -E "(ubuntu--vg-ubuntu--lv|Filesystem)"
+    - printenv | sort
+    - set -x
+    - export TAG=${CI_COMMIT_TAG:-latest}
+    - echo "TAG is set to - ${TAG}"
+    - export PROJECT_PWD=$(pwd)
+    - cd /home/gitlab-runner/ci-vault ; git fetch ; git checkout origin/master -f ;
+    - cd /home/gitlab-runner/pj-devops ; git fetch ; git checkout origin/master -f ;
+    - cd /home/gitlab-runner/devoops ; git fetch ; git checkout origin/master -f ;
+    - cd $PROJECT_PWD
+    - cp /home/gitlab-runner/pj-devops/${PJ_NAME}/${ENV}/lib-gen.linux ./packages/shared/lib-gen
+    - cp /home/gitlab-runner/pj-devops/${PJ_NAME}/${ENV}/docker-compose-apps.yml docker-compose-apps.yml
+    - cp /home/gitlab-runner/pj-devops/${PJ_NAME}/${ENV}/docker-compose-component.yml docker-compose-component.yml
+    - cp /home/gitlab-runner/pj-devops/${PJ_NAME}/${ENV}/nginx-dns.conf nginx-dns.conf
+    - cp /home/gitlab-runner/pj-devops/${PJ_NAME}/${ENV}/nginx-rproxy.conf nginx-rproxy.conf
+    - cp /home/gitlab-runner/ci-vault/env/${PJ_NAME}/.env.${ENV} .env
+    - sed -i "s|:latest|:${TAG}|g" docker-compose-apps.yml
+    - chmod 600 /home/gitlab-runner/ci-vault/ssh/devops
+    - ssh -o 'StrictHostKeyChecking no' -i /home/gitlab-runner/ci-vault/ssh/devops pj-${PJ_NAME}-${ENV} -T 'cd ~/deploy && [ -f docker-compose-apps.yml ] && docker-compose -f docker-compose-apps.yml down -v || true'
+    - chmod 600 /home/gitlab-runner/ci-vault/ssh/devops
+    - scp -o 'StrictHostKeyChecking no' -i /home/gitlab-runner/ci-vault/ssh/devops docker-compose-apps.yml docker-compose-component.yml nginx-dns.conf nginx-rproxy.conf .env pj-${PJ_NAME}-${ENV}:~/deploy/
+    - chmod 600 /home/gitlab-runner/ci-vault/ssh/devops
+    - ssh -o 'StrictHostKeyChecking no' -i /home/gitlab-runner/ci-vault/ssh/devops pj-${PJ_NAME}-${ENV} -T 'cd ~/deploy && aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 022499046152.dkr.ecr.us-east-1.amazonaws.com && docker network create apps || true && docker-compose --env-file ./.env -f ./docker-compose-apps.yml up -d'
+    - chmod 600 /home/gitlab-runner/ci-vault/ssh/devops
+    - ssh -o 'StrictHostKeyChecking no' -i /home/gitlab-runner/ci-vault/ssh/devops pj-${PJ_NAME}-${ENV} -T 'cd ~/deploy && docker rm -f cityski-nginx && (docker ps --format "{{.Names}}" | grep -q "cityski-nginx" && docker ps --format "{{.Names}}" | grep -q "cityski-logging") || aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 022499046152.dkr.ecr.us-east-1.amazonaws.com || docker network create apps || true && docker-compose -f docker-compose-component.yml up -d'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+uat_check:
+  extends: .job_check_uat
+  stage: check
+  environment:
+    name: uat
+  variables:
+    ENV: uat
+    TAG: ${CI_COMMIT_TAG:-latest}
+    PJ_NAME: cityski
+  only:
+    - /^uat-v\d+\.\d+\.\d+$/
+  tags:
+    - apollo-shell
+
+uat_build:
+  extends: .job_build_uat
+  stage: build
+  environment:
+    name: uat
+  variables:
+    ENV: uat
+    TAG: ${CI_COMMIT_TAG:-latest}
+    PJ_NAME: cityski  # remember modify deploy stage target vm pj dir name!
+    AWS_PROFILE: CI_AWS_Cityski
+    AWS_REGION: us-east-1  # remember modify deploy stage target vm region!
+    AWS_ECR_REPO: 022499046152.dkr.ecr.us-east-1.amazonaws.com  # remember modify deploy stage target vm aws ecr repo!
+  only:
+    - /^uat-v\d+\.\d+\.\d+$/
+  tags:
+    - apollo-shell
+
+uat_deploy:
+  extends: .job_deploy_uat
+  stage: deploy
+  environment:
+    name: uat
+  variables:
+    ENV: uat
+    TAG: ${CI_COMMIT_TAG:-latest}
+    PJ_NAME: cityski
+  only:
+    - /^uat-v\d+\.\d+\.\d+$/
+  tags:
+    - apollo-shell

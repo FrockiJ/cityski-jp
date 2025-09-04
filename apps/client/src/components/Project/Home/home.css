@@ -1,0 +1,87 @@
+.custom-after {
+	@apply after:content-[''] after:absolute z-10 after:left-0 after:bottom-0 after:w-[100%] after:min-h-[120px] after:xs:min-h-[300px] after:bg-gradient-to-b after:from-white/0 after:to-white/100;
+}
+
+.custom-course-wrapper > .custom-course-item:not(:first-child) {
+	@apply mt-[20px];
+}
+
+.coach-banner-text-sm-shadow {
+	text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.coach-banner-text-lg-shadow {
+	text-shadow: 0px 2px 0px rgba(0, 0, 0, 0.15);
+}
+
+.compare-card {
+	width: 400px;
+	padding: 24px 0 0;
+}
+
+@media only screen and (width >= 480px) {
+	.compare-card {
+		width: 400px;
+		padding: 40px 80px 55px;
+		position: relative;
+		z-index: 1;
+		border-radius: 24px;
+	}
+}
+
+@media only screen and (width >= 480px) {
+	.compare-card.ski {
+		background: linear-gradient(to right, #fe696c 0%, #fd8e4b 100%);
+	}
+	.compare-card.board {
+		background: linear-gradient(to right, #31bae7 0%, #6e72f0 100%);
+	}
+}
+
+.compare-card:before {
+	content: '';
+	border-radius: 20px;
+	display: block;
+	background: white;
+	position: absolute;
+	z-index: -1;
+	right: 4px;
+	left: 4px;
+	top: 4px;
+	bottom: 4px;
+	margin: auto;
+}
+
+.custom-background {
+	/* /image/home/cocah-left-snow.webp */
+	background:
+		linear-gradient(to bottom, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 30%),
+		url('/image/home/coach-snow-bg.webp') left center no-repeat,
+		url('/image/home/coach-snow-bg.webp') right center no-repeat;
+	/* url(<path-to-image>) lightgray 50% / cover no-repeat; */
+	/* background-size:
+		50px auto,
+		100px auto; */
+}
+
+.home-svg-image,
+.home-tag,
+.home-hover-tag {
+	transition: opacity 0.3s ease;
+}
+
+.home-hover-tag {
+	opacity: 0;
+}
+
+.home-svg-container:hover .home-svg-image,
+.home-svg-container:hover .home-tag {
+	opacity: 0;
+}
+.home-svg-container:hover .home-hover-tag {
+	opacity: 1;
+}
+
+.home-svg-container:hover {
+	cursor: pointer;
+}

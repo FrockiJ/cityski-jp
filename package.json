@@ -1,0 +1,45 @@
+{
+  "name": "next-nest-turbo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "build:lib": "npm run clean:build --prefix packages/shared",
+    "gen:lib-shared": "npm run gen:lib --prefix packages/shared",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "chokidar-cli": "^3.0.0",
+    "concurrently": "^8.2.2",
+    "prettier": "^3.2.5",
+    "turbo": "^2.1.0",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "npm@10.8.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.666.0",
+    "@nestjs/schedule": "^4.1.1",
+    "@radix-ui/react-dialog": "^1.1.2",
+    "@radix-ui/react-popover": "^1.1.6",
+    "@types/multer": "^1.4.12",
+    "@types/uuid": "^10.0.0",
+    "dotenv-flow": "^4.1.0",
+    "formik": "^2.4.6",
+    "jsonwebtoken": "^9.0.2",
+    "moment-timezone": "^0.5.45",
+    "react-youtube": "^10.1.0",
+    "reflect-metadata": "^0.2.2",
+    "uuid": "^10.0.0",
+    "vaul": "^1.1.2",
+    "yup": "^1.4.0"
+  }
+}

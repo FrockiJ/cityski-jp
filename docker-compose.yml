@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  # PostgreSQL DB service
+  postgres:
+    image: postgres:latest
+    container_name: postgres-db-cityski
+    environment:
+      POSTGRES_DB: CITY_SKI_DB
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      # maps local machine's 5233 to docker's 5432 - make sure local 5233 is free
+      - "5233:5432"

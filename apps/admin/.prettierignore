@@ -1,0 +1,7 @@
+.github
+.husky
+dist
+node_modules
+public
+package.josn
+package-lock.josn

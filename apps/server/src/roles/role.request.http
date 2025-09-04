@@ -1,0 +1,14 @@
+### Get list of roles
+GET http://localhost:4040/api/roles
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInVzZXJuYW1lIjoidXNlcm5hbWUyIiwiaWF0IjoxNzA4MzQ1OTUxLCJleHAiOjE3MDgzNDk1NTF9.2-0AeIDjOFcUq3SKeI5XWwEJTUau82K7XWbqqRsZ4rM
+
+### Create a new role
+POST http://localhost:4040/api/roles
+Content-Type: application/json
+
+{
+  "name": "Super Admin",
+  "superAdm": 0,
+  "status": 1,
+  "ids": ["f428b0b3-ee22-408d-9ddd-d18a73d465b6"]
+}

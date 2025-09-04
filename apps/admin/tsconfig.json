@@ -1,0 +1,39 @@
+{
+	"compilerOptions": {
+		"target": "es2015",
+		"lib": ["es6", "dom", "dom.iterable", "esnext"],
+		"allowJs": true,
+		"skipLibCheck": true,
+		"strict": true,
+		"forceConsistentCasingInFileNames": true,
+		"noEmit": true,
+		"esModuleInterop": true,
+		"module": "esnext",
+		"moduleResolution": "node",
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"jsx": "preserve",
+		"baseUrl": "./",
+		"jsxImportSource": "@emotion/react",
+		"incremental": true,
+		"experimentalDecorators": true,
+		"paths": {
+			"@/shared/*": ["./src/shared/*"],
+			"@/components/*": ["./src/components/*"],
+			"@/hooks/*": ["./src/hooks/*"],
+			"@/Formik/*": ["./src/components/Common/CIBase/Formik/*"],
+			"@/CIBase/*": ["./src/components/Common/CIBase/*"],
+			"@/HOC/*": ["./src/components/HOC/*"],
+			"@/Example/*": ["./src/components/Example/*"],
+			"@/Icon/*": ["./src/components/Common/Icon/*"],
+			"@/project/*": ["./src/components/Project/*"],
+			"@/utils/*": ["./src/utils/*"],
+			"@/http/*": ["./src/utils/http/*"],
+			"@/state/*": ["./src/state/*"],
+			"@/lib/*": ["./src/lib/*"],
+			"@/public/*": ["./public/*"]
+		}
+	},
+	"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+	"exclude": ["node_modules", "eslintrc.js"]
+}

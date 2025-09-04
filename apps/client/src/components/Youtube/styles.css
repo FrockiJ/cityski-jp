@@ -1,0 +1,15 @@
+.yt-wrapper-lg {
+	@apply relative pb-[145%] h-0 w-[376px] m-auto;
+}
+
+.yt-wrapper-sm {
+	@apply relative pb-[177.78%] h-0 m-auto;
+}
+
+.yt-wrapper-sm > .youtube-video {
+	@apply absolute top-0 left-0 w-[100%] h-[100%];
+}
+
+.yt-wrapper-lg > .youtube-video {
+	@apply absolute top-0 left-0 w-[100%] h-[100%] max-h-[672px];
+}

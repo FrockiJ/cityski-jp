@@ -1,0 +1,16 @@
+import { SvgIcon, SvgIconProps } from '@mui/material';
+
+const PermissionsPersonnelIcon = (props: SvgIconProps) => {
+	return (
+		<SvgIcon {...props}>
+			<path
+				fillRule='evenodd'
+				clipRule='evenodd'
+				d='M7.94043 7L7.94047 6.05952C7.94047 3.82126 9.76132 2 11.9996 2C14.2378 2 16.0587 3.82126 16.0587 6.05952L16.0587 7H16.5C18.1569 7 19.5 8.34315 19.5 10V19C19.5 20.6569 18.1569 22 16.5 22H7.5C5.84315 22 4.5 20.6569 4.5 19V10C4.5 8.34315 5.84315 7 7.5 7H7.94043ZM9.17049 7H14.8286L14.8287 6.05952C14.8287 4.49941 13.5597 3.23002 11.9996 3.23002C10.4395 3.23002 9.17053 4.49941 9.17053 6.05952L9.17049 7ZM14 14.5C14 15.6046 13.1046 16.5 12 16.5C10.8954 16.5 10 15.6046 10 14.5C10 13.3954 10.8954 12.5 12 12.5C13.1046 12.5 14 13.3954 14 14.5Z'
+				fill='currentColor'
+			/>
+		</SvgIcon>
+	);
+};
+
+export default PermissionsPersonnelIcon;

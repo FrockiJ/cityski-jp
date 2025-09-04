@@ -1,0 +1,20 @@
+### Get list of users
+GET http://localhost:4040/api/users
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInVzZXJuYW1lIjoidXNlcm5hbWUyIiwiaWF0IjoxNzA4MzQ1OTUxLCJleHAiOjE3MDgzNDk1NTF9.2-0AeIDjOFcUq3SKeI5XWwEJTUau82K7XWbqqRsZ4rM
+
+### Get single user
+GET http://localhost:4040/api/users/user@example.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcsInVzZXJuYW1lIjoidXNlcm5hbWUyIiwiaWF0IjoxNzA3NTY1ODE4LCJleHAiOjE3MDc1Njk0MTh9.IasfhkYFijcnDIDtzugz6Afwg79sU5tcYJxr4qxzHlM
+
+### Create a new user
+POST http://localhost:4040/api/users/signup
+Content-Type: application/json
+
+{
+  "name": "username2",
+  "email": "user2@example.com",
+  "password": "1234567"
+}
+
+
+

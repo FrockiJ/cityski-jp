@@ -79,6 +79,8 @@ const EditOrderModal = ({
 		},
 	]);
 
+	const [status, setStatus] = useState('待付訂金');
+
 	// --- API ---
 
 	// --- EFFECTS ---
@@ -129,7 +131,7 @@ const EditOrderModal = ({
 					<Form>
 						{isLoading || (isSubmitting && <CoreLoaders hasOverlay />)}
 						<FormikScrollToError />
-						<CoreAnchorModal anchorItems={anchorItems} rightContent={<FixedPaymentBlock />}>
+						<CoreAnchorModal anchorItems={anchorItems} rightContent={<FixedPaymentBlock status={status} handleRefresh={(data) => setStatus(data)} />}>
 							<CoreBlock title='訂單資訊'>
 								<OrderInfoBlock />
 							</CoreBlock>
@@ -140,10 +142,12 @@ const EditOrderModal = ({
 									modal.openModal({
 										title: `確認收到訂金`,
 										width: 480,
-										height: 40,
 										noEscAndBackdrop: true,
+										noAction: true,
 										noTitleBorder: true,
-										children: <ConfirmPaymentModal type='downPayment' />,
+										children: <ConfirmPaymentModal type='downPayment' handleRefresh={(result) => {
+											setStatus(result);
+										}} />,
 									});
 								}}
 							>

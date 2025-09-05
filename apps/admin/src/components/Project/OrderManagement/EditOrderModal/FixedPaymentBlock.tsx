@@ -8,13 +8,16 @@ import { showToast } from '@/utils/ui/general';
 
 import CheckoutModal from './CheckoutModal';
 
-type Props = {};
+type Props = {
+	status: string;
+	handleRefresh?: (data: any) => void;
+};
 
-const FixedPaymentBlock = (props: Props) => {
+const FixedPaymentBlock = ({ status, handleRefresh }: Props) => {
 	const modal = useModalProvider();
 	const [checkoutValue, setCheckoutValue] = useState(null);
 	const [checkoutInfo, setCheckoutInfo] = useState({
-		status: 'pending',
+		status: '待付訂金',
 		date: '--',
 		paymentValue: '--',
 		price: '--',
@@ -32,6 +35,7 @@ const FixedPaymentBlock = (props: Props) => {
 					showToast(`已更新狀態`, 'success')
 					console.log('result: ', result);
 					setCheckoutValue(result);
+					handleRefresh?.('已結清');
 				}} />,
 			});
 		};
@@ -48,11 +52,19 @@ const FixedPaymentBlock = (props: Props) => {
 			}
 		}, [checkoutValue]);
 
+		useEffect(() => {
+			if (status) {
+				// setCheckoutInfo({
+				// 	status: status,
+				// });
+			}
+		}, [status]);
+
 	return (
 		<>
 			<Stack
 				width='246px'
-				height={ checkoutInfo?.status === 'pending' ? '287px' : '235px'}
+				height={ status !== '待付訂金' ? '287px' : '235px'}
 				bgcolor='white'
 				borderRadius='16px'
 				p='24px'
@@ -63,7 +75,7 @@ const FixedPaymentBlock = (props: Props) => {
 					<Typography fontSize='18px' fontWeight='700'>
 						付款金額
 					</Typography>
-					<Typography>{ checkoutInfo?.status === 'pending' ? '待結清' : '已結清' }</Typography>
+					<Typography>{ status }</Typography>
 				</Stack>
 				<Stack direction='row' justifyContent='space-between' mt={0.5}>
 					<Typography variant='body2' color={TEXT_SECONDARY}>
@@ -88,10 +100,10 @@ const FixedPaymentBlock = (props: Props) => {
 					<Typography variant='body2' color={TEXT_SECONDARY}>
 						總付款金額
 					</Typography>
-					<Typography variant='body1'>{ checkoutInfo?.status === 'pending' ? '--' : '20,300' }</Typography>
+					<Typography variant='body1'>{ status !== '待付訂金' ? '--' : '20,300' }</Typography>
 				</Stack>
 				{
-					checkoutInfo?.status === 'pending'
+					status !== '待付訂金'
 						? <Stack direction='row' justifyContent='space-between' mt='22px'>
 								<CoreButton color='primary' variant='contained' width='100%' label='確認結清' onClick={() => handleCheckout()} />
 							</Stack>
@@ -116,25 +128,25 @@ const FixedPaymentBlock = (props: Props) => {
 					<Typography variant='body2' color={TEXT_SECONDARY}>
 						訂金支付日期
 					</Typography>
-					<Typography variant='body1'>2024/12/13</Typography>
+					<Typography variant='body1'>{ status === '待付訂金' ? '--' : '2024/12/13' }</Typography>
 				</Stack>
 				<Stack direction='row' justifyContent='space-between' mt={0.5}>
 					<Typography variant='body2' color={TEXT_SECONDARY}>
 						訂金支付方式
 					</Typography>
-					<Typography variant='body1'>線上ATM</Typography>
+					<Typography variant='body1'>{ status === '待付訂金' ? '--' : '線上ATM' }</Typography>
 				</Stack>
 				<Stack direction='row' justifyContent='space-between' mt={0.5}>
 					<Typography variant='body2' color={TEXT_SECONDARY}>
 						訂金支付金額
 					</Typography>
-					<Typography variant='body1'>10,150</Typography>
+					<Typography variant='body1'>{ status === '待付訂金' ? '--' : '10,150' }</Typography>
 				</Stack>
 				<Stack direction='row' justifyContent='space-between' mt={0.5}>
 					<Typography variant='body2' color={TEXT_SECONDARY}>
 						訂金發票號碼
 					</Typography>
-					<Typography variant='body1'>00123456</Typography>
+					<Typography variant='body1'>{ status === '待付訂金' ? '--' : '00123456' }</Typography>
 				</Stack>
 				<Divider orientation='horizontal' sx={{ margin: '16px 0' }} />
 				<Stack direction='row' justifyContent='space-between' mt={0.5}>

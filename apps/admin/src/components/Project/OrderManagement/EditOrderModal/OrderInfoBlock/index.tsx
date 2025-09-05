@@ -11,7 +11,7 @@ const OrderInfoBlock = (props: Props) => {
 		<BlockArea>
 			<Stack direction='column' spacing={2.5} divider={<Divider flexItem />} width='100%'>
 				<Stack direction='row' justifyContent='space-between' width='100%'>
-					<span>待付訂金</span>
+					<span>訂購成功</span>
 					<Typography variant='body2' color={PRIMARY_MAIN}>
 						課程詳情
 					</Typography>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { debounce } from '@mui/material';
+import { Box, debounce } from '@mui/material';
 import { GetCoursesRequestDTO, ModalType, OrderTableListResult } from '@repo/shared';
 import { configOrdersTable } from 'src/tableConfigs/orders';
 
@@ -26,7 +26,7 @@ const OrderManagementIndoorCoursePage = () => {
 		<TablePageLayout
 			title='訂單管理'
 			handleActionList={
-				<>
+				<Box display='flex' gap={1.5}>
 					<CoreButton
 						variant='outlined'
 						label='編輯訂單'
@@ -55,7 +55,7 @@ const OrderManagementIndoorCoursePage = () => {
 							})
 						}
 					/>
-				</>
+				</Box>
 			}
 		>
 			<TabsHeader

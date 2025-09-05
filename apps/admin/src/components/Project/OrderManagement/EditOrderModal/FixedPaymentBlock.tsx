@@ -100,7 +100,7 @@ const FixedPaymentBlock = ({ status, handleRefresh }: Props) => {
 					<Typography variant='body2' color={TEXT_SECONDARY}>
 						總付款金額
 					</Typography>
-					<Typography variant='body1'>{ status !== '待付訂金' ? '--' : '20,300' }</Typography>
+					<Typography variant='body1'>{ status !== '已結清' ? '--' : '20,300' }</Typography>
 				</Stack>
 				{
 					status !== '待付訂金'

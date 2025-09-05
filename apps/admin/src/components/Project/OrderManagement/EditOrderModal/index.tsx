@@ -135,24 +135,32 @@ const EditOrderModal = ({
 							<CoreBlock title='訂單資訊'>
 								<OrderInfoBlock />
 							</CoreBlock>
-							<CoreBlock
-								title='付款資訊'
-								buttonLabel='確認收到訂金'
-								handleClick={() => {
-									modal.openModal({
-										title: `確認收到訂金`,
-										width: 480,
-										noEscAndBackdrop: true,
-										noAction: true,
-										noTitleBorder: true,
-										children: <ConfirmPaymentModal type='downPayment' handleRefresh={(result) => {
-											setStatus(result);
-										}} />,
-									});
-								}}
-							>
-								<PaymentInfoBlock />
-							</CoreBlock>
+							{
+								status === '待付訂金'
+								? <CoreBlock
+										title='付款資訊'
+										buttonLabel='確認收到訂金'
+										handleClick={() => {
+												modal.openModal({
+													title: `確認收到訂金`,
+													width: 480,
+													noEscAndBackdrop: true,
+													noAction: true,
+													noTitleBorder: true,
+													children: <ConfirmPaymentModal type='downPayment' handleRefresh={(result) => {
+														setStatus(result);
+													}} />,
+												});
+											}
+										}
+									>
+										<PaymentInfoBlock />
+									</CoreBlock>
+								: <CoreBlock title='付款資訊' >
+									<PaymentInfoBlock />
+								</CoreBlock>
+							}
+						
 							<CoreBlock
 								title='課程預約'
 								buttonLabel='新增預約'

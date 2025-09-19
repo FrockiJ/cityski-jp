@@ -35,8 +35,8 @@ export const useOrderFormatTableData = (options?: Props) => {
 				const tableRowData = {
 					id: data.id,
 					no: data.no,
-					name: 'data.name',
-					amount: 'data.amount',
+					name: '課程名稱',
+					amount: '1000',
 					status: {
 						[OrderStatus.PENDING_DEPOSIT]: '待付訂金',
 						[OrderStatus.WAITING_FOR_CONFIRMATION]: '等待確認',

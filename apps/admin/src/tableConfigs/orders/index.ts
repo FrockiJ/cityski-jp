@@ -28,7 +28,7 @@ export const getOrdersTableConfigColumn: TableColumnType<any>[] = [
 		name: '訂單金額(NT$)',
 		key: 'amount',
 		type: ColumnType.CONTENT,
-		width: 60,
+		width: 80,
 		sort: false,
 	},
 	{

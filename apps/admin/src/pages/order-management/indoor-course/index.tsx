@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, debounce } from '@mui/material';
-import { GetCoursesRequestDTO, ModalType, OrderTableListResult } from '@repo/shared';
+import { GetCoursesRequestDTO, ModalType } from '@repo/shared';
 import { configOrdersTable } from 'src/tableConfigs/orders';
 
 import CoreButton from '@/components/Common/CIBase/CoreButton';
@@ -12,6 +12,7 @@ import TablePageLayout from '@/components/Common/CIBase/CoreDynamicTable/TablePa
 import TabsHeader from '@/components/Common/CIBase/CoreDynamicTable/TabsHeader';
 import EditOrderModal from '@/components/Project/OrderManagement/EditOrderModal';
 import MonthlyQuotaUsageModal from '@/components/Project/OrderManagement/MonthlyQuotaUsageModal';
+import { useOrderFormatTableData } from '@/hooks/tableData/useOrderFormatTableData';
 import useModalProvider from '@/hooks/useModalProvider';
 
 const OrderManagementIndoorCoursePage = () => {
@@ -21,6 +22,48 @@ const OrderManagementIndoorCoursePage = () => {
 	const handleSearch = debounce((e: any) => {
 		setKeyword(e.target.value.trim());
 	}, 300);
+	
+		// --- EFFECT ---
+	
+	useEffect(() => {
+		const departmentId = localStorage.getItem('departmentId');
+
+		if (departmentId) setDepartmentId(departmentId);
+	}, []);
+	
+	// --- API ---
+
+	const { formatTableData, tableData, tableDataCount, tableDataLoading, handleRefresh } = useOrderFormatTableData({
+		query: { keyword, departmentId },
+	});
+
+	useEffect(() => {
+		console.log('formatTableData: ', formatTableData);
+	}, [formatTableData]);
+
+	const isLoading = tableDataLoading;
+
+	const handleTableRowClick = (courseId?: string) => {
+		const rowData = tableData?.find((x) => x.id === courseId);
+		if (!rowData) return;
+
+		modal.openModal({
+			title: `編輯課程`,
+			center: true,
+			fullScreen: true,
+			noAction: true,
+			marginBottom: true,
+			children: (
+				<EditOrderModal
+					handleRefresh={handleRefresh}
+					modalType={ModalType.EDIT}
+					rowData={rowData}
+					courseType={rowData.type}
+					courseStatusType={rowData.status}
+				/>
+			),
+		});
+	};
 
 	return (
 		<TablePageLayout
@@ -65,7 +108,7 @@ const OrderManagementIndoorCoursePage = () => {
 			<StyledSearchFilterWrapper>
 				<CoreFilter
 					tableId={configOrdersTable.tableId}
-					tableDataCount={0}
+					tableDataCount={tableDataCount}
 					searchOptions={{ onKeyDown: handleSearch, value: keyword, placeholder: '搜尋會員姓名或訂單編號' }}
 					unused={configOrdersTable?.unfilteredFields}
 					queryDto={() => GetCoursesRequestDTO}
@@ -75,13 +118,13 @@ const OrderManagementIndoorCoursePage = () => {
 			<CoreDynamicTable
 				id={configOrdersTable.tableId}
 				headData={configOrdersTable.columns}
-				dataCount={0}
-				isLoading={false}
+				dataCount={tableDataCount}
+				isLoading={isLoading}
 			>
-				<CoreDynamicTableList<OrderTableListResult>
-					rows={[]}
+				<CoreDynamicTableList<any>
+					rows={formatTableData}
 					tableConfig={configOrdersTable}
-					// handleTableRowClick={(rowData) => handleTableRowClick(rowData.id)}
+					handleTableRowClick={(rowData) => handleTableRowClick(rowData.id)}
 				/>
 			</CoreDynamicTable>
 		</TablePageLayout>

@@ -93,10 +93,10 @@ const RegisterForm = () => {
 		},
 		validationSchema,
 		onSubmit: async (values, { setSubmitting }) => {
-			if (!isPhoneVerified) {
-				showToast('請先完成手機驗證', 'error');
-				return;
-			}
+			// if (!isPhoneVerified) {
+			// 	showToast('請先完成手機驗證', 'error');
+			// 	return;
+			// }
 			try {
 				const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/auth/member/signup', {
 					name: values.name,

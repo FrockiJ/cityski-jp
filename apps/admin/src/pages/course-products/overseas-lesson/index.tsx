@@ -98,7 +98,7 @@ const CourseProductsOverseasLessonPage = ({}: CourseProductsIndoorPageProps) => 
 
 	return (
 		<TablePageLayout
-			title='室內課程'
+			title='海外教學'
 			handleActionList={
 				<Box display='flex' gap={1.5}>
 					<CoreButton

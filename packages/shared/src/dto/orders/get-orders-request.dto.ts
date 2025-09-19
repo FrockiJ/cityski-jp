@@ -1,10 +1,14 @@
 import { Expose } from "class-transformer";
 import { PaginationRequestDTO } from "../pagination/pagination-request.dto";
 import { Filter } from "../../decorators/filter";
-import { IsOptional } from "class-validator";
+import { IsOptional, IsUUID } from "class-validator";
 import { FilterType, OptionNames } from "../../constants/enums";
 
 export class GetOrdersRequestDTO extends PaginationRequestDTO {
+  @IsUUID()
+  @Expose()
+  departmentId: string;
+
   @IsOptional()
   @Expose()
   keyword?: string;

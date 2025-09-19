@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { CoursePlanResponseDTO, GetCourseDetailResponseDTO, ResponseWrapper } from '@repo/shared';
+import { CoursePlanResponseDTO, GetCourseDetailResponseDTO, OrderChannel, OrderStatus, ResponseWrapper } from '@repo/shared';
 import { ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -11,7 +11,8 @@ import CourseInfoSection from '@/components/Project/OrderConfirm/CourseInfoSecti
 import DiscountSection from '@/components/Project/OrderConfirm/DiscountSection';
 import PaymentSection from '@/components/Project/OrderConfirm/PaymentSection';
 import axios from '@/lib/api';
-import { Department, selectDepartment, setDiscount } from '@/state/slices/infoSlice';
+import { selectToken } from '@/state/slices/authSlice';
+import { Department, selectDepartment, selectDiscount, setDiscount } from '@/state/slices/infoSlice';
 
 function OrderConfirmationPage() {
 	const router = useRouter();
@@ -23,6 +24,9 @@ function OrderConfirmationPage() {
 	const [formData, setFormData] = useState<OrderFormData>();
 	const [plan, setPlan] = useState<CoursePlanResponseDTO>();
 	const [timestamp, setTimestamp] = useState<number>();
+	
+	const authToken = useSelector(selectToken);
+	const discount = useSelector(selectDiscount);
 
 	useEffect(() => {
 		// Get department from either Redux or localStorage
@@ -77,6 +81,55 @@ function OrderConfirmationPage() {
 		};
 	}, [dispatch]);
 
+	const handleSubmit = async () => {
+		const body = {
+			type: courseDetail.type,
+			departmentId: courseDetail.departmentId,
+			coursePlanId: plan.id,
+			skiType: courseDetail.skiType,
+			bkgType: courseDetail.bkgType,
+			planNumber: plan.number,
+			planType: plan.type,
+			adultCount: formData.participants.adult,
+			childCount: formData.participants.minor,
+			discountCode: discount ?? '',
+			channel: OrderChannel.WEB,
+			status: OrderStatus.PENDING_DEPOSIT
+		};
+
+		try {
+			const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders`, {
+				method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${authToken}`,
+					},
+					body: JSON.stringify(body),
+			});
+
+			if (response.status === 201) {
+				// Save form data to localStorage before navigating
+				localStorage.removeItem('courseOrderData');
+				localStorage.setItem(
+					'createOrderSuccess',
+					JSON.stringify({
+						courseDetail: courseDetail,
+						order: body,
+						department: department,
+						plan: plan,
+						formData,
+						timestamp: formData.date ? new Date(formData.date).getTime() : undefined,
+					}),
+				);
+
+				// Navigate to order page
+				router.push(`/courses/order-success`);
+			}
+		} catch (error) {
+			console.log('error: ', error);
+		}
+	};
+
 	return (
 		<div className='max-w-[1200px] mx-auto pt-[48px] max-xs:pt-0'>
 			<div className='relative mt-10 flex flex-col md:flex-row gap-[60px]'>
@@ -114,6 +167,7 @@ function OrderConfirmationPage() {
 							<button
 								className='overflow-hidden gap-2.5 self-stretch px-6 py-5 mt-7 max-w-full text-base font-bold text-white whitespace-nowrap rounded-lg bg-[linear-gradient(99deg,#FE696C_0%,#FD8E4B_100%)] w-[335px] max-xs:w-full max-xs:px-5 transition-all duration-300 hover:opacity-90 hover:shadow-lg'
 								aria-label='送出訂單'
+								onClick={handleSubmit}
 							>
 								送出訂單
 							</button>

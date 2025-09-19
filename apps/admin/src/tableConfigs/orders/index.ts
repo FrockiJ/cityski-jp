@@ -3,26 +3,25 @@ import { ColumnType, GetCoursesRequestDTO, OrderTableListResult, TableColumnType
 import { blueTheme, greenTheme, greyTheme, redTheme, yellowTheme } from '@/components/Common/CIBase/Tag/styles';
 
 const statusTagStyles = {
-	已完成: greenTheme,
-	待紀錄: yellowTheme,
-	已排定: blueTheme,
-	已取消: redTheme,
-	未預約: greyTheme,
+	待付訂金: yellowTheme,
+	等待確認: blueTheme,
+	訂購成功: redTheme,
+	訂單完成: greyTheme,
 };
 
-export const getOrdersTableConfigColumn: TableColumnType<OrderTableListResult>[] = [
+export const getOrdersTableConfigColumn: TableColumnType<any>[] = [
 	{
 		name: '訂單編號',
 		key: 'no',
 		type: ColumnType.CONTENT,
-		width: 70,
+		width: 110,
 		sort: false,
 	},
 	{
 		name: '課程名稱',
 		key: 'name',
 		type: ColumnType.CONTENT,
-		width: 110,
+		width: 100,
 		sort: false,
 	},
 	{
@@ -36,15 +35,16 @@ export const getOrdersTableConfigColumn: TableColumnType<OrderTableListResult>[]
 		name: '訂單狀態',
 		key: 'status',
 		type: ColumnType.TAG,
-		width: 60,
+		width: 40,
 		styles: statusTagStyles,
 		sort: false,
 	},
 	{
 		name: '付款狀態',
 		key: 'payStatus',
-		type: ColumnType.CONTENT,
-		width: 60,
+		type: ColumnType.TAG,
+		width: 40,
+		styles: statusTagStyles,
 		sort: false,
 	},
 	{
@@ -77,8 +77,8 @@ export const getOrdersTableConfigColumn: TableColumnType<OrderTableListResult>[]
 	},
 ];
 
-export const configOrdersTable: TableConfig<OrderTableListResult, GetCoursesRequestDTO> = {
-	tableId: 'OrdersTableListResult',
+export const configOrdersTable: TableConfig<any, GetCoursesRequestDTO> = {
+	tableId: 'ordersTableList',
 	columns: getOrdersTableConfigColumn,
 	unfilteredFields: (_query) => [],
 };

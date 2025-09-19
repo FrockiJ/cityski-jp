@@ -66,8 +66,8 @@ const EditOrderModal = ({
 		}[courseType],
 		status: {
 			[CourseStatusType.DRAFT]: '草稿',
-			[CourseStatusType.PUBLISHED]: '排程中',
-			[CourseStatusType.SCHEDULED]: '已上架',
+			[CourseStatusType.SCHEDULED]: '排程中',
+			[CourseStatusType.PUBLISHED]: '已上架',
 			[CourseStatusType.UNPUBLISHED]: '已下架',
 		}[courseStatusType],
 	});

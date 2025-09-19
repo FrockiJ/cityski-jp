@@ -39,34 +39,44 @@ export class OrdersService {
   // get order list of all
   async getOrders(
     request: GetOrdersRequestDTO,
-  ): Promise<ResWithPaginationDTO<GetOrdersResponseDTO[]>> {
+  ): Promise<ResWithPaginationDTO<any[]>> {
     console.log('request', request);
     try {
       const orders = await this.ordersRepo.find();
 
-      // const ordersResponse = orders.map(() => {});
-      const total = orders.length;
-      const limit = request.limit || 10;
+      const customPage =
+        isNaN(Number(request.page)) || request.page <= 0
+          ? 1
+          : Number(request.page);
+      const customLimit =
+        isNaN(Number(request.limit)) || request.limit <= 0
+          ? 10
+          : Number(request.limit);
 
-      const formatData = orders.map((order) => ({
-        id: order.id,
-        courseName: 'order.coursePlan.name',
-        price: 1000,
-        status: order.status,
-        paymentStatus: 1,
-        number: order.planNumber,
-        people: order.adultCount + order.childCount,
-        process: 1,
-        createdTime: order.createdTime,
-      }));
+      // const formatData = orders.map((order) => ({
+      //   id: order.id,
+      //   courseName: 'order.coursePlan.name',
+      //   price: 1000,
+      //   status: order.status,
+      //   paymentStatus: 1,
+      //   number: order.planNumber,
+      //   people: order.adultCount + order.childCount,
+      //   process: 1,
+      //   createdTime: order.createdTime,
+      // }));
+
+      const formatData = orders;
+
+      const total = orders.length;
 
       const res = {
         data: formatData,
-        total: 0,
-        page: 1,
-        limit: 10,
-        pages: Math.ceil(total / limit),
+        total,
+        page: customPage,
+        limit: customLimit,
+        pages: Math.ceil(total / request.limit),
       };
+
       return res;
     } catch (err) {
       throw new HttpException(err.message, 500);

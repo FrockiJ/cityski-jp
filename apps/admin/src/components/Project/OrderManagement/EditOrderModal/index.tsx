@@ -79,7 +79,7 @@ const EditOrderModal = ({
 		},
 	]);
 
-	const [status, setStatus] = useState('待付訂金');
+	const [status, setStatus] = useState('待結清');
 
 	// --- API ---
 

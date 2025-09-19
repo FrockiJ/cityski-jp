@@ -132,7 +132,7 @@ const CourseProductsOverseasLessonPage = ({}: CourseProductsIndoorPageProps) => 
 				isLoading={isLoading}
 			>
 				<CoreDynamicTableList<CourseTableListResult>
-					rows={formatTableData}
+					rows={[]}
 					tableConfig={configCoursesTable}
 					handleTableRowClick={(rowData) => handleTableRowClick(rowData.id)}
 				/>

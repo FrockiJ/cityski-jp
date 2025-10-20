@@ -38,6 +38,8 @@ const CourseBookingForm = ({ data, onSubmit }: CourseBookingFormProps) => {
 		planType: data?.coursePlans?.[0]?.type || 0,
 	});
 
+	const [totalPrice, setTotalPrice] = useState(0);
+
 	const handleChange = (name: keyof OrderFormData, value: string | number | { adult: number; minor: number }) => {
 		if (name === 'plan') {
 			const selectedPlan = data?.coursePlans?.find((plan) => plan.id === (value as string));
@@ -46,6 +48,7 @@ const CourseBookingForm = ({ data, onSubmit }: CourseBookingFormProps) => {
 				[name]: value as string,
 				planType: selectedPlan?.type || 0,
 			}));
+			setTotalPrice(selectedPlan.number * selectedPlan.price);
 		} else {
 			setFormData((prevData) => ({ ...prevData, [name]: value }));
 		}
@@ -95,9 +98,8 @@ const CourseBookingForm = ({ data, onSubmit }: CourseBookingFormProps) => {
 				planType: data.coursePlans?.[0].type,
 			}));
 		}
+			setTotalPrice(data.coursePlans?.[0].number * data.coursePlans?.[0].price);
 	}, [data]);
-
-	const totalPrice = 1600; // This should be calculated based on the form data
 	return (
 		<form
 			onSubmit={handleSubmit}

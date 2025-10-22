@@ -21,7 +21,11 @@ function shouldIgnore(filePath) {
   const fileName = path.basename(filePath);
   return ignorePatterns.some(pattern => {
     if (pattern.includes('*')) {
-      const regex = new RegExp(pattern.replace('*', '.*'));
+      // 將 glob 模式轉換為正確的正則表達式
+      const regexPattern = pattern
+        .replace(/\./g, '\\.')  // 轉義點號
+        .replace(/\*/g, '.*');  // 將 * 轉換為 .*
+      const regex = new RegExp('^' + regexPattern + '$');  // 添加開始和結束錨點
       return regex.test(fileName);
     }
     return fileName === pattern || filePath.includes(pattern);

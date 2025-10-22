@@ -8,6 +8,7 @@ import {
 } from '@repo/shared';
 import { CoursePlan } from 'src/course-plan/entities/course-plan.entity';
 import { Department } from 'src/departments/entities/department.entity';
+import { Member } from 'src/members/entities/member.entity';
 import { UserDate } from 'src/shared/entities/user_date.entity';
 import { Transaction } from 'src/transaction/entities/transaction.entity';
 import {
@@ -29,6 +30,10 @@ export class Order extends UserDate {
   @ManyToOne(() => CoursePlan, (coursePlan) => coursePlan.orders)
   @JoinColumn({ name: 'course_plan_id' })
   coursePlan: CoursePlan;
+
+  @ManyToOne(() => Member, (member) => member.orders)
+  @JoinColumn({ name: 'orderer' })
+  member: Member;
 
   // cascade: true, save時可以將關聯資料寫在一起儲存
   @OneToOne(() => Transaction, (transaction) => transaction.order, {

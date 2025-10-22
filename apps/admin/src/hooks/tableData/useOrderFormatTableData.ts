@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { GetCoursesRequestDTO, OrderByType, OrderStatus, SortType } from '@repo/shared';
+import { GetOrdersRequestDTO, OrderByType, OrderStatus, SortType } from '@repo/shared';
 import dayjs from 'dayjs';
 
 import useGetTableData from '@/hooks/useGetTableData';
@@ -7,7 +7,7 @@ import { useAppSelector } from '@/state/store';
 import { configOrdersTable } from 'src/tableConfigs/orders';
 
 type Props = {
-	query?: GetCoursesRequestDTO;
+	query?: GetOrdersRequestDTO;
 	sort?: SortType;
 };
 

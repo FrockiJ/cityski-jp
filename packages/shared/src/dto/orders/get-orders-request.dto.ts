@@ -1,7 +1,7 @@
-import { Expose } from "class-transformer";
+import { Expose, Transform, Type } from "class-transformer";
 import { PaginationRequestDTO } from "../pagination/pagination-request.dto";
 import { Filter } from "../../decorators/filter";
-import { IsOptional, IsUUID } from "class-validator";
+import { IsOptional, IsUUID, IsNumber, Min } from "class-validator";
 import { FilterType, OptionNames } from "../../constants/enums";
 
 export class GetOrdersRequestDTO extends PaginationRequestDTO {
@@ -12,6 +12,13 @@ export class GetOrdersRequestDTO extends PaginationRequestDTO {
   @IsOptional()
   @Expose()
   keyword?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({}, { message: 'status must be a valid number' })
+  @Min(0, { message: 'status must be greater than or equal to 0' })
+  @Expose()
+  status?: number;
 
   @Filter({
     type: FilterType.DATETIME,

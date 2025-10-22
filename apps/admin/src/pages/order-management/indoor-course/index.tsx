@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, debounce } from '@mui/material';
-import { GetCoursesRequestDTO, ModalType } from '@repo/shared';
+import { GetOrdersRequestDTO, ModalType, OrderStatus } from '@repo/shared';
 import { configOrdersTable } from 'src/tableConfigs/orders';
 
 import CoreButton from '@/components/Common/CIBase/CoreButton';
@@ -19,9 +19,29 @@ const OrderManagementIndoorCoursePage = () => {
 	const modal = useModalProvider();
 	const [keyword, setKeyword] = useState<string>('');
 	const [departmentId, setDepartmentId] = useState<string>('');
+	const [selectedStatus, setSelectedStatus] = useState<number | undefined>(undefined);
+	
 	const handleSearch = debounce((e: any) => {
 		setKeyword(e.target.value.trim());
 	}, 300);
+
+	// Tab狀態對應到OrderStatus的映射
+	const getStatusFromTabIndex = (tabIndex: number): number | undefined => {
+		switch (tabIndex) {
+			case 0: return undefined; // 全部
+			case 1: return OrderStatus.PENDING_DEPOSIT; // 待付訂金
+			case 2: return OrderStatus.WAITING_FOR_CONFIRMATION; // 等待確認
+			case 3: return OrderStatus.ORDER_SUCCESSFUL; // 訂購成功
+			case 4: return OrderStatus.ORDER_COMPLETED; // 訂單完成
+			case 5: return OrderStatus.ORDER_CANCELED; // 訂購取消
+			default: return undefined;
+		}
+	};
+
+	const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+		const status = getStatusFromTabIndex(newValue);
+		setSelectedStatus(status);
+	};
 	
 		// --- EFFECT ---
 	
@@ -33,8 +53,15 @@ const OrderManagementIndoorCoursePage = () => {
 	
 	// --- API ---
 
+	// 過濾掉 undefined 值以避免驗證錯誤
+	const queryParams = {
+		keyword,
+		departmentId,
+		...(selectedStatus !== undefined && { status: selectedStatus }),
+	};
+
 	const { formatTableData, tableData, tableDataCount, tableDataLoading, handleRefresh } = useOrderFormatTableData({
-		query: { keyword, departmentId },
+		query: queryParams,
 	});
 
 	useEffect(() => {
@@ -104,6 +131,7 @@ const OrderManagementIndoorCoursePage = () => {
 			<TabsHeader
 				tabs={['全部', '待付訂金', '等待確認', '訂購成功', '訂單完成', '訂購取消']}
 				sx={{ bgcolor: 'white', borderBottom: '1px solid #E0E0E0' }}
+				onChange={handleTabChange}
 			/>
 			<StyledSearchFilterWrapper>
 				<CoreFilter
@@ -111,7 +139,7 @@ const OrderManagementIndoorCoursePage = () => {
 					tableDataCount={tableDataCount}
 					searchOptions={{ onKeyDown: handleSearch, value: keyword, placeholder: '搜尋會員姓名或訂單編號' }}
 					unused={configOrdersTable?.unfilteredFields}
-					queryDto={() => GetCoursesRequestDTO}
+					queryDto={() => GetOrdersRequestDTO}
 				/>
 			</StyledSearchFilterWrapper>
 

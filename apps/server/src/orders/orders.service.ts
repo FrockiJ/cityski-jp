@@ -42,7 +42,36 @@ export class OrdersService {
   ): Promise<ResWithPaginationDTO<any[]>> {
     console.log('request', request);
     try {
-      const orders = await this.ordersRepo.find();
+      const queryBuilder = this.ordersRepo.createQueryBuilder('o')
+        .leftJoinAndSelect('o.member', 'member')
+        .leftJoinAndSelect('o.coursePlan', 'coursePlan');
+
+      // 根據部門ID篩選
+      if (request.departmentId) {
+        queryBuilder.andWhere('o.department_id = :departmentId', {
+          departmentId: request.departmentId,
+        });
+      }
+
+      // 根據狀態篩選
+      if (request.status !== undefined && request.status !== null) {
+        queryBuilder.andWhere('o.status = :status', {
+          status: request.status,
+        });
+      }
+
+      // 根據關鍵字搜索會員姓名或訂單編號
+      if (request.keyword) {
+        queryBuilder.andWhere(
+          '(member.name LIKE :keyword OR o.no LIKE :keyword)',
+          { keyword: `%${request.keyword}%` }
+        );
+      }
+
+      // 排序：最新的訂單在前
+      queryBuilder.orderBy('o.createdTime', 'DESC');
+
+      const orders = await queryBuilder.getMany();
 
       const customPage =
         isNaN(Number(request.page)) || request.page <= 0
@@ -53,28 +82,19 @@ export class OrdersService {
           ? 10
           : Number(request.limit);
 
-      // const formatData = orders.map((order) => ({
-      //   id: order.id,
-      //   courseName: 'order.coursePlan.name',
-      //   price: 1000,
-      //   status: order.status,
-      //   paymentStatus: 1,
-      //   number: order.planNumber,
-      //   people: order.adultCount + order.childCount,
-      //   process: 1,
-      //   createdTime: order.createdTime,
-      // }));
-
-      const formatData = orders;
+      // 分頁處理
+      const startIndex = (customPage - 1) * customLimit;
+      const endIndex = startIndex + customLimit;
+      const paginatedOrders = orders.slice(startIndex, endIndex);
 
       const total = orders.length;
 
       const res = {
-        data: formatData,
+        data: paginatedOrders,
         total,
         page: customPage,
         limit: customLimit,
-        pages: Math.ceil(total / request.limit),
+        pages: Math.ceil(total / customLimit),
       };
 
       return res;

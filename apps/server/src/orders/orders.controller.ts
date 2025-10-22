@@ -31,6 +31,17 @@ export class OrdersController {
   }
 
   @UseGuards(ClientAuthGuard)
+  @Get('/my-orders')
+  getMyOrders(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Req() request: CustomRequest,
+  ): Promise<ResWithPaginationDTO<GetOrdersResponseDTO[]>> {
+    const memberId = request['user'].sub;
+    return this.ordersService.getOrdersByMemberId(memberId, page, limit);
+  }
+
+  @UseGuards(ClientAuthGuard)
   @Post('/')
   createOrder(
     @Body() body: CreateOrderRequestDTO,

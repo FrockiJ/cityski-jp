@@ -1,59 +1,49 @@
 'use client';
 
+import { OrderStatus } from '@repo/shared';
 import { useRouter } from 'next/navigation';
 
 import ArrowIcon from '@/components/Icon/ArrowIcon';
 import InfoIcon from '@/components/Icon/InfoIcon';
 import { Button } from '@/components/ui/button';
+import { useMyOrders } from '@/hooks/useMyOrders';
+
+type UIOrderStatus = 'unpaid' | 'paid' | 'confirmed';
 
 export default function CurrentOrders() {
 	const router = useRouter();
-	const orders = [
-		{
-			id: 1,
-			status: 'unpaid',
-			date: '2024/9/30 21:25',
-			title: '團體班教學',
-			description: `5堂團體班
-2成人 + 1青少年/兒童`,
-			price: '20,300',
-			courseType: 'group',
-			isAllConfirm: true,
-		},
-		{
-			id: 2,
-			status: 'paid',
-			date: '2024/11/30 18:00',
-			title: '團體班教學',
-			description: `5堂團體班
-2成人 + 1青少年/兒童`,
-			price: '20,300',
-			courseType: 'group',
-			isAllConfirm: true,
-		},
-		{
-			id: 3,
-			status: 'confirmed',
-			date: '2024/11/30 18:00',
-			title: '團體班教學',
-			description: `5堂團體班
-2成人 + 1青少年/兒童`,
-			price: '20,300',
-			courseType: 'group',
-			isAllConfirm: true,
-		},
-		{
-			id: 4,
-			status: 'confirmed',
-			date: '2024/11/30 18:00',
-			title: '團體班教學',
-			description: `5堂團體班
-2成人 + 1青少年/兒童`,
-			price: '20,300',
-			courseType: 'group',
-			isAllConfirm: false,
-		},
-	];
+	const { orders, loading, error } = useMyOrders();
+
+	// Map API order status to local status format
+	const mapOrderStatus = (apiOrder: any): UIOrderStatus => {
+		switch (apiOrder.status) {
+			case OrderStatus.PENDING_DEPOSIT: // 0 - 待付訂金
+				return 'unpaid';
+			case OrderStatus.WAITING_FOR_CONFIRMATION: // 1 - 等待確認
+				return 'paid';
+			case OrderStatus.ORDER_SUCCESSFUL: // 2 - 訂購成功
+			case OrderStatus.ORDER_COMPLETED: // 3 - 訂單完成
+				return 'confirmed';
+			case OrderStatus.ORDER_CANCELED: // 9 - 訂單取消
+			default:
+				return 'unpaid';
+		}
+	};
+
+	// Transform API orders to UI format
+	const transformedOrders = (orders || []).map((apiOrder) => ({
+		id: apiOrder.id,
+		status: mapOrderStatus(apiOrder),
+		date: new Date(apiOrder.createdTime).toLocaleString('zh-TW'),
+		title: apiOrder.courseName,
+		description: `${apiOrder.number}堂課程\n${apiOrder.people}人`,
+		price: apiOrder.price.toLocaleString(),
+		courseType: 'group', // TODO: Map from API data
+		isAllConfirm: true, // TODO: Map from API data
+	}));
+
+	// Use transformed orders from API
+	const displayOrders = transformedOrders;
 
 	const orderStatusMapper = {
 		unpaid: {
@@ -76,16 +66,40 @@ export default function CurrentOrders() {
 		},
 	};
 
-	const handleClick = (orderId: number) => {
+	const handleClick = (orderId: string | number) => {
 		router.push(`/order/${orderId}`);
 	};
+
+	// Show loading state
+	if (loading) {
+		return (
+			<main className='flex flex-col max-w-[856px] max-xs:ml-0 max-xs:w-full'>
+				<section className='xs:p-8 xs:border xs:rounded-2xl flex flex-col gap-4 w-full'>
+					<div className='hidden xs:block text-[26px] font-medium mb-4'>目前預約/訂單</div>
+					<div className='text-center py-8'>載入中...</div>
+				</section>
+			</main>
+		);
+	}
+
+	// Show error state
+	if (error) {
+		return (
+			<main className='flex flex-col max-w-[856px] max-xs:ml-0 max-xs:w-full'>
+				<section className='xs:p-8 xs:border xs:rounded-2xl flex flex-col gap-4 w-full'>
+					<div className='hidden xs:block text-[26px] font-medium mb-4'>目前預約/訂單</div>
+					<div className='text-center py-8 text-red-500'>載入失敗: {error}</div>
+				</section>
+			</main>
+		);
+	}
 
 	return (
 		<main className='flex flex-col max-w-[856px] max-xs:ml-0 max-xs:w-full'>
 			<section className='xs:p-8 xs:border xs:rounded-2xl	flex flex-col gap-4 w-full'>
 				<div className='hidden xs:block text-[26px] font-medium mb-4'>目前預約/訂單</div>
-				{orders.length ? (
-					orders.map((order) => (
+				{displayOrders.length ? (
+					displayOrders.map((order) => (
 						<div key={order.id} className='border rounded-xl flex flex-col'>
 							{!order.isAllConfirm && (
 								<div className='flex flex-col gap-1.5 py-2 pl-4 pr-3 bg-[#E4F1FC] xs:flex-row xs:justify-between'>

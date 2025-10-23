@@ -143,7 +143,10 @@ export class DiscountsService {
       };
       return res;
     } catch (err) {
-      throw new HttpException(err.message, 500);
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -178,7 +181,7 @@ export class DiscountsService {
       if (err instanceof CustomException) {
         throw err;
       }
-      throw new HttpException(err.message, 500);
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -253,8 +256,12 @@ export class DiscountsService {
         updatedUser: userId,
       });
       await this.discountRepo.save(savedDiscount);
+      return savedDiscount;
     } catch (err) {
-      throw new HttpException(err.message, 500);
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -282,11 +289,12 @@ export class DiscountsService {
         updatedUser: userId,
       });
       await this.discountRepo.save(savedDiscount);
+      return savedDiscount;
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;
       }
-      throw new HttpException(err.message, 500);
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -311,8 +319,12 @@ export class DiscountsService {
         updatedUser: userId,
       });
       await this.discountRepo.save(savedDiscount);
+      return savedDiscount;
     } catch (err) {
-      throw new HttpException(err.message, 500);
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -326,12 +338,13 @@ export class DiscountsService {
       // if(using from order) {
 
       // }
-      this.discountRepo.remove(discount);
+      await this.discountRepo.remove(discount);
+      return discount;
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;
       }
-      throw new HttpException(err.message, 500);
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -350,10 +363,13 @@ export class DiscountsService {
         ...discount,
         status: DiscountStatus.EXPIRED,
       }));
-      this.discountRepo.save(expiredDiscounts);
+      await this.discountRepo.save(expiredDiscounts);
       return expiredDiscounts;
     } catch (err) {
-      throw new HttpException(err.message, 500);
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 

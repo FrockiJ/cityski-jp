@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { debounce } from '@mui/material';
-import { ReservationIndoorTableListResult } from '@repo/shared';
+import { ReservationIndoorTableListResult, GetReservationsRequestDto } from '@repo/shared';
 import { ModalType } from '@repo/shared';
-import { GetCoursesRequestDTO } from '@repo/shared/dist/dto/courses/get-courses-request.dto';
 import { configReservationsIndoorTable } from 'src/tableConfigs/reservations-indoor';
 
 import CoreButton from '@/components/Common/CIBase/CoreButton';
@@ -12,7 +11,7 @@ import CoreFilter from '@/components/Common/CIBase/CoreDynamicTable/CoreFilter';
 import { StyledSearchFilterWrapper } from '@/components/Common/CIBase/CoreDynamicTable/CoreFilter/styles';
 import TablePageLayout from '@/components/Common/CIBase/CoreDynamicTable/TablePageLayout';
 import AddEditReservationIndoorModal from '@/components/Project/ReservationManagement/AddEditReservationIndoorModal';
-import { useCourseFormatTableData } from '@/hooks/tableData/useCourseFormatTableData';
+import { useReservationFormatTableData } from '@/hooks/tableData/useReservationFormatTableData';
 import useModalProvider from '@/hooks/useModalProvider';
 
 const IndoorCoursePage = () => {
@@ -32,8 +31,9 @@ const IndoorCoursePage = () => {
 	}, []);
 
 	// --- API ---
-	const { formatTableData, tableData, tableDataCount, tableDataLoading, handleRefresh } = useCourseFormatTableData({
+	const { formatTableData, tableData, tableDataCount, tableDataLoading, handleRefresh } = useReservationFormatTableData({
 		query: { keyword, departmentId },
+		type: 'indoor',
 	});
 
 	return (
@@ -62,21 +62,21 @@ const IndoorCoursePage = () => {
 			<StyledSearchFilterWrapper>
 				<CoreFilter
 					tableId={configReservationsIndoorTable.tableId}
-					tableDataCount={0}
+					tableDataCount={tableDataCount}
 					searchOptions={{ onKeyDown: handleSearch, value: keyword, placeholder: '搜尋學員或課程名稱' }}
 					unused={configReservationsIndoorTable?.unfilteredFields}
-					queryDto={() => GetCoursesRequestDTO}
+					queryDto={() => GetReservationsRequestDto}
 				/>
 			</StyledSearchFilterWrapper>
 
 			<CoreDynamicTable
 				id={configReservationsIndoorTable.tableId}
 				headData={configReservationsIndoorTable.columns}
-				dataCount={0}
-				isLoading={false}
+				dataCount={tableDataCount}
+				isLoading={tableDataLoading}
 			>
 				<CoreDynamicTableList<ReservationIndoorTableListResult>
-					rows={[]}
+					rows={formatTableData as ReservationIndoorTableListResult[]}
 					tableConfig={configReservationsIndoorTable}
 					// handleTableRowClick={(rowData) => handleTableRowClick(rowData.id)}
 				/>

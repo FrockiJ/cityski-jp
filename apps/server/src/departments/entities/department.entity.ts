@@ -13,6 +13,7 @@ import { Discount } from 'src/discounts/entities/discount.entity';
 import { Course } from 'src/course/entities/course.entity';
 import { CourseVenue } from 'src/course/entities/course-venue.entity';
 import { Order } from 'src/orders/entities/order.entity';
+import { Reservation } from 'src/reservations/entities/reservation.entity';
 
 @Entity()
 export class Department extends PublicDate {
@@ -109,4 +110,10 @@ export class Department extends PublicDate {
     cascade: true,
   })
   orders: Order[];
+
+  // cascade: true, save時可以將關聯資料寫在一起儲存
+  @OneToMany(() => Reservation, (reservation) => reservation.department, {
+    cascade: true,
+  })
+  reservations: Reservation[];
 }

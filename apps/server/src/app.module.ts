@@ -45,6 +45,8 @@ import { Order } from './orders/entities/order.entity';
 import { OrdersModule } from './orders/orders.module';
 import { Transaction } from './transaction/entities/transaction.entity';
 import { TransactionsModule } from './transaction/transactions.module';
+import { Reservation } from './reservations/entities/reservation.entity';
+import { ReservationsModule } from './reservations/reservations.module';
 
 @Module({
   imports: [
@@ -88,6 +90,7 @@ import { TransactionsModule } from './transaction/transactions.module';
             VerificationCode,
             Order,
             Transaction,
+            Reservation,
           ],
           synchronize:
             dbSyncEnv === 'dev'
@@ -119,6 +122,7 @@ import { TransactionsModule } from './transaction/transactions.module';
     HomeModule,
     OrdersModule,
     TransactionsModule,
+    ReservationsModule,
   ],
   controllers: [AppController],
 })

@@ -414,6 +414,23 @@ export type VenueStatus = EnumValues<typeof VenueStatus>;
 
 /****** End Venue Enums **/
 
+/****** Start Reservation Enums **/
+
+/**
+ * Reservation status -
+ * SCHEDULED: 1 "已排定",
+ * COMPLETED: 2 "已完成",
+ * CANCELED: 9 "已取消"
+ */
+export const ReservationStatus = {
+  SCHEDULED: 1,
+  COMPLETED: 2,
+  CANCELED: 9,
+};
+export type ReservationStatusEnum = EnumValues<typeof ReservationStatus>;
+
+/****** End Reservation Enums **/
+
 /** Start CI Module Enums ******/
 
 export enum FilterType {

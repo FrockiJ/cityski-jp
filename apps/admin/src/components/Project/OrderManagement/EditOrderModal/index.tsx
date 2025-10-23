@@ -12,6 +12,7 @@ import { StyledAbsoluteModalActions } from '@/CIBase/CoreModal/CoreModalActions'
 import FormikDatePicker from '@/components/Common/CIBase/Formik/FormikDatePicker';
 import { FormikScrollToError } from '@/Formik/common/FormikComponents';
 import useModalProvider from '@/hooks/useModalProvider';
+import { useGetOrderDetail } from '@/hooks/useGetOrderDetail';
 
 import ConfirmPaymentModal from './PaymentInfoBlock/ConfirmPaymentModal';
 import CourseReservation from './CourseReservation';
@@ -41,6 +42,7 @@ interface EditOrderModalProps {
 	rowData?: GetCoursesResponseDTO;
 	courseType: CourseType;
 	courseStatusType: CourseStatusType;
+	orderId?: string;
 }
 
 const EditOrderModal = ({
@@ -50,6 +52,7 @@ const EditOrderModal = ({
 	handleCloseModal,
 	handleRefresh,
 	rowData,
+	orderId,
 }: EditOrderModalProps) => {
 	const modal = useModalProvider();
 	const [courseInfo, setMemberInfo] = useState({
@@ -82,6 +85,7 @@ const EditOrderModal = ({
 	const [status, setStatus] = useState('待結清');
 
 	// --- API ---
+	const { orderDetail, loading: orderDetailLoading } = useGetOrderDetail(orderId);
 
 	// --- EFFECTS ---
 
@@ -117,7 +121,7 @@ const EditOrderModal = ({
 		// }
 	};
 
-	const isLoading = false;
+	const isLoading = orderDetailLoading;
 
 	return (
 		<Formik
@@ -133,9 +137,9 @@ const EditOrderModal = ({
 						<FormikScrollToError />
 						<CoreAnchorModal anchorItems={anchorItems} rightContent={<FixedPaymentBlock status={status} handleRefresh={(data) => setStatus(data)} />}>
 							<CoreBlock title='訂單資訊'>
-								<OrderInfoBlock />
+								<OrderInfoBlock orderDetail={orderDetail} />
 							</CoreBlock>
-							{
+							{/* {
 								status === '待付訂金'
 								? <CoreBlock
 										title='付款資訊'
@@ -160,7 +164,7 @@ const EditOrderModal = ({
 									<PaymentInfoBlock />
 								</CoreBlock>
 							}
-						
+						 */}
 							<CoreBlock
 								title='課程預約'
 								buttonLabel='新增預約'

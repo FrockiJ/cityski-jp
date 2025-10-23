@@ -55,4 +55,4 @@ export class Transaction extends UserDate {
 
   @Column({ name: 'trf_amt', type: 'int', nullable: true })
   trfAmt: string;
-}
+} 

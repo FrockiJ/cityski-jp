@@ -13,7 +13,7 @@ export class CreateReservationRequestDto {
 
   @IsOptional()
   @IsString()
-  designatedCoach?: string;
+  instructor?: string;
 
   @IsOptional()
   @IsString()

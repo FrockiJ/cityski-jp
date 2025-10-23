@@ -6,7 +6,7 @@ export interface GetReservationDetailResponseDto {
   reservationStatus: number;
   classTime: Date;
   teachingLevel: SkiAndSnowboardLevelEnum;
-  designatedCoach: string | null;
+  instructor: string | null;
   departmentName: string;
   createdTime: Date;
   updatedTime: Date;
@@ -18,7 +18,7 @@ export interface ReservationResponseDto {
   reservationStatus: number;
   classTime: Date;
   teachingLevel: SkiAndSnowboardLevelEnum;
-  designatedCoach: string | null;
+  instructor: string | null;
   departmentId: string;
   createdTime: Date;
   updatedTime: Date;

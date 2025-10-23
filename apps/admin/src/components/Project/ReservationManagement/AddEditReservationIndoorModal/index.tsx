@@ -9,10 +9,14 @@ import {
 	DialogAction,
 	GetCoursesResponseDTO,
 	ModalType,
+	CreateReservationRequestDto,
+	SkiAndSnowboardLevelEnum,
+	ReservationStatusEnum,
 } from '@repo/shared';
-import { Dayjs } from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import { Form, Formik, FormikProps } from 'formik';
 import * as Yup from 'yup';
+import { useReservationDetail, useCreateReservation } from '@/hooks/useReservation';
 
 import CoreButton from '@/CIBase/CoreButton';
 import CoreLoaders from '@/CIBase/CoreLoaders';
@@ -42,7 +46,8 @@ interface InitialValuesProps {
 	pickTrainer: string;
 	trainerName: string;
 	courseStartDate: Dayjs | null;
-	courseLevel: string;
+	courseLevel: SkiAndSnowboardLevelEnum;
+	departmentId: string;
 }
 
 interface AddEditReservationIndoorModalProps {
@@ -53,6 +58,7 @@ interface AddEditReservationIndoorModalProps {
 	rowData?: GetCoursesResponseDTO;
 	courseType: CourseType;
 	courseStatusType: CourseStatusType;
+	reservationId?: string;
 }
 
 const AddEditReservationIndoorModal = ({
@@ -62,8 +68,11 @@ const AddEditReservationIndoorModal = ({
 	handleCloseModal,
 	handleRefresh,
 	rowData,
+	reservationId,
 }: AddEditReservationIndoorModalProps) => {
 	const modal = useModalProvider();
+	const { reservationDetail, loading: detailLoading, fetchReservationDetail } = useReservationDetail();
+	const { loading: createLoading, createNewReservation } = useCreateReservation();
 	const [courseInfo, setMemberInfo] = useState({
 		no: '--',
 		type: {
@@ -102,13 +111,44 @@ const AddEditReservationIndoorModal = ({
 	}, [courseDesc]);
 
 	useEffect(() => {
-		if (modalType === ModalType.EDIT && rowData) {
+		const loadReservationData = async () => {
+			if (modalType === ModalType.EDIT && reservationId) {
+				await fetchReservationDetail(reservationId);
+			} else if (modalType === ModalType.ADD) {
+				// 新增模式：設置部門 ID 從 localStorage
+				const departmentId = localStorage.getItem('departmentId');
+				if (departmentId) {
+					setInitialValues((prevState) => ({
+						...prevState,
+						departmentId: departmentId,
+					}));
+				}
+			}
+		};
+
+		loadReservationData();
+	}, [modalType, reservationId]);
+
+	// 當獲取到預約詳情時更新表單和課程資訊
+	useEffect(() => {
+		if (reservationDetail) {
+			console.log('reservationDetail: ', reservationDetail);
+			// 更新課程資訊
 			setMemberInfo((prevState) => ({
 				...prevState,
-				no: rowData.no,
+				no: reservationDetail.reservationNo.toString(),
 			}));
+			
+			// 更新表單初始值
+			setInitialValues({
+				pickTrainer: reservationDetail.instructor ? 'Y' : 'N',
+				trainerName: reservationDetail.instructor || '',
+				courseStartDate: dayjs(reservationDetail.classTime),
+				courseLevel: reservationDetail.teachingLevel,
+				departmentId: localStorage.getItem('departmentId') || '',
+			});
 		}
-	}, [modalType, rowData]);
+	}, [reservationDetail]);
 
 	// --- FORMIK ---
 
@@ -116,7 +156,8 @@ const AddEditReservationIndoorModal = ({
 		pickTrainer: 'N',
 		trainerName: '',
 		courseStartDate: null,
-		courseLevel: '',
+		courseLevel: '1' as SkiAndSnowboardLevelEnum,
+		departmentId: '',
 	});
 
 	const validationSchema = Yup.object().shape({
@@ -126,18 +167,28 @@ const AddEditReservationIndoorModal = ({
 		}),
 		courseStartDate: Yup.date().nullable().required('必填'),
 		courseLevel: Yup.string().required('必填欄位'),
+		departmentId: Yup.string().required('必填欄位'),
 	});
 
 	const handleFormSubmit = async (values: InitialValuesProps) => {
-		console.log({ values });
+		const reservationData: CreateReservationRequestDto = {
+			departmentId: values.departmentId,
+			classTime: values.courseStartDate!.toDate(),
+			teachingLevel: values.courseLevel,
+			instructor: values.pickTrainer === 'Y' ? values.trainerName : undefined,
+			reservationStatus: '1', // SCHEDULED 狀態
+		};
 
-		// if (statusCode === HttpStatusCode.OK) {
-		// 	handleCloseModal?.(DialogAction.CONFIRM);
-		// 	handleRefresh?.();
-		// }
+		const success = await createNewReservation(reservationData);
+		
+		if (success) {
+			handleCloseModal?.(DialogAction.CONFIRM);
+			handleRefresh?.();
+		}
+		// 錯誤處理已經在 hook 中完成
 	};
 
-	const isLoading = false;
+	const isLoading = detailLoading || createLoading;
 
 	return (
 		<Formik
@@ -181,7 +232,11 @@ const AddEditReservationIndoorModal = ({
 									console.log('課程資訊');
 								}}
 							>
-								<ReservationInfo />
+								<ReservationInfo 
+									courseInfo={courseInfo}
+									reservationDetail={reservationDetail}
+									courseType={courseType}
+								/>
 								<FormikDateTimePicker
 									name='courseStartDate'
 									title='上課時間'
@@ -189,11 +244,11 @@ const AddEditReservationIndoorModal = ({
 									placeholder='yyyy/mm/dd hh:mm'
 									width='220px'
 									format='YYYY/MM/DD hh:mm'
-									margin='0 10px 0 0'
+									margin='0 10px 10px 0'
 									// disabled={isReadonly}
 									disablePast
 								/>
-								<FormikInput name='courseLevel' title='授課等級' width='192px' isRequired placeholder='請輸入等級' />
+								<FormikInput name='courseLevel' title='授課等級' width='192px' isRequired placeholder='1-20' />
 								<Stack mt={3}>
 									<FormikRadio
 										name='pickTrainer'

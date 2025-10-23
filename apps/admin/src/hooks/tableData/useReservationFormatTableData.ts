@@ -49,9 +49,10 @@ export const useReservationFormatTableData = (options?: Props) => {
 					name: `預約 #${reservation.reservationNo}`,
 					status: getStatusText(reservation.reservationStatus),
 					boardType: getTeachingLevelText(reservation.teachingLevel),
-					level: getTeachingLevelText(reservation.teachingLevel),
-					instructor: reservation.designatedCoach || '未指定',
+					level: `LV.${getTeachingLevelText(reservation.teachingLevel)}`,
+					instructor: reservation.instructor || '未指定',
 					beginTime: dayjs(reservation.classTime).format('YYYY/MM/DD HH:mm'),
+          
 				};
 
 				if (isOverseas) {
@@ -81,7 +82,7 @@ export const useReservationFormatTableData = (options?: Props) => {
 };
 
 // 輔助函數：獲取狀態文字
-function getStatusText(status: ReservationStatusEnum): string {
+function getStatusText(status: number): string {
   switch (status) {    
     case ReservationStatus.SCHEDULED:
       return '已排定';

@@ -1,6 +1,6 @@
 import {
 	ColumnType,
-	GetCoursesRequestDTO,
+	GetReservationsRequestDto,
 	ReservationIndoorTableListResult,
 	TableColumnType,
 	TableConfig,
@@ -83,7 +83,7 @@ export const getReservationsIndoorTableConfigColumn: TableColumnType<Reservation
 	},
 ];
 
-export const configReservationsIndoorTable: TableConfig<ReservationIndoorTableListResult, GetCoursesRequestDTO> = {
+export const configReservationsIndoorTable: TableConfig<ReservationIndoorTableListResult, GetReservationsRequestDto> = {
 	tableId: 'ReservationsIndoorTableListResult',
 	columns: getReservationsIndoorTableConfigColumn,
 	unfilteredFields: (_query) => [],

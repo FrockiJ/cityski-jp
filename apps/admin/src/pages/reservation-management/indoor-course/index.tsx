@@ -30,6 +30,26 @@ const IndoorCoursePage = () => {
 		if (departmentId) setDepartmentId(departmentId);
 	}, []);
 
+	// --- HANDLERS ---
+	const handleEditReservation = (reservationId: string) => {
+		modal.openModal({
+			title: `編輯預約`,
+			center: true,
+			fullScreen: true,
+			noAction: true,
+			marginBottom: true,
+			children: (
+				<AddEditReservationIndoorModal 
+					modalType={ModalType.EDIT} 
+					courseType={''} 
+					courseStatusType={0}
+					reservationId={reservationId}
+					handleRefresh={handleRefresh}
+				/>
+			),
+		});
+	};
+
 	// --- API ---
 	const { formatTableData, tableData, tableDataCount, tableDataLoading, handleRefresh } = useReservationFormatTableData({
 		query: { keyword, departmentId },
@@ -75,11 +95,11 @@ const IndoorCoursePage = () => {
 				dataCount={tableDataCount}
 				isLoading={tableDataLoading}
 			>
-				<CoreDynamicTableList<ReservationIndoorTableListResult>
-					rows={formatTableData as ReservationIndoorTableListResult[]}
-					tableConfig={configReservationsIndoorTable}
-					// handleTableRowClick={(rowData) => handleTableRowClick(rowData.id)}
-				/>
+			<CoreDynamicTableList<ReservationIndoorTableListResult>
+				rows={formatTableData as ReservationIndoorTableListResult[]}
+				tableConfig={configReservationsIndoorTable}
+				handleTableRowClick={(rowData) => handleEditReservation(rowData.id)}
+			/>
 			</CoreDynamicTable>
 		</TablePageLayout>
 	);

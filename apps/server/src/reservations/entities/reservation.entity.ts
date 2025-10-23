@@ -39,6 +39,6 @@ export class Reservation extends UserDate {
   @Column({ name: 'teaching_level', type: 'varchar', length: 2 })
   teachingLevel: SkiAndSnowboardLevelEnum;
 
-  @Column({ name: 'designated_coach', type: 'varchar', length: 100, nullable: true })
-  designatedCoach: string;
+  @Column({ name: 'instructor', type: 'varchar', length: 100, nullable: true })
+  instructor: string;
 }

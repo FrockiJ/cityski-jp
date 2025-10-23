@@ -15,7 +15,7 @@ export interface CreateReservationRequestDTO {
   departmentId: string;
   classTime: Date;
   teachingLevel: SkiAndSnowboardLevelEnum;
-  designatedCoach?: string;
+  instructor?: string;
   reservationStatus?: ReservationStatus;
 }
 
@@ -33,7 +33,7 @@ export interface GetReservationDetailResponseDTO {
   reservationStatus: ReservationStatus;
   classTime: Date;
   teachingLevel: SkiAndSnowboardLevelEnum;
-  designatedCoach: string | null;
+  instructor: string | null;
   departmentName: string;
   createdTime: Date;
   updatedTime: Date;
@@ -81,7 +81,7 @@ export class ReservationsService {
       // 根據關鍵字搜索預約編號或指定教練
       if (request.keyword) {
         queryBuilder.andWhere(
-          '(r.reservation_no LIKE :keyword OR r.designated_coach LIKE :keyword)',
+          '(r.reservation_no LIKE :keyword OR r.instructor LIKE :keyword)',
           { keyword: `%${request.keyword}%` }
         );
       }
@@ -142,7 +142,7 @@ export class ReservationsService {
         reservationStatus: reservation.reservationStatus,
         classTime: reservation.classTime,
         teachingLevel: reservation.teachingLevel,
-        designatedCoach: reservation.designatedCoach,
+        instructor: reservation.instructor,
         departmentName: reservation.department?.name || '',
         createdTime: reservation.createdTime,
         updatedTime: reservation.updatedTime,
@@ -175,7 +175,7 @@ export class ReservationsService {
         reservationStatus: body.reservationStatus || ReservationStatus.SCHEDULED,
         classTime: body.classTime,
         teachingLevel: body.teachingLevel,
-        designatedCoach: body.designatedCoach || null,
+        instructor: body.instructor || null,
         createdUser: userId,
         updatedUser: userId,
         department: department,

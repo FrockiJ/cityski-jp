@@ -70,8 +70,8 @@ const OrderManagementIndoorCoursePage = () => {
 
 	const isLoading = tableDataLoading;
 
-	const handleTableRowClick = (courseId?: string) => {
-		const rowData = tableData?.find((x) => x.id === courseId);
+	const handleTableRowClick = (orderId?: string) => {
+		const rowData = tableData?.find((x) => x.id === orderId);
 		if (!rowData) return;
 
 		modal.openModal({
@@ -87,6 +87,7 @@ const OrderManagementIndoorCoursePage = () => {
 					rowData={rowData}
 					courseType={rowData.type}
 					courseStatusType={rowData.status}
+					orderId={orderId}
 				/>
 			),
 		});

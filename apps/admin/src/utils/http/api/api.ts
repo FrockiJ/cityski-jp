@@ -7,3 +7,4 @@ export * from './cms';
 export * from './discount';
 export * from './member';
 export * from './course';
+export * from './order';

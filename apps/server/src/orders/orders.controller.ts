@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Query,
   Req,
@@ -11,6 +12,7 @@ import { AuthGuard } from 'src/guards/auth.guard';
 import { OrdersService } from './orders.service';
 import {
   CreateOrderRequestDTO,
+  GetOrderDetailResponseDTO,
   GetOrdersRequestDTO,
   GetOrdersResponseDTO,
   ResWithPaginationDTO,
@@ -28,6 +30,14 @@ export class OrdersController {
     @Query() request: GetOrdersRequestDTO,
   ): Promise<ResWithPaginationDTO<GetOrdersResponseDTO[]>> {
     return this.ordersService.getOrders(request);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('/:id')
+  getOrderDetail(
+    @Param('id') id: string,
+  ): Promise<GetOrderDetailResponseDTO> {
+    return this.ordersService.getOrderDetail(id);
   }
 
   @UseGuards(ClientAuthGuard)

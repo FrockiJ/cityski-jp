@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { QueryRunner, Repository } from 'typeorm';
 import {
   CreateOrderRequestDTO,
+  GetOrderDetailResponseDTO,
   GetOrdersRequestDTO,
   GetOrdersResponseDTO,
   ResWithPaginationDTO,
@@ -100,6 +101,51 @@ export class OrdersService {
       return res;
     } catch (err) {
       throw new HttpException(err.message, 500);
+    }
+  }
+
+  // get order detail by id
+  async getOrderDetail(id: string): Promise<GetOrderDetailResponseDTO> {
+    try {
+      const order = await this.ordersRepo.findOne({
+        where: { id },
+        relations: ['member', 'coursePlan', 'coursePlan.course', 'department'],
+      });
+
+      if (!order) {
+        throw new CustomException(
+          `Order with id: ${id} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const orderDetail: GetOrderDetailResponseDTO = {
+        id: order.id,
+        no: order.no,
+        type: order.type,
+        skiType: order.skiType,
+        bkgType: order.bkgType,
+        planNumber: order.planNumber,
+        adultCount: order.adultCount || 0,
+        childCount: order.childCount || 0,
+        channel: order.channel,
+        status: order.status,
+        createdTime: order.createdTime,
+        expDate: order.expDate,
+        ordererName: order.member?.name || '',
+        ordererPhone: order.member?.phone || '',
+        coursePlanName: order.coursePlan?.name || '',
+        coursePlanImage: '',
+        coursePlanDescription: order.coursePlan?.course?.description || '',
+        departmentName: order.department?.name || '',
+      };
+
+      return orderDetail;
+    } catch (err) {
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 

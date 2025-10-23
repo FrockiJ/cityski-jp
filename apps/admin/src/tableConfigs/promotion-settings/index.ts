@@ -9,20 +9,12 @@ const discountTagStyles = {
 };
 
 export const getDiscountTableConfigColumn: TableColumnType<DiscountTableListResult>[] = [
-	{ name: '', key: 'status', width: 120, label: '啟用', type: ColumnType.SWITCH },
+	{ name: '狀態', key: 'status', width: 120, label: '啟用', type: ColumnType.SWITCH },
 	{
 		name: '折扣碼名稱',
 		key: 'code',
 		type: ColumnType.CONTENT,
 		width: 110,
-	},
-	{
-		name: '狀態',
-		key: 'statusTag',
-		type: ColumnType.TAG,
-		width: 100,
-		styles: discountTagStyles,
-		sort: true,
 	},
 	{
 		name: '折扣',

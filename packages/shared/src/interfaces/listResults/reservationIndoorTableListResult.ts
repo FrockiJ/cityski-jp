@@ -1,5 +1,5 @@
 import { ListResultI } from "./baseResult";
-import { SkiAndSnowboardLevelEnum } from '@repo/shared'
+import { SkiAndSnowboardLevelEnum } from '../../constants/enums'
 export interface ReservationIndoorTableListResult extends ListResultI {
   id: string;
   no: string;

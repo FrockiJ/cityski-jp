@@ -47,6 +47,8 @@ import { Transaction } from './transaction/entities/transaction.entity';
 import { TransactionsModule } from './transaction/transactions.module';
 import { Reservation } from './reservations/entities/reservation.entity';
 import { ReservationsModule } from './reservations/reservations.module';
+import { OrderMember } from './order-members/entities/order-member.entity';
+import { OrderMembersModule } from './order-members/order-members.module';
 
 @Module({
   imports: [
@@ -91,6 +93,7 @@ import { ReservationsModule } from './reservations/reservations.module';
             Order,
             Transaction,
             Reservation,
+            OrderMember,
           ],
           synchronize:
             dbSyncEnv === 'dev'
@@ -123,6 +126,7 @@ import { ReservationsModule } from './reservations/reservations.module';
     OrdersModule,
     TransactionsModule,
     ReservationsModule,
+    OrderMembersModule,
   ],
   controllers: [AppController],
 })

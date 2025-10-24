@@ -11,6 +11,7 @@ import { Department } from 'src/departments/entities/department.entity';
 import { Member } from 'src/members/entities/member.entity';
 import { UserDate } from 'src/shared/entities/user_date.entity';
 import { Transaction } from 'src/transaction/entities/transaction.entity';
+import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -19,6 +20,7 @@ import {
   JoinColumn,
   CreateDateColumn,
   OneToOne,
+  OneToMany,
 } from 'typeorm';
 
 @Entity()
@@ -103,4 +105,7 @@ export class Order extends UserDate {
 
   @Column({ type: 'smallint' })
   status: OrderStatusEnum;
+
+  @OneToMany(() => OrderMember, (orderMember) => orderMember.order)
+  orderMembers: OrderMember[];
 }

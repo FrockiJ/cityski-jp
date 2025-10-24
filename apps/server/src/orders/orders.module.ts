@@ -11,6 +11,7 @@ import { Department } from 'src/departments/entities/department.entity';
 import { CoursePlan } from 'src/course-plan/entities/course-plan.entity';
 import { Transaction } from 'src/transaction/entities/transaction.entity';
 import { TransactionsModule } from 'src/transaction/transactions.module';
+import { OrderMembersModule } from 'src/order-members/order-members.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { TransactionsModule } from 'src/transaction/transactions.module';
     forwardRef(() => UsersModule),
     forwardRef(() => MembersModule),
     forwardRef(() => TransactionsModule),
+    forwardRef(() => OrderMembersModule),
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

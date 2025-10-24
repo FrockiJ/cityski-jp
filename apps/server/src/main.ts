@@ -6,6 +6,8 @@ import { TransformResponseInterceptor } from './common/interceptors/transform-re
 import { HttpExceptionFilter } from './common/exception/http-exception.filter';
 import { ConfigService } from '@nestjs/config';
 
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+
 async function bootstrap() {
   // load environment variables from .env file
   // dotenv.config();
@@ -45,6 +47,16 @@ async function bootstrap() {
       disableErrorMessages: false, // Set to true in production
     }),
   );
+
+  Swagger setup
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('CitySki API')
+    .setDescription('API documentation for CitySki')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('/api/docs', app, document);
 
   await app.listen(process.env.PORT);
 

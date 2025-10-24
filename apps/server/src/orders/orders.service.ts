@@ -20,6 +20,7 @@ import { CoursePlan } from 'src/course-plan/entities/course-plan.entity';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { Transaction } from 'src/transaction/entities/transaction.entity';
 import { TransactionsService } from 'src/transaction/transactions.service';
+import { OrderMembersService } from 'src/order-members/order-members.service';
 
 @Injectable()
 export class OrdersService {
@@ -35,6 +36,8 @@ export class OrdersService {
     private readonly transactionsRepo: Repository<Transaction>,
     @Inject(forwardRef(() => TransactionsService))
     private readonly transactionsService: TransactionsService,
+    @Inject(forwardRef(() => OrderMembersService))
+    private readonly orderMembersService: OrderMembersService,
   ) {}
 
   // get order list of all
@@ -167,8 +170,8 @@ export class OrdersService {
    */
   async generateOrderNo(
     type: string,
-    skiType: string,
-    bkgType: string,
+    skiType: number,
+    bkgType: number,
     queryRunner?: QueryRunner,
   ): Promise<string> {
     try {
@@ -263,10 +266,21 @@ export class OrdersService {
       });
       console.log('savedOrder', savedOrder);
 
-      this.ordersRepo.save(savedOrder);
+      await this.ordersRepo.save(savedOrder);
 
-      // todo: 創order同時要創交易資料 尚未完成
-      if (savedOrder) this.transactionsService.createTransaction(savedOrder);
+      // 創建 order-member 記錄
+      if (savedOrder) {
+        const totalCourseCount = body.planNumber || 0;
+        await this.orderMembersService.create({
+          orderId: savedOrder.id,
+          memberId: memberId,
+          courseCount: totalCourseCount,
+          courseLeft: totalCourseCount,
+        });
+
+        // todo: 創order同時要創交易資料 尚未完成
+        this.transactionsService.createTransaction(savedOrder);
+      }
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;

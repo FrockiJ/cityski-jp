@@ -1,6 +1,7 @@
 import { UserDate } from 'src/shared/entities/user_date.entity';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Order } from 'src/orders/entities/order.entity';
+import { OrderMember } from 'src/order-members/entities/order-member.entity';
 
 @Entity()
 export class Member extends UserDate {
@@ -64,4 +65,7 @@ export class Member extends UserDate {
 
   @OneToMany(() => Order, (order) => order.member)
   orders: Order[];
+
+  @OneToMany(() => OrderMember, (orderMember) => orderMember.member)
+  orderMembers: OrderMember[];
 }

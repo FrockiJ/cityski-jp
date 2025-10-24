@@ -5,8 +5,10 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
+  OneToMany,
   JoinColumn,
 } from 'typeorm';
+import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
 
 @Entity()
 export class OrderMember {
@@ -32,4 +34,7 @@ export class OrderMember {
   @ManyToOne(() => Member, (member) => member.orderMembers)
   @JoinColumn({ name: 'member_id' })
   member: Member;
+  
+  @OneToMany(() => ReservationMember, (reservationMember) => reservationMember.orderMember)
+  reservationMembers: ReservationMember[];
 }

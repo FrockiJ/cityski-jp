@@ -7,6 +7,7 @@ export const StyledSearch = styled(Box)(({ theme }) => ({
 	borderRadius: theme.shape.borderRadius,
 	backgroundColor: alpha(theme.palette.common.white, 0.15),
 	minWidth: 250,
+	width: '100%',
 
 	'&:hover': {
 		backgroundColor: alpha(theme.palette.common.white, 0.25),

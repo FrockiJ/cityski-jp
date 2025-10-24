@@ -108,4 +108,5 @@ export class Order extends UserDate {
 
   @OneToMany(() => OrderMember, (orderMember) => orderMember.order)
   orderMembers: OrderMember[];
+
 }

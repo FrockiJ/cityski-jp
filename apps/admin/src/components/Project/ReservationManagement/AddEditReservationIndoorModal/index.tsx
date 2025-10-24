@@ -139,7 +139,7 @@ const AddEditReservationIndoorModal = ({
 				...prevState,
 				no: reservationDetail.reservationNo.toString(),
 			}));
-			
+
 			// 更新表單初始值
 			setInitialValues({
 				pickTrainer: reservationDetail.instructor ? 'Y' : 'N',
@@ -181,7 +181,7 @@ const AddEditReservationIndoorModal = ({
 		};
 
 		let success = false;
-		
+
 		if (modalType === ModalType.EDIT && reservationId) {
 			// 更新模式
 			success = await updateExistingReservation(reservationId, reservationData);
@@ -189,7 +189,7 @@ const AddEditReservationIndoorModal = ({
 			// 建立模式
 			success = await createNewReservation(reservationData);
 		}
-		
+
 		if (success) {
 			handleCloseModal?.(DialogAction.CONFIRM);
 			handleRefresh?.();
@@ -219,11 +219,17 @@ const AddEditReservationIndoorModal = ({
 								handleClick={() => {
 									modal.openModal({
 										title: `加入成員`,
-										width: 635,
+										width: 800,
 										height: 600,
 										noAction: true,
 										noEscAndBackdrop: true,
-										children: <AddMemberModal />,
+										children: (
+											<AddMemberModal
+												onSelectMember={(member) => {
+													console.log('選擇會員', { member });
+												}}
+											/>
+										),
 									});
 								}}
 							>
@@ -241,7 +247,7 @@ const AddEditReservationIndoorModal = ({
 									console.log('課程資訊');
 								}}
 							>
-								<ReservationInfo 
+								<ReservationInfo
 									courseInfo={courseInfo}
 									reservationDetail={reservationDetail}
 									courseType={courseType}
@@ -288,27 +294,26 @@ const AddEditReservationIndoorModal = ({
 							</CoreBlock>
 						</CoreAnchorModal>
 						<StyledAbsoluteModalActions justifyContent='flex-end'>
-	
 							<CoreButton
 								color='default'
 								variant='outlined'
 								label='關閉'
 								onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
 								margin='0 12px 0 0'
-							/>				
+							/>
 							<CoreButton
-								color='error'							
+								color='error'
 								variant='outlined'
 								label='取消'
 								customIcon={<DoDisturbOnOutlinedIcon />}
 								onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
 								margin='0 12px 0 0'
-							/>		
-							<CoreButton 
-								color='primary' 
-								variant='contained' 
-								type='submit' 
-								label={modalType === ModalType.EDIT ? '更新' : '建立'} 
+							/>
+							<CoreButton
+								color='primary'
+								variant='contained'
+								type='submit'
+								label={modalType === ModalType.EDIT ? '更新' : '建立'}
 							/>
 						</StyledAbsoluteModalActions>
 					</Form>

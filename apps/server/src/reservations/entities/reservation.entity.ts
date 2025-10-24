@@ -1,5 +1,6 @@
 import { SkiAndSnowboardLevelEnum } from '@repo/shared';
 import { Department } from 'src/departments/entities/department.entity';
+import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
 import { UserDate } from 'src/shared/entities/user_date.entity';
 import {
   Entity,
@@ -8,6 +9,7 @@ import {
   ManyToOne,
   JoinColumn,
   Generated,
+  OneToMany,
 } from 'typeorm';
 
 // 課程狀態 enum
@@ -41,4 +43,9 @@ export class Reservation extends UserDate {
 
   @Column({ name: 'instructor', type: 'varchar', length: 100, nullable: true })
   instructor: string;
+
+
+  @OneToMany(() => ReservationMember, (reservationMember) => reservationMember.reservation)
+  reservationMembers: ReservationMember[];
+
 }

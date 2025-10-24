@@ -1,22 +1,22 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { MemberResponseDto, ResponseWrapper, ResWithPaginationDTO } from '@repo/shared';
+import { OrderMemberSearchResponseDto, ResponseWrapper } from '@repo/shared';
 
 import { httpWithToken } from '@/utils/http/instance';
 
 interface UseSearchMembersResult {
-	searchResults: MemberResponseDto[];
+	searchResults: OrderMemberSearchResponseDto[];
 	loading: boolean;
 	error: string | null;
 	searchMembers: (keyword: string) => void;
 }
 
 /**
- * Hook for searching members with debounce
+ * Hook for searching order members with remaining courses (courseLeft > 0) with debounce
  * @param debounceMs - Debounce delay in milliseconds (default: 500)
  * @returns Search results, loading state, error, and search function
  */
 export const useSearchMembers = (debounceMs: number = 500): UseSearchMembersResult => {
-	const [searchResults, setSearchResults] = useState<MemberResponseDto[]>([]);
+	const [searchResults, setSearchResults] = useState<OrderMemberSearchResponseDto[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -30,7 +30,7 @@ export const useSearchMembers = (debounceMs: number = 500): UseSearchMembersResu
 		};
 	}, []);
 
-	// 搜尋會員的函數
+	// 搜尋剩餘課程數量大於 0 的會員的函數
 	const performSearch = useCallback(async (keyword: string) => {
 		if (!keyword.trim()) {
 			setSearchResults([]);
@@ -43,10 +43,10 @@ export const useSearchMembers = (debounceMs: number = 500): UseSearchMembersResu
 		setError(null);
 
 		try {
-			const response = await httpWithToken.get<ResponseWrapper<ResWithPaginationDTO<MemberResponseDto[]>>>(
-				`/api/member?keyword=${encodeURIComponent(keyword)}&limit=10`,
+			const response = await httpWithToken.get<ResponseWrapper<OrderMemberSearchResponseDto[]>>(
+				`/api/order-members/search?keyword=${encodeURIComponent(keyword)}`,
 			);
-			setSearchResults(response.result?.data || []);
+			setSearchResults(response.result || []);
 		} catch (err) {
 			console.error('搜尋會員失敗:', err);
 			setError('搜尋會員時發生錯誤');

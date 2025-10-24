@@ -58,4 +58,18 @@ export class GetOrderDetailResponseDTO {
   // Department information
   @Expose()
   departmentName: string;
+
+  // Order members information
+  @Expose()
+  orderMembers: Array<{
+    id: string;
+    memberId: string;
+    memberName: string;
+    memberPhone: string;
+    memberBirthday: Date;
+    snowboard: number;
+    skis: number;
+    courseCount: number;
+    courseLeft: number;
+  }>;
 }

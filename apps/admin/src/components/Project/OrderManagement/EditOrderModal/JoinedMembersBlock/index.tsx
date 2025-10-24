@@ -3,34 +3,73 @@ import React from 'react';
 import { Button } from '@/components/Common/CIBase/CoreDynamicTable/CoreFilter/styles';
 import FormikModalTable from '@/components/Common/CIBase/Formik/FormikModalTable';
 
-type Props = {};
+interface OrderMember {
+	id: string;
+	memberId: string;
+	memberName: string;
+	memberPhone: string;
+	memberBirthday: Date;
+	snowboard: number;
+	skis: number;
+	courseCount: number;
+	courseLeft: number;
+}
 
-const JoinedMembersBlock = (props: Props) => {
-	const fakeRow = [
+interface Props {
+	members?: OrderMember[];
+}
+
+const JoinedMembersBlock = ({ members = [] }: Props) => {
+	// Calculate age from birthday
+	const calculateAge = (birthday: Date | null | undefined): number => {
+		if (!birthday) return 0;
+		const today = new Date();
+		const birthDate = new Date(birthday);
+		let age = today.getFullYear() - birthDate.getFullYear();
+		const monthDiff = today.getMonth() - birthDate.getMonth();
+		if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+			age--;
+		}
+		return age;
+	};
+
+	// Format board type and level
+	const formatBoardLevel = (snowboard: number, skis: number): string => {
+		const parts: string[] = [];
+		if (snowboard > 1) {
+			parts.push(`單板 (L${snowboard})`);
+		}
+		if (skis > 1) {
+			parts.push(`雙板 (L${skis})`);
+		}
+		return parts.length > 0 ? parts.join('、') : '-';
+	};
+
+	const tableRowCell = members.map((member, index) => [
 		{
 			width: '45px',
-			label: '#1',
+			label: `#${index + 1}`,
 			show: true,
 		},
 		{
 			width: '135px',
 			label: '',
 			show: true,
-			component: <Button>李大明</Button>,
+			component: <Button>{member.memberName || '-'}</Button>,
 		},
 		{
 			width: '80px',
-			label: '32',
+			label: member.memberBirthday ? calculateAge(member.memberBirthday).toString() : '-',
 			show: true,
 		},
 		{
 			width: '120px',
-			label: '0900123456',
+			label: member.memberPhone || '-',
 			show: true,
 		},
 		{
 			width: '180px',
-			label: '單板 (L7)、雙板 (L7) ',
+			label: formatBoardLevel(member.snowboard, member.skis),
 			show: true,
 		},
 		{
@@ -38,7 +77,7 @@ const JoinedMembersBlock = (props: Props) => {
 			label: '',
 			show: true,
 		},
-	];
+	]);
 
 	return (
 		<div>
@@ -76,7 +115,7 @@ const JoinedMembersBlock = (props: Props) => {
 						show: true,
 					},
 				]}
-				tableRowCell={Array(4).fill(fakeRow)}
+				tableRowCell={tableRowCell}
 			/>
 		</div>
 	);

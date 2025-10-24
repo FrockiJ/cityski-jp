@@ -101,4 +101,25 @@ export class OrderMembersService {
       );
     }
   }
+
+  async searchWithCoursesLeft(keyword: string): Promise<OrderMember[]> {
+    try {
+      const queryBuilder = this.orderMembersRepo
+        .createQueryBuilder('orderMember')
+        .leftJoinAndSelect('orderMember.member', 'member')
+        .leftJoinAndSelect('orderMember.order', 'order')
+        .where('orderMember.courseLeft > :zero', { zero: 0 });
+
+      if (keyword && keyword.trim()) {
+        queryBuilder.andWhere(
+          '(member.name LIKE :keyword OR member.phone LIKE :keyword)',
+          { keyword: `%${keyword}%` },
+        );
+      }
+      console.log(queryBuilder.getSql());
+      return await queryBuilder.orderBy('member.name', 'ASC').getMany();
+    } catch (err) {
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }

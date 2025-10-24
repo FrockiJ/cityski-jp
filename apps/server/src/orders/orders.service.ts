@@ -112,7 +112,7 @@ export class OrdersService {
     try {
       const order = await this.ordersRepo.findOne({
         where: { id },
-        relations: ['member', 'coursePlan', 'coursePlan.course', 'department'],
+        relations: ['member', 'coursePlan', 'coursePlan.course', 'department', 'orderMembers', 'orderMembers.member'],
       });
 
       if (!order) {
@@ -141,6 +141,17 @@ export class OrdersService {
         coursePlanImage: '',
         coursePlanDescription: order.coursePlan?.course?.description || '',
         departmentName: order.department?.name || '',
+        orderMembers: order.orderMembers?.map((om) => ({
+          id: om.id,
+          memberId: om.memberId,
+          memberName: om.member?.name || '',
+          memberPhone: om.member?.phone || '',
+          memberBirthday: om.member?.birthday,
+          snowboard: om.member?.snowboard || 1,
+          skis: om.member?.skis || 1,
+          courseCount: om.courseCount,
+          courseLeft: om.courseLeft,
+        })) || [],
       };
 
       return orderDetail;

@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { OrderMembersService } from './order-members.service';
@@ -20,6 +21,14 @@ export class OrderMembersController {
   @Post('/')
   create(@Body() body: Partial<OrderMember>): Promise<OrderMember> {
     return this.orderMembersService.create(body);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('/search')
+  searchWithCoursesLeft(
+    @Query('keyword') keyword: string,
+  ): Promise<OrderMember[]> {
+    return this.orderMembersService.searchWithCoursesLeft(keyword || '');
   }
 
   @UseGuards(AuthGuard)

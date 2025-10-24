@@ -8,10 +8,11 @@ import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import { ReservationsModule } from 'src/reservations/reservations.module';
 import { OrderMembersModule } from 'src/order-members/order-members.module';
 import { JwtModule } from '@nestjs/jwt';
+import { User } from 'src/users/entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ReservationMember, Reservation, OrderMember]),
+    TypeOrmModule.forFeature([ReservationMember, Reservation, OrderMember, User]),
     forwardRef(() => ReservationsModule),
     forwardRef(() => OrderMembersModule),
     JwtModule,

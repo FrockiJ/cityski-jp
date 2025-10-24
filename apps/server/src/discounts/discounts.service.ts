@@ -15,6 +15,7 @@ import {
   GetClientDiscountResponseDTO,
 } from '@repo/shared';
 import { Department } from 'src/departments/entities/department.entity';
+import { Order } from 'src/orders/entities/order.entity';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { Cron } from '@nestjs/schedule';
 // import { Cron } from '@nestjs/schedule';
@@ -27,6 +28,8 @@ export class DiscountsService {
     private readonly discountRepo: Repository<Discount>,
     @InjectRepository(Department)
     private readonly departmentRepo: Repository<Department>,
+    @InjectRepository(Order)
+    private readonly orderRepo: Repository<Order>,
   ) {}
 
   async getDiscounts(
@@ -118,21 +121,34 @@ export class DiscountsService {
       const limit = formatLimit; // per count
       const page = formatPage; // current page
 
-      const formattedDiscounts = discounts.map((discount, index) => {
-        const isExpired = new Date(discount.endDate) < new Date();
-        return {
-          id: discount.id,
-          status: isExpired ? 9 : discount.status,
-          type: discount.type,
-          discount: discount.discount,
-          code: discount.code,
-          note: discount.note,
-          usageLimit: discount.usageLimit,
-          createdTime: discount.createdTime,
-          endDate: discount.endDate,
-          isUsed: index % 2 ? false : true,
-        };
-      });
+      const formattedDiscounts = await Promise.all(
+        discounts.map(async (discount) => {
+          const isExpired = new Date(discount.endDate) < new Date();
+          const isUsed = await this.isDiscountUsed(discount.id);
+
+          // 計算刪除限制原因
+          let deleteReason: string | undefined;
+          if (isUsed) {
+            deleteReason = '此折扣碼已被使用無法刪除';
+          } else if (isExpired) {
+            deleteReason = '此折扣碼已過期無法刪除';
+          }
+
+          return {
+            id: discount.id,
+            status: isExpired ? 9 : discount.status,
+            type: discount.type,
+            discount: discount.discount,
+            code: discount.code,
+            note: discount.note,
+            usageLimit: discount.usageLimit,
+            createdTime: discount.createdTime,
+            endDate: discount.endDate,
+            isUsed,
+            deleteReason,
+          };
+        }),
+      );
 
       const res = {
         data: formattedDiscounts,
@@ -328,16 +344,70 @@ export class DiscountsService {
     }
   }
 
-  async deleteDiscount(id: string) {
-    try {
-      const discount = await this.discountRepo.findOne({ where: { id } });
-      if (!discount) {
-        throw new CustomException('此id不存在', HttpStatus.BAD_REQUEST);
-      }
-      // todo: 判斷被使用中不能刪除
-      // if(using from order) {
+  /**
+   * 檢查折扣碼是否已被使用（綁定到訂單）
+   */
+  private async isDiscountUsed(discountId: string): Promise<boolean> {
+    const order = await this.orderRepo.findOne({
+      where: { discountId: discountId as any },
+    });
+    return !!order;
+  }
 
+  /**
+   * 檢查折扣碼是否可以刪除
+   * 規則：
+   * 1. 是否已被使用：若該折扣碼已綁定訂單或被使用過，則不可刪除，只能設為「停用」
+   * 2. 是否仍在有效期內且未綁定活動：若仍在有效期但尚未使用、未綁定任何行銷活動，可刪除
+   * 3. 角色權限：只有具備「行銷管理」或更高權限的帳號可執行刪除
+   */
+  async validateDeleteDiscount(
+    id: string,
+  ): Promise<{ canDelete: boolean; reason?: string }> {
+    const discount = await this.discountRepo.findOne({ where: { id } });
+    if (!discount) {
+      throw new CustomException('此id不存在', HttpStatus.BAD_REQUEST);
+    }
+
+    // 條件 1：檢查是否已被使用
+    const isUsed = await this.isDiscountUsed(id);
+    if (isUsed) {
+      return {
+        canDelete: false,
+        reason: '此折扣碼已被使用無法刪除',
+      };
+    }
+
+    // 條件 2：檢查是否仍在有效期內
+    const isExpired = new Date(discount.endDate) < new Date();
+    if (isExpired) {
+      return {
+        canDelete: false,
+        reason: '此折扣碼已過期無法刪除',
+      };
+    }
+
+    // 如果通過上述檢查，則可以刪除
+    return { canDelete: true };
+  }
+
+  async deleteDiscount(id: string, userId: string, userRoles: string[] = []) {
+    try {
+      // 條件 3：檢查角色權限 - 只有具備「行銷管理」或更高權限的帳號可執行刪除
+      // TODO: 需要根據實際的權限系統進行檢查
+      // 假設需要檢查用戶是否有 promotion-settings 的編輯權限
+      // const hasMarketingPermission = userRoles.includes('MarketingManager') || userRoles.includes('SuperAdmin');
+      // if (!hasMarketingPermission) {
+      //   throw new CustomException('您沒有權限刪除折扣碼', HttpStatus.FORBIDDEN);
       // }
+
+      // 驗證是否可以刪除
+      const { canDelete, reason } = await this.validateDeleteDiscount(id);
+      if (!canDelete) {
+        throw new CustomException(reason, HttpStatus.BAD_REQUEST);
+      }
+
+      const discount = await this.discountRepo.findOne({ where: { id } });
       await this.discountRepo.remove(discount);
       return discount;
     } catch (err) {

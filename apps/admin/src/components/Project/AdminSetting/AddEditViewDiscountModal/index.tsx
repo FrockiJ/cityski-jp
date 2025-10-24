@@ -363,12 +363,12 @@ const AddEditViewDiscountModal = ({
 					<StyledActionArea
 						justifyContent={modalType === ModalType.ADD || modalType === ModalType.VIEW ? 'flex-end' : 'space-between'}
 					>
-						{modalType === ModalType.EDIT && rowData && rowData.isUsed && (
+						{modalType === ModalType.EDIT && rowData && rowData.deleteReason && (
 							<Typography variant='body2' sx={{ fontSize: 13, color: 'text.quaternary' }}>
-								此折扣碼已被使用無法刪除
+								{rowData.deleteReason}
 							</Typography>
 						)}
-						{modalType === ModalType.EDIT && rowData && !rowData.isUsed && (
+						{modalType === ModalType.EDIT && rowData && !rowData.deleteReason && (
 							<CoreButton
 								color='error'
 								variant='text'

@@ -6,10 +6,11 @@ import { Discount } from './entities/discount.entity';
 import { DiscountsController } from './discounts.controller';
 import { DiscountsService } from './discounts.service';
 import { Department } from 'src/departments/entities/department.entity';
+import { Order } from 'src/orders/entities/order.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Discount, Department]),
+    TypeOrmModule.forFeature([User, Discount, Department, Order]),
     forwardRef(() => UsersModule),
   ],
   controllers: [DiscountsController],

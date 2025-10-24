@@ -20,3 +20,6 @@ export const createReservation = (data: CreateReservationRequestDto) =>
 
 export const updateReservationStatus = (id: string, data: { status: number }) => 
   http.put<Response>(`/api/reservations/${id}/status`, data);
+
+export const updateReservation = (id: string, data: CreateReservationRequestDto) => 
+  http.put<Response>(`/api/reservations/${id}`, data);

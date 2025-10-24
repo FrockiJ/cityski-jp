@@ -16,7 +16,7 @@ import {
 import dayjs, { Dayjs } from 'dayjs';
 import { Form, Formik, FormikProps } from 'formik';
 import * as Yup from 'yup';
-import { useReservationDetail, useCreateReservation } from '@/hooks/useReservation';
+import { useReservationDetail, useCreateReservation, useUpdateReservation } from '@/hooks/useReservation';
 
 import CoreButton from '@/CIBase/CoreButton';
 import CoreLoaders from '@/CIBase/CoreLoaders';
@@ -73,6 +73,7 @@ const AddEditReservationIndoorModal = ({
 	const modal = useModalProvider();
 	const { reservationDetail, loading: detailLoading, fetchReservationDetail } = useReservationDetail();
 	const { loading: createLoading, createNewReservation } = useCreateReservation();
+	const { loading: updateLoading, updateExistingReservation } = useUpdateReservation();
 	const [courseInfo, setMemberInfo] = useState({
 		no: '--',
 		type: {
@@ -179,7 +180,15 @@ const AddEditReservationIndoorModal = ({
 			reservationStatus: '1', // SCHEDULED 狀態
 		};
 
-		const success = await createNewReservation(reservationData);
+		let success = false;
+		
+		if (modalType === ModalType.EDIT && reservationId) {
+			// 更新模式
+			success = await updateExistingReservation(reservationId, reservationData);
+		} else {
+			// 建立模式
+			success = await createNewReservation(reservationData);
+		}
 		
 		if (success) {
 			handleCloseModal?.(DialogAction.CONFIRM);
@@ -188,7 +197,7 @@ const AddEditReservationIndoorModal = ({
 		// 錯誤處理已經在 hook 中完成
 	};
 
-	const isLoading = detailLoading || createLoading;
+	const isLoading = detailLoading || createLoading || updateLoading;
 
 	return (
 		<Formik
@@ -279,54 +288,28 @@ const AddEditReservationIndoorModal = ({
 							</CoreBlock>
 						</CoreAnchorModal>
 						<StyledAbsoluteModalActions justifyContent='flex-end'>
-							<CoreButton
-								color='primary'
-								variant='text'
-								label='複製課程'
-								customIcon={<ContentCopyOutlinedIcon />}
-								onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
-								margin='0 12px 0 0'
-							/>
-							<CoreButton
-								color='error'
-								variant='text'
-								label='刪除'
-								iconType='delete'
-								onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
-								margin='0 12px 0 0'
-							/>
-							<CoreButton
-								color='error'
-								variant='text'
-								label='取消排程'
-								customIcon={<DoDisturbOnOutlinedIcon />}
-								onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
-								margin='0 12px 0 0'
-							/>
-							<CoreButton
-								color='error'
-								variant='text'
-								label='立即下架'
-								customIcon={<DoDisturbOnOutlinedIcon />}
-								onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
-								margin='0 12px 0 0'
-							/>
+	
 							<CoreButton
 								color='default'
+								variant='outlined'
+								label='關閉'
+								onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
+								margin='0 12px 0 0'
+							/>				
+							<CoreButton
+								color='error'							
 								variant='outlined'
 								label='取消'
+								customIcon={<DoDisturbOnOutlinedIcon />}
 								onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
 								margin='0 12px 0 0'
+							/>		
+							<CoreButton 
+								color='primary' 
+								variant='contained' 
+								type='submit' 
+								label={modalType === ModalType.EDIT ? '更新' : '建立'} 
 							/>
-							<CoreButton
-								color='default'
-								variant='outlined'
-								label='儲存為草稿'
-								onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
-								margin='0 12px 0 0'
-							/>
-							<CoreButton color='primary' variant='contained' type='submit' label='確認' />
-							<CoreButton color='primary' variant='contained' type='submit' label='確認排程' />
 						</StyledAbsoluteModalActions>
 					</Form>
 				);

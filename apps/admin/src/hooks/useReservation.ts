@@ -4,7 +4,7 @@ import {
   GetReservationDetailResponseDto,
   DialogAction
 } from '@repo/shared';
-import { createReservation, getReservationDetail } from '@/utils/http/api/reservation';
+import { createReservation, getReservationDetail, updateReservation } from '@/utils/http/api/reservation';
 
 interface UseReservationDetailReturn {
   reservationDetail: GetReservationDetailResponseDto | null;
@@ -17,6 +17,12 @@ interface UseCreateReservationReturn {
   loading: boolean;
   error: string | null;
   createNewReservation: (data: CreateReservationRequestDto) => Promise<boolean>;
+}
+
+interface UseUpdateReservationReturn {
+  loading: boolean;
+  error: string | null;
+  updateExistingReservation: (id: string, data: CreateReservationRequestDto) => Promise<boolean>;
 }
 
 /**
@@ -77,5 +83,35 @@ export const useCreateReservation = (): UseCreateReservationReturn => {
     loading,
     error,
     createNewReservation,
+  };
+};
+
+/**
+ * Hook for updating reservation
+ */
+export const useUpdateReservation = (): UseUpdateReservationReturn => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const updateExistingReservation = useCallback(async (id: string, data: CreateReservationRequestDto): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await updateReservation(id, data);
+      return !!response;
+    } catch (err) {
+      console.error('更新預約失敗:', err);
+      setError('更新預約失敗');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return {
+    loading,
+    error,
+    updateExistingReservation,
   };
 };

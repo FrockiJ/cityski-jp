@@ -190,6 +190,49 @@ export class ReservationsService {
     }
   }
 
+  // 更新預約
+  async updateReservation(id: string, body: CreateReservationRequestDTO, userId?: string) {
+    try {
+      const reservation = await this.reservationsRepo.findOne({
+        where: { id },
+      });
+
+      if (!reservation) {
+        throw new CustomException(
+          `Reservation with id: ${id} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // 驗證部門
+      const department = await this.departmentsRepo.findOne({
+        where: { id: body.departmentId },
+      });
+
+      if (!department) {
+        throw new CustomException(
+          `Department with id: ${body.departmentId} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // 更新預約資料
+      reservation.classTime = body.classTime;
+      reservation.teachingLevel = body.teachingLevel;
+      reservation.instructor = body.instructor;
+      reservation.reservationStatus = body.reservationStatus as ReservationStatus;
+      reservation.updatedUser = userId;
+      reservation.department = department;
+
+      return await this.reservationsRepo.save(reservation);
+    } catch (err) {
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   // 更新預約狀態
   async updateReservationStatus(id: string, status: ReservationStatus, userId?: string) {
     try {

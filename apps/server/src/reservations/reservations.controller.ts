@@ -50,6 +50,17 @@ export class ReservationsController {
   }
 
   @UseGuards(AuthGuard)
+  @Put('/:id')
+  updateReservation(
+    @Param('id') id: string,
+    @Body() body: CreateReservationRequestDTO,
+    @Req() request: CustomRequest,
+  ) {
+    const userId = request['user']?.sub;
+    return this.reservationsService.updateReservation(id, body, userId);
+  }
+
+  @UseGuards(AuthGuard)
   @Put('/:id/status')
   updateReservationStatus(
     @Param('id') id: string,

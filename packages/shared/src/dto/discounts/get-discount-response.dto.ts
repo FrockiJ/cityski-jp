@@ -1,4 +1,4 @@
-import { IsBoolean, IsNumber, IsString, IsUUID } from "class-validator";
+import { IsBoolean, IsNumber, IsString, IsUUID, IsOptional } from "class-validator";
 import { DiscountStatus, DiscountType } from "../../constants/enums";
 export class GetDiscountResponseDTO {
   @IsUUID()
@@ -30,4 +30,8 @@ export class GetDiscountResponseDTO {
 
   @IsBoolean()
   isUsed: boolean;
+
+  @IsOptional()
+  @IsString()
+  deleteReason?: string;
 }

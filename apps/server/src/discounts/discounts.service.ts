@@ -15,9 +15,16 @@ import {
   GetClientDiscountResponseDTO,
 } from '@repo/shared';
 import { Department } from 'src/departments/entities/department.entity';
+import { Order } from 'src/orders/entities/order.entity';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { Cron } from '@nestjs/schedule';
 // import { Cron } from '@nestjs/schedule';
+
+interface UserRoleInfo {
+  roleId: string;
+  roleName: string;
+  departmentId: string;
+}
 
 @Injectable()
 export class DiscountsService {
@@ -27,6 +34,8 @@ export class DiscountsService {
     private readonly discountRepo: Repository<Discount>,
     @InjectRepository(Department)
     private readonly departmentRepo: Repository<Department>,
+    @InjectRepository(Order)
+    private readonly orderRepo: Repository<Order>,
   ) {}
 
   async getDiscounts(
@@ -118,21 +127,34 @@ export class DiscountsService {
       const limit = formatLimit; // per count
       const page = formatPage; // current page
 
-      const formattedDiscounts = discounts.map((discount, index) => {
-        const isExpired = new Date(discount.endDate) < new Date();
-        return {
-          id: discount.id,
-          status: isExpired ? 9 : discount.status,
-          type: discount.type,
-          discount: discount.discount,
-          code: discount.code,
-          note: discount.note,
-          usageLimit: discount.usageLimit,
-          createdTime: discount.createdTime,
-          endDate: discount.endDate,
-          isUsed: index % 2 ? false : true,
-        };
-      });
+      const formattedDiscounts = await Promise.all(
+        discounts.map(async (discount) => {
+          const isExpired = new Date(discount.endDate) < new Date();
+          const isUsed = await this.isDiscountUsed(discount.id);
+
+          // 計算刪除限制原因
+          let deleteReason: string | undefined;
+          if (isUsed) {
+            deleteReason = '此折扣碼已被使用無法刪除';
+          } else if (isExpired) {
+            deleteReason = '此折扣碼已過期無法刪除';
+          }
+
+          return {
+            id: discount.id,
+            status: isExpired ? 9 : discount.status,
+            type: discount.type,
+            discount: discount.discount,
+            code: discount.code,
+            note: discount.note,
+            usageLimit: discount.usageLimit,
+            createdTime: discount.createdTime,
+            endDate: discount.endDate,
+            isUsed,
+            deleteReason,
+          };
+        }),
+      );
 
       const res = {
         data: formattedDiscounts,
@@ -143,7 +165,10 @@ export class DiscountsService {
       };
       return res;
     } catch (err) {
-      throw new HttpException(err.message, 500);
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -178,7 +203,7 @@ export class DiscountsService {
       if (err instanceof CustomException) {
         throw err;
       }
-      throw new HttpException(err.message, 500);
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -253,8 +278,12 @@ export class DiscountsService {
         updatedUser: userId,
       });
       await this.discountRepo.save(savedDiscount);
+      return savedDiscount;
     } catch (err) {
-      throw new HttpException(err.message, 500);
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -282,11 +311,12 @@ export class DiscountsService {
         updatedUser: userId,
       });
       await this.discountRepo.save(savedDiscount);
+      return savedDiscount;
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;
       }
-      throw new HttpException(err.message, 500);
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -311,27 +341,107 @@ export class DiscountsService {
         updatedUser: userId,
       });
       await this.discountRepo.save(savedDiscount);
-    } catch (err) {
-      throw new HttpException(err.message, 500);
-    }
-  }
-
-  async deleteDiscount(id: string) {
-    try {
-      const discount = await this.discountRepo.findOne({ where: { id } });
-      if (!discount) {
-        throw new CustomException('此id不存在', HttpStatus.BAD_REQUEST);
-      }
-      // todo: 判斷被使用中不能刪除
-      // if(using from order) {
-
-      // }
-      this.discountRepo.remove(discount);
+      return savedDiscount;
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;
       }
-      throw new HttpException(err.message, 500);
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  /**
+   * 檢查折扣碼是否已被使用（綁定到訂單）
+   */
+  private async isDiscountUsed(discountId: string): Promise<boolean> {
+    const order = await this.orderRepo.findOne({
+      where: { discountId: discountId as any },
+    });
+    return !!order;
+  }
+
+  /**
+   * 檢查折扣碼是否可以刪除（狀態檢查）
+   * 規則：
+   * 1. 是否已被使用：若該折扣碼已綁定訂單或被使用過，則不可刪除，只能設為「停用」
+   * 2. 是否仍在有效期內：若仍在有效期但尚未使用、未綁定任何行銷活動，可刪除
+   */
+  async validateDeleteDiscount(
+    id: string,
+  ): Promise<{ canDelete: boolean; reason?: string }> {
+    const discount = await this.discountRepo.findOne({ where: { id } });
+    if (!discount) {
+      throw new CustomException('此id不存在', HttpStatus.BAD_REQUEST);
+    }
+
+    // 條件 1：檢查是否已被使用
+    const isUsed = await this.isDiscountUsed(id);
+    if (isUsed) {
+      return {
+        canDelete: false,
+        reason: '此折扣碼已被使用無法刪除，只能設為停用',
+      };
+    }
+
+    // 條件 2：檢查是否仍在有效期內
+    const isExpired = new Date(discount.endDate) < new Date();
+    if (isExpired) {
+      return {
+        canDelete: false,
+        reason: '此折扣碼已過期無法刪除',
+      };
+    }
+
+    // 如果通過上述檢查，則可以刪除
+    return { canDelete: true };
+  }
+
+  async deleteDiscount(
+    id: string,
+    userRoles: UserRoleInfo[] = [],
+  ) {
+    try {
+      // 條件 A：檢查使用狀態和過期日期
+      const { canDelete: canDeleteByStatus, reason: statusReason } =
+        await this.validateDeleteDiscount(id);
+      if (!canDeleteByStatus) {
+        throw new CustomException(statusReason, HttpStatus.BAD_REQUEST);
+      }
+
+      // 先取得折扣碼（並載入關聯的 department）
+      const discount = await this.discountRepo.findOne({
+        where: { id },
+        relations: ['department'],
+      });
+
+      if (!discount) {
+        throw new CustomException('此id不存在', HttpStatus.BAD_REQUEST);
+      }
+
+      // 條件 B：檢查權限（admin 或部門相符）
+      const isAdmin = userRoles && userRoles.some((ur) => ur.roleName === 'admin');
+
+      if (!isAdmin && userRoles && userRoles.length > 0) {
+        // 非 admin：檢查部門是否相符
+        const userDepartmentIds = userRoles.map((ur) => ur.departmentId);
+        const hasDepartmentAccess = userDepartmentIds.includes(discount.department.id);
+
+        if (!hasDepartmentAccess) {
+          throw new CustomException(
+            '此折扣碼不屬於您的授權部門',
+            HttpStatus.FORBIDDEN,
+          );
+        }
+      }
+
+      // 執行刪除
+      await this.discountRepo.remove(discount);
+      return discount;
+    } catch (err) {
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -350,10 +460,13 @@ export class DiscountsService {
         ...discount,
         status: DiscountStatus.EXPIRED,
       }));
-      this.discountRepo.save(expiredDiscounts);
+      await this.discountRepo.save(expiredDiscounts);
       return expiredDiscounts;
     } catch (err) {
-      throw new HttpException(err.message, 500);
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 

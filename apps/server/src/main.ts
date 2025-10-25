@@ -6,8 +6,6 @@ import { TransformResponseInterceptor } from './common/interceptors/transform-re
 import { HttpExceptionFilter } from './common/exception/http-exception.filter';
 import { ConfigService } from '@nestjs/config';
 
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-
 async function bootstrap() {
   // load environment variables from .env file
   // dotenv.config();

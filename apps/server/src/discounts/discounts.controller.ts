@@ -72,9 +72,8 @@ export class DiscountsController {
   @Delete('/:id')
   @UseGuards(AuthGuard)
   deleteDiscount(@Param('id') id: string, @Req() request: CustomRequest) {
-    const userId = request['user'].sub;
-    const userRoles = request['roles'] || [];
-    return this.discountsService.deleteDiscount(id, userId, userRoles);
+    const userRoles = request['userRoles'] || [];
+    return this.discountsService.deleteDiscount(id, userRoles);
   }
 
   /********************************************

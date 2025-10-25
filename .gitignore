@@ -243,4 +243,7 @@ docker-compose.dev-db.yml
 # IDE
 .idea/
 
+# Claude
+.claude
+
 *.p8

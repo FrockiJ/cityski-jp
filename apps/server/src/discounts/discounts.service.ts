@@ -20,6 +20,12 @@ import { CustomException } from 'src/common/exception/custom.exception';
 import { Cron } from '@nestjs/schedule';
 // import { Cron } from '@nestjs/schedule';
 
+interface UserRoleInfo {
+  roleId: string;
+  roleName: string;
+  departmentId: string;
+}
+
 @Injectable()
 export class DiscountsService {
   constructor(
@@ -355,11 +361,10 @@ export class DiscountsService {
   }
 
   /**
-   * 檢查折扣碼是否可以刪除
+   * 檢查折扣碼是否可以刪除（狀態檢查）
    * 規則：
    * 1. 是否已被使用：若該折扣碼已綁定訂單或被使用過，則不可刪除，只能設為「停用」
-   * 2. 是否仍在有效期內且未綁定活動：若仍在有效期但尚未使用、未綁定任何行銷活動，可刪除
-   * 3. 角色權限：只有具備「行銷管理」或更高權限的帳號可執行刪除
+   * 2. 是否仍在有效期內：若仍在有效期但尚未使用、未綁定任何行銷活動，可刪除
    */
   async validateDeleteDiscount(
     id: string,
@@ -374,7 +379,7 @@ export class DiscountsService {
     if (isUsed) {
       return {
         canDelete: false,
-        reason: '此折扣碼已被使用無法刪除',
+        reason: '此折扣碼已被使用無法刪除，只能設為停用',
       };
     }
 
@@ -391,23 +396,45 @@ export class DiscountsService {
     return { canDelete: true };
   }
 
-  async deleteDiscount(id: string, userId: string, userRoles: string[] = []) {
+  async deleteDiscount(
+    id: string,
+    userRoles: UserRoleInfo[] = [],
+  ) {
     try {
-      // 條件 3：檢查角色權限 - 只有具備「行銷管理」或更高權限的帳號可執行刪除
-      // TODO: 需要根據實際的權限系統進行檢查
-      // 假設需要檢查用戶是否有 promotion-settings 的編輯權限
-      // const hasMarketingPermission = userRoles.includes('MarketingManager') || userRoles.includes('SuperAdmin');
-      // if (!hasMarketingPermission) {
-      //   throw new CustomException('您沒有權限刪除折扣碼', HttpStatus.FORBIDDEN);
-      // }
-
-      // 驗證是否可以刪除
-      const { canDelete, reason } = await this.validateDeleteDiscount(id);
-      if (!canDelete) {
-        throw new CustomException(reason, HttpStatus.BAD_REQUEST);
+      // 條件 A：檢查使用狀態和過期日期
+      const { canDelete: canDeleteByStatus, reason: statusReason } =
+        await this.validateDeleteDiscount(id);
+      if (!canDeleteByStatus) {
+        throw new CustomException(statusReason, HttpStatus.BAD_REQUEST);
       }
 
-      const discount = await this.discountRepo.findOne({ where: { id } });
+      // 先取得折扣碼（並載入關聯的 department）
+      const discount = await this.discountRepo.findOne({
+        where: { id },
+        relations: ['department'],
+      });
+
+      if (!discount) {
+        throw new CustomException('此id不存在', HttpStatus.BAD_REQUEST);
+      }
+
+      // 條件 B：檢查權限（admin 或部門相符）
+      const isAdmin = userRoles && userRoles.some((ur) => ur.roleName === 'admin');
+
+      if (!isAdmin && userRoles && userRoles.length > 0) {
+        // 非 admin：檢查部門是否相符
+        const userDepartmentIds = userRoles.map((ur) => ur.departmentId);
+        const hasDepartmentAccess = userDepartmentIds.includes(discount.department.id);
+
+        if (!hasDepartmentAccess) {
+          throw new CustomException(
+            '此折扣碼不屬於您的授權部門',
+            HttpStatus.FORBIDDEN,
+          );
+        }
+      }
+
+      // 執行刪除
       await this.discountRepo.remove(discount);
       return discount;
     } catch (err) {

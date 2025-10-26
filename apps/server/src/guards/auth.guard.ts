@@ -56,13 +56,6 @@ export class AuthGuard implements CanActivate {
       request['departments'] = user.userRolesDepartments.map(
         (userRoleDep) => userRoleDep.department.name,
       );
-
-      // attaching user roles with department info for permission checks
-      request['userRoles'] = user.userRolesDepartments.map((urd) => ({
-        roleId: urd.role.id,
-        roleName: urd.role.name,
-        departmentId: urd.department.id,
-      }));
     } catch {
       // jwt decryption failed, so throw an unauthorized exception
       throw new UnauthorizedException();

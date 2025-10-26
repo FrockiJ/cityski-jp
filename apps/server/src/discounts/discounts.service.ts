@@ -16,15 +16,10 @@ import {
 } from '@repo/shared';
 import { Department } from 'src/departments/entities/department.entity';
 import { Order } from 'src/orders/entities/order.entity';
+import { User } from 'src/users/entities/user.entity';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { Cron } from '@nestjs/schedule';
 // import { Cron } from '@nestjs/schedule';
-
-interface UserRoleInfo {
-  roleId: string;
-  roleName: string;
-  departmentId: string;
-}
 
 @Injectable()
 export class DiscountsService {
@@ -36,6 +31,8 @@ export class DiscountsService {
     private readonly departmentRepo: Repository<Department>,
     @InjectRepository(Order)
     private readonly orderRepo: Repository<Order>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
   ) {}
 
   async getDiscounts(
@@ -396,10 +393,7 @@ export class DiscountsService {
     return { canDelete: true };
   }
 
-  async deleteDiscount(
-    id: string,
-    userRoles: UserRoleInfo[] = [],
-  ) {
+  async deleteDiscount(id: string, userId: string) {
     try {
       // 條件 A：檢查使用狀態和過期日期
       const { canDelete: canDeleteByStatus, reason: statusReason } =
@@ -419,6 +413,25 @@ export class DiscountsService {
       }
 
       // 條件 B：檢查權限（admin 或部門相符）
+      const user = await this.userRepo.findOne({
+        where: { id: userId },
+        relations: [
+          'userRolesDepartments',
+          'userRolesDepartments.role',
+          'userRolesDepartments.department',
+        ],
+      });
+
+      if (!user) {
+        throw new CustomException('使用者不存在', HttpStatus.BAD_REQUEST);
+      }
+
+      const userRoles = user.userRolesDepartments.map((urd) => ({
+        roleId: urd.role.id,
+        roleName: urd.role.name,
+        departmentId: urd.department.id,
+      }));
+
       const isAdmin = userRoles && userRoles.some((ur) => ur.roleName === 'admin');
 
       if (!isAdmin && userRoles && userRoles.length > 0) {

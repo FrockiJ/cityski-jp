@@ -245,5 +245,6 @@ docker-compose.dev-db.yml
 
 # Claude
 .claude
+.claudeignore
 
 *.p8

@@ -102,7 +102,7 @@ export default function ColumnContent<T extends ListResultI>({
 							/>
 						}
 						// NOTE: @Kranti Type Guard and Narrowing
-						label={(content as boolean) ? '啟用' : '停用'}
+						label={(content as boolean) ? '啟用' : ((row as any).statusTag === '已過期' ? '過期' : '停用')}
 						disableTypography
 					/>
 				</TableCell>

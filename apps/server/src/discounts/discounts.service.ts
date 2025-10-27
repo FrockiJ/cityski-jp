@@ -335,6 +335,13 @@ export class DiscountsService {
       if (!discount) {
         throw new CustomException('折扣碼不存在', HttpStatus.BAD_REQUEST);
       }
+
+      // 檢查折扣碼是否已過期（根據時間）
+      const isExpired = new Date(discount.endDate) < new Date();
+      if (isExpired) {
+        throw new CustomException('折扣碼已過期', HttpStatus.BAD_REQUEST);
+      }
+
       if (discount.status === DiscountStatus.EXPIRED) {
         throw new CustomException('折扣碼已過期', HttpStatus.BAD_REQUEST);
       }

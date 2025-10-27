@@ -70,9 +70,10 @@ export class DiscountsService {
 
         // Expired status is not include in status of db schema, so add extra condition
         if (hasExpiredStatus && filteredStatusArr.length > 0) {
-          // Include both specified statuses (not expired) and expired discounts
+          // Include both specified statuses and expired discounts
+          // Query: (status IN (...) OR endDate < today)
           queryBuilder.andWhere(
-            `(discount.status IN (:...statusArr) AND DATE(discount.endDate) >= :today) OR (DATE(discount.endDate) < :today)`,
+            `(discount.status IN (:...statusArr) OR DATE(discount.endDate) < :today)`,
             {
               statusArr: filteredStatusArr,
               today: todayDate,

@@ -40,6 +40,14 @@ export class OrdersController {
     return this.ordersService.getOrderDetail(id);
   }
 
+  @UseGuards(AuthGuard)
+  @Get('/:id/reservations')
+  getOrderReservations(
+    @Param('id') id: string,
+  ): Promise<any[]> {
+    return this.ordersService.getOrderReservations(id);
+  }
+
   @UseGuards(ClientAuthGuard)
   @Post('/')
   createOrder(

@@ -21,6 +21,9 @@ import { CustomException } from 'src/common/exception/custom.exception';
 import { Transaction } from 'src/transaction/entities/transaction.entity';
 import { TransactionsService } from 'src/transaction/transactions.service';
 import { OrderMembersService } from 'src/order-members/order-members.service';
+import { Reservation } from 'src/reservations/entities/reservation.entity';
+import { OrderMember } from 'src/order-members/entities/order-member.entity';
+import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
 
 @Injectable()
 export class OrdersService {
@@ -34,6 +37,12 @@ export class OrdersService {
     private readonly coursePlansRepo: Repository<CoursePlan>,
     @InjectRepository(Transaction)
     private readonly transactionsRepo: Repository<Transaction>,
+    @InjectRepository(Reservation)
+    private readonly reservationsRepo: Repository<Reservation>,
+    @InjectRepository(OrderMember)
+    private readonly orderMembersRepo: Repository<OrderMember>,
+    @InjectRepository(ReservationMember)
+    private readonly reservationMembersRepo: Repository<ReservationMember>,
     @Inject(forwardRef(() => TransactionsService))
     private readonly transactionsService: TransactionsService,
     @Inject(forwardRef(() => OrderMembersService))
@@ -292,6 +301,80 @@ export class OrdersService {
         // todo: 創order同時要創交易資料 尚未完成
         this.transactionsService.createTransaction(savedOrder);
       }
+    } catch (err) {
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  // 獲取訂單相關的預約列表
+  // 關聯邏輯: Order -> OrderMember -> ReservationMember -> Reservation
+  async getOrderReservations(orderId: string): Promise<any[]> {
+    try {
+      // 先驗證訂單是否存在
+      const order = await this.ordersRepo.findOne({
+        where: { id: orderId },
+      });
+
+      if (!order) {
+        throw new CustomException(
+          `Order with id: ${orderId} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // 查詢該訂單的所有 order members
+      const orderMembers = await this.orderMembersRepo.find({
+        where: { orderId },
+      });
+
+      if (orderMembers.length === 0) {
+        return [];
+      }
+
+      // 獲取所有 order member IDs
+      const orderMemberIds = orderMembers.map(om => om.id);
+
+      // 查詢這些 order members 關聯的所有 reservation members
+      const reservationMembers = await this.reservationMembersRepo.find({
+        where: orderMemberIds.map(id => ({ orderMemberId: id })),
+        relations: ['reservation', 'reservation.department'],
+      });
+
+      // 提取唯一的 reservations（去重）
+      const uniqueReservations = new Map();
+
+      reservationMembers.forEach(rm => {
+        if (rm.reservation && !uniqueReservations.has(rm.reservation.id)) {
+          uniqueReservations.set(rm.reservation.id, rm.reservation);
+        }
+      });
+
+      // 轉換為陣列並格式化回傳
+      const reservations = Array.from(uniqueReservations.values()).map(reservation => ({
+        id: reservation.id,
+        reservationNo: reservation.reservationNo,
+        reservationStatus: reservation.reservationStatus,
+        classTime: reservation.classTime,
+        teachingLevel: reservation.teachingLevel,
+        instructor: reservation.instructor,
+        departmentId: reservation.department?.id || null,
+        createdTime: reservation.createdTime,
+        updatedTime: reservation.updatedTime,
+        department: reservation.department ? {
+          id: reservation.department.id,
+          name: reservation.department.name,
+        } : null,
+      }));
+
+      // 按照上課時間排序（最新的在前）
+      reservations.sort((a, b) => {
+        return new Date(b.classTime).getTime() - new Date(a.classTime).getTime();
+      });
+
+      return reservations;
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;

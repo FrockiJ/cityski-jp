@@ -12,6 +12,9 @@ import { CoursePlan } from 'src/course-plan/entities/course-plan.entity';
 import { Transaction } from 'src/transaction/entities/transaction.entity';
 import { TransactionsModule } from 'src/transaction/transactions.module';
 import { OrderMembersModule } from 'src/order-members/order-members.module';
+import { Reservation } from 'src/reservations/entities/reservation.entity';
+import { OrderMember } from 'src/order-members/entities/order-member.entity';
+import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
 
 @Module({
   imports: [
@@ -22,6 +25,9 @@ import { OrderMembersModule } from 'src/order-members/order-members.module';
       Department,
       CoursePlan,
       Transaction,
+      Reservation,
+      OrderMember,
+      ReservationMember,
     ]),
     forwardRef(() => UsersModule),
     forwardRef(() => MembersModule),

@@ -13,6 +13,7 @@ import FormikDatePicker from '@/components/Common/CIBase/Formik/FormikDatePicker
 import { FormikScrollToError } from '@/Formik/common/FormikComponents';
 import useModalProvider from '@/hooks/useModalProvider';
 import { useGetOrderDetail } from '@/hooks/useGetOrderDetail';
+import { useOrderReservations } from '@/hooks/useOrderReservations';
 
 import ConfirmPaymentModal from './PaymentInfoBlock/ConfirmPaymentModal';
 import CourseReservation from './CourseReservation';
@@ -21,6 +22,7 @@ import JoinedMembersBlock from './JoinedMembersBlock';
 import OrderChangesBlock from './OrderChangesBlock';
 import OrderInfoBlock from './OrderInfoBlock';
 import PaymentInfoBlock from './PaymentInfoBlock';
+import { Typography } from '@mui/material';
 
 const anchorItems = [
 	{ id: 'az1', label: '訂單資訊', requireFields: [] },
@@ -86,6 +88,7 @@ const EditOrderModal = ({
 
 	// --- API ---
 	const { orderDetail, loading: orderDetailLoading } = useGetOrderDetail(orderId);
+	const { reservations, loading: reservationsLoading } = useOrderReservations(orderId);
 
 	// --- EFFECTS ---
 
@@ -135,7 +138,10 @@ const EditOrderModal = ({
 					<Form>
 						{isLoading || (isSubmitting && <CoreLoaders hasOverlay />)}
 						<FormikScrollToError />
-						<CoreAnchorModal anchorItems={anchorItems} rightContent={<FixedPaymentBlock status={status} handleRefresh={(data) => setStatus(data)} />}>
+						<CoreAnchorModal
+							anchorItems={anchorItems}
+							rightContent={<FixedPaymentBlock status={status} handleRefresh={(data) => setStatus(data)} />}
+						>
 							<CoreBlock title='訂單資訊'>
 								<OrderInfoBlock orderDetail={orderDetail} />
 							</CoreBlock>
@@ -173,7 +179,7 @@ const EditOrderModal = ({
 									window.open('/reservation-management/indoor-course', '_blank');
 								}}
 							>
-								<CourseReservation />
+								<CourseReservation reservations={reservations} loading={reservationsLoading} />
 								<FormikDatePicker
 									name='courseExpiryDate'
 									title='課程使用期限'
@@ -196,6 +202,11 @@ const EditOrderModal = ({
 							</CoreBlock>
 							<CoreBlock title='訂單異動紀錄'>
 								<OrderChangesBlock />
+							</CoreBlock>
+							<CoreBlock title='備註'>
+								<Typography variant='body2' color='text.secondary'>
+									{'無'}
+								</Typography>
 							</CoreBlock>
 						</CoreAnchorModal>
 						<StyledAbsoluteModalActions justifyContent='flex-end' gap='12px'>

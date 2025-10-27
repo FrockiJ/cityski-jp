@@ -17,6 +17,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import { Form, Formik, FormikProps } from 'formik';
 import * as Yup from 'yup';
 import { useReservationDetail, useCreateReservation, useUpdateReservation } from '@/hooks/useReservation';
+import { useReservationMembers } from '@/hooks/useReservationMembers';
 
 import CoreButton from '@/CIBase/CoreButton';
 import CoreLoaders from '@/CIBase/CoreLoaders';
@@ -34,6 +35,7 @@ import AddMemberModal from '../AddMemberModal';
 
 import OrderChangesBlock from './OrderChangesBlock';
 import ReservationInfo from './ReservationInfo';
+import MemberList from './MemberList';
 
 const anchorItems = [
 	{ id: 'basic', label: '參加成員', requireFields: [] },
@@ -74,6 +76,18 @@ const AddEditReservationIndoorModal = ({
 	const { reservationDetail, loading: detailLoading, fetchReservationDetail } = useReservationDetail();
 	const { loading: createLoading, createNewReservation } = useCreateReservation();
 	const { loading: updateLoading, updateExistingReservation } = useUpdateReservation();
+	const { members: savedMembers, loading: membersLoading, fetchMembers, addMember, removeMember } = useReservationMembers();
+
+	// 本地狀態管理待新增和待刪除的成員
+	const [pendingAddMembers, setPendingAddMembers] = useState<any[]>([]);
+	const [pendingRemoveMembers, setPendingRemoveMembers] = useState<string[]>([]);
+
+	// 合併已儲存和待新增的成員，排除待刪除的成員
+	const displayMembers = React.useMemo(() => {
+		const saved = savedMembers.filter(m => !pendingRemoveMembers.includes(m.id));
+		return [...saved, ...pendingAddMembers];
+	}, [savedMembers, pendingAddMembers, pendingRemoveMembers]);
+
 	const [courseInfo, setMemberInfo] = useState({
 		no: '--',
 		type: {
@@ -148,8 +162,11 @@ const AddEditReservationIndoorModal = ({
 				courseLevel: reservationDetail.teachingLevel,
 				departmentId: localStorage.getItem('departmentId') || '',
 			});
+
+			// 載入預約成員
+			fetchMembers(reservationDetail.id);
 		}
-	}, [reservationDetail]);
+	}, [reservationDetail, fetchMembers]);
 
 	// --- FORMIK ---
 
@@ -171,6 +188,44 @@ const AddEditReservationIndoorModal = ({
 		departmentId: Yup.string().required('必填欄位'),
 	});
 
+	// 處理選擇成員 - 加入到待處理列表
+	const handleSelectMember = (member: any) => {
+		// 檢查是否已經存在（避免重複加入）
+		const alreadyExists = displayMembers.some(m =>
+			(m.orderMember?.id === member.id) || (m.id === member.id)
+		);
+
+		if (alreadyExists) {
+			console.warn('此成員已在列表中');
+			return;
+		}
+
+		// 將成員轉換為與 savedMembers 相同的格式
+		const formattedMember = {
+			id: `pending-${member.id}`, // 暫時的 ID
+			orderMemberId: member.id,
+			orderMember: member,
+		};
+
+		setPendingAddMembers(prev => [...prev, formattedMember]);
+		console.log('成員已加入待處理列表，將在按下更新按鈕後儲存');
+	};
+
+	// 處理移除成員 - 加入到待刪除列表或從待新增列表移除
+	const handleRemoveMember = (memberId: string) => {
+		// 檢查是否為待新增的成員
+		const isPending = memberId.startsWith('pending-');
+
+		if (isPending) {
+			// 從待新增列表中移除
+			setPendingAddMembers(prev => prev.filter(m => m.id !== memberId));
+		} else {
+			// 加入到待刪除列表
+			setPendingRemoveMembers(prev => [...prev, memberId]);
+		}
+		console.log('成員已標記為刪除，將在按下更新按鈕後生效');
+	};
+
 	const handleFormSubmit = async (values: InitialValuesProps) => {
 		const reservationData: CreateReservationRequestDto = {
 			departmentId: values.departmentId,
@@ -185,6 +240,36 @@ const AddEditReservationIndoorModal = ({
 		if (modalType === ModalType.EDIT && reservationId) {
 			// 更新模式
 			success = await updateExistingReservation(reservationId, reservationData);
+
+			if (success) {
+				// 更新成功後，處理成員的新增和刪除
+				console.log('開始處理成員變更...');
+
+				// 1. 刪除待刪除的成員
+				for (const memberId of pendingRemoveMembers) {
+					const deleteSuccess = await removeMember(memberId);
+					if (!deleteSuccess) {
+						console.error(`刪除成員 ${memberId} 失敗`);
+					}
+				}
+
+				// 2. 新增待新增的成員
+				for (const member of pendingAddMembers) {
+					const addSuccess = await addMember({
+						reservationId: reservationId,
+						orderMemberId: member.orderMemberId,
+					});
+					if (!addSuccess) {
+						console.error(`新增成員 ${member.orderMemberId} 失敗`);
+					}
+				}
+
+				// 3. 清空待處理列表
+				setPendingAddMembers([]);
+				setPendingRemoveMembers([]);
+
+				console.log('成員變更處理完成');
+			}
 		} else {
 			// 建立模式
 			success = await createNewReservation(reservationData);
@@ -225,8 +310,11 @@ const AddEditReservationIndoorModal = ({
 										noEscAndBackdrop: true,
 										children: (
 											<AddMemberModal
-												onSelectMember={(member) => {
-													console.log('選擇會員', { member });
+												onSelectMember={handleSelectMember}
+												handleCloseModal={(action) => {
+													if (action === 'confirm') {
+														modal.closeModal();
+													}
 												}}
 											/>
 										),
@@ -234,9 +322,15 @@ const AddEditReservationIndoorModal = ({
 								}}
 							>
 								{modalType === ModalType.ADD ? (
-									<BlockArea>目前無參加人員</BlockArea>
+									<BlockArea>請先建立預約後再加入成員</BlockArea>
 								) : (
-									<BlockArea>目前無參加人員</BlockArea>
+									<BlockArea>
+										<MemberList
+											members={displayMembers}
+											onRemoveMember={handleRemoveMember}
+											loading={membersLoading}
+										/>
+									</BlockArea>
 								)}
 							</CoreBlock>
 							<CoreBlock

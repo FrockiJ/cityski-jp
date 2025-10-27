@@ -88,13 +88,21 @@ export class ContentManagementService {
    */
   async initialize() {
     try {
-      const homeBanner = await this.homeBannerRepo.find();
-      if (homeBanner.length === 0) {
-        const homeBannerInstance = new HomeBanner();
-        this.homeBannerRepo.save(homeBannerInstance);
+      // Get all existing HomeBanner records
+      const allBanners = await this.homeBannerRepo.find();
+
+      if (allBanners.length === 0) {
+        // Create a new HomeBanner if none exists
+        const homeBannerInstance = this.homeBannerRepo.create({});
+        await this.homeBannerRepo.save(homeBannerInstance);
+      } else if (allBanners.length > 1) {
+        // Keep the first one and delete the rest to ensure only one record exists
+        const toDelete = allBanners.slice(1);
+        await this.homeBannerRepo.delete(toDelete.map(b => b.id));
       }
+      // If exactly 1 record exists, do nothing
     } catch (err) {
-      console.log('err', err);
+      console.error('Failed to initialize HomeBanner:', err);
     }
   }
 
@@ -156,41 +164,53 @@ export class ContentManagementService {
         }, []);
       }
 
-      if (homeBanner.length === 1) {
-        const desktop = homeBanner[0].files.find(
-          (file) => file.deviceType === AttachmentDeviceType.DESKTOP,
-        );
-        const mobile = homeBanner[0].files.find(
-          (file) => file.deviceType === AttachmentDeviceType.MOBILE,
-        );
-        return {
-          buttonUrl: homeBanner[0].buttonUrl,
-          desktop: desktop
-            ? {
-                id: desktop.id,
-                url: desktop.url,
-                originalName: desktop.originalName,
-                mediaType: desktop.mediaType,
-                deviceType: desktop.deviceType,
-                sequence: desktop.sequence,
-                description: desktop.description,
-              }
-            : null,
-          mobile: mobile
-            ? {
-                id: mobile.id,
-                url: mobile.url,
-                originalName: mobile.originalName,
-                mediaType: mobile.mediaType,
-                deviceType: mobile.deviceType,
-                sequence: mobile.sequence,
-                description: desktop.description,
-              }
-            : null,
-        };
-      } else {
-        throw new CustomException('資料錯誤', HttpStatus.INTERNAL_SERVER_ERROR);
+      if (homeBanner.length === 0) {
+        // If no data, initialize a default record
+        await this.initialize();
+        // Recursively call getHomeBanner to fetch the newly created record
+        return this.getHomeBanner();
       }
+
+      if (homeBanner.length > 1) {
+        // If multiple records exist, clean up and keep only the first one
+        console.warn('Multiple HomeBanner records detected, cleaning up...');
+        await this.initialize();
+        // Recursively call getHomeBanner to fetch the cleaned data
+        return this.getHomeBanner();
+      }
+
+      // homeBanner.length === 1
+      const desktop = homeBanner[0].files.find(
+        (file) => file.deviceType === AttachmentDeviceType.DESKTOP,
+      );
+      const mobile = homeBanner[0].files.find(
+        (file) => file.deviceType === AttachmentDeviceType.MOBILE,
+      );
+      return {
+        buttonUrl: homeBanner[0].buttonUrl,
+        desktop: desktop
+          ? {
+              id: desktop.id,
+              url: desktop.url,
+              originalName: desktop.originalName,
+              mediaType: desktop.mediaType,
+              deviceType: desktop.deviceType,
+              sequence: desktop.sequence,
+              description: desktop.description,
+            }
+          : null,
+        mobile: mobile
+          ? {
+              id: mobile.id,
+              url: mobile.url,
+              originalName: mobile.originalName,
+              mediaType: mobile.mediaType,
+              deviceType: mobile.deviceType,
+              sequence: mobile.sequence,
+              description: mobile.description,
+            }
+          : null,
+      };
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;
@@ -205,15 +225,38 @@ export class ContentManagementService {
   async updateHomeBanner(data: UpdateHomeBannerRequestDTO, userId: string) {
     try {
       const homeBanner = await this.homeBannerRepo.find();
-      if (homeBanner.length === 1) {
-        // update homeBanner table
-        const updateHomeBanner = this.homeBannerRepo.create({
-          ...homeBanner[0],
-          buttonUrl: data.buttonUrl,
-          updatedTime: new Date(),
-          updatedUser: userId,
+
+      if (homeBanner.length === 0) {
+        // If no data, initialize a default record first
+        await this.initialize();
+        // Recursively call updateHomeBanner to update the newly created record
+        return this.updateHomeBanner(data, userId);
+      }
+
+      if (homeBanner.length > 1) {
+        // If multiple records exist, clean up and keep only the first one
+        console.warn('Multiple HomeBanner records detected, cleaning up...');
+        await this.initialize();
+        // Recursively call updateHomeBanner to update the cleaned data
+        return this.updateHomeBanner(data, userId);
+      }
+
+      // homeBanner.length === 1
+      // update homeBanner table
+      const updateHomeBanner = this.homeBannerRepo.create({
+        ...homeBanner[0],
+        buttonUrl: data.buttonUrl,
+        updatedTime: new Date(),
+        updatedUser: userId,
+      });
+      await this.homeBannerRepo.save(updateHomeBanner);
+
+      // Delete old files before adding new ones
+      if (data.attachments && data.attachments.length > 0) {
+        await this.fileRepo.delete({
+          tableId: homeBanner[0].id,
+          tableName: 'homeBanner',
         });
-        await this.homeBannerRepo.save(updateHomeBanner);
 
         // update file table
         const files = data.attachments.map((file) => {
@@ -231,8 +274,6 @@ export class ContentManagementService {
           });
         });
         await this.fileRepo.save(files);
-      } else {
-        throw new CustomException('資料錯誤', HttpStatus.INTERNAL_SERVER_ERROR);
       }
     } catch (err) {
       if (err instanceof CustomException) {

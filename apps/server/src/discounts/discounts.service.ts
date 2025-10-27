@@ -19,6 +19,7 @@ import { Order } from 'src/orders/entities/order.entity';
 import { User } from 'src/users/entities/user.entity';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { Cron } from '@nestjs/schedule';
+import { log } from 'console';
 // import { Cron } from '@nestjs/schedule';
 
 @Injectable()
@@ -59,22 +60,31 @@ export class DiscountsService {
       });
 
       // filter status
-      if (query.status) {
+      if (query.status && query.status.trim()) {
         const statusArr = query.status.split(',').map(Number);
         const hasExpiredStatus = statusArr.includes(DiscountStatus.EXPIRED);
+        const filteredStatusArr = statusArr.filter(
+          (status) => status !== DiscountStatus.EXPIRED,
+        );
+        const todayDate = new Date().toISOString().split('T')[0];
 
         // Expired status is not include in status of db schema, so add extra condition
-        if (hasExpiredStatus) {
+        if (hasExpiredStatus && filteredStatusArr.length > 0) {
+          // Include both specified statuses (not expired) and expired discounts
           queryBuilder.andWhere(
-            `discount.status IN (:...statusArr) OR DATE(discount.endDate) < :today`,
+            `(discount.status IN (:...statusArr) AND DATE(discount.endDate) >= :today) OR (DATE(discount.endDate) < :today)`,
             {
-              statusArr: statusArr.filter(
-                (status) => status !== DiscountStatus.EXPIRED,
-              ),
-              today: new Date(),
+              statusArr: filteredStatusArr,
+              today: todayDate,
             },
           );
+        } else if (hasExpiredStatus) {
+          // Only show expired discounts
+          queryBuilder.andWhere('DATE(discount.endDate) < :today', {
+            today: todayDate,
+          });
         } else {
+          // Filter by specific statuses without expired ones
           queryBuilder.andWhere(`discount.status IN (:...statusArr)`, {
             statusArr,
           });

@@ -8,8 +8,8 @@
     "build": "tsc",
     "watch": "tsc --watch",
     "dev": "npm run gen:lib && concurrently \"npm run watch\" \"chokidar 'src/**/*.ts' -c 'npm run gen:lib'\"",
-    "gen:lib": "node generate-exports.js",
-    "gen:lib:platform": "node generate-exports.js",
+    "gen:lib": "npm run gen:lib:platform",
+    "gen:lib:platform": "node -e \"const os = require('os'); if (os.platform() === 'darwin' || os.platform() === 'linux') { require('child_process').execSync('./lib-gen', { stdio: 'inherit' }); } else if (os.platform() === 'win32') { require('child_process').execSync('lib-gen.exe', { stdio: 'inherit' }); }\"",
     "clean:dist": "rm -rf dist",
     "clean:build": "npm run clean:dist && npm run build && npm run gen:lib"
   },

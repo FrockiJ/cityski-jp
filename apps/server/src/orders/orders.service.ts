@@ -83,51 +83,6 @@ export class OrdersService {
     }
   }
 
-  // get order list by member id (for client)
-  async getOrdersByMemberId(
-    memberId: string,
-    page: number = 1,
-    limit: number = 10,
-  ): Promise<ResWithPaginationDTO<GetOrdersResponseDTO[]>> {
-    try {
-      const customPage = isNaN(Number(page)) || page <= 0 ? 1 : Number(page);
-      const customLimit = isNaN(Number(limit)) || limit <= 0 ? 10 : Number(limit);
-      const skip = (customPage - 1) * customLimit;
-
-      const [orders, total] = await this.ordersRepo.findAndCount({
-        where: { orderer: memberId },
-        relations: ['coursePlan', 'department', 'transaction'],
-        order: { createdTime: 'DESC' },
-        skip,
-        take: customLimit,
-      });
-
-      const formatData = orders.map((order) => ({
-        id: order.id,
-        courseName: order.coursePlan?.name || '課程名稱',
-        price: order.coursePlan?.price || 0,
-        status: order.status,
-        paymentStatus: order.transaction?.status || 0,
-        number: order.planNumber,
-        people: order.adultCount + order.childCount,
-        process: order.status,
-        createdTime: order.createdTime,
-      }));
-
-      const res = {
-        data: formatData,
-        total,
-        page: customPage,
-        limit: customLimit,
-        pages: Math.ceil(total / customLimit),
-      };
-
-      return res;
-    } catch (err) {
-      throw new HttpException(err.message, 500);
-    }
-  }
-
   /**
    * 第1碼：課程類型
    * G：團體課

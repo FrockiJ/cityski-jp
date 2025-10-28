@@ -22,40 +22,19 @@ async function bootstrap() {
 
   const configService = app.get<ConfigService>(ConfigService);
 
-  // CORS configuration
-  const corsOrigins = [
-    configService.get<string>('CLIENT_DOMAIN'),
-    configService.get<string>('CLIENT_ADMIN_DOMAIN'),
-    configService.get<string>('NEXT_PUBLIC_BACKEND_URL'),
-  ].filter(Boolean); // Remove any undefined values
-
-  // Add common development origins
-  if (process.env.NODE_ENV !== 'production') {
-    corsOrigins.push(
-      'http://localhost:3000',
-      'http://localhost:3001', 
-      'http://localhost:3002',
-      'http://localhost:3003',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:3002',
-      'http://127.0.0.1:3003'
-    );
-  }
-
   app.enableCors({
-    origin: corsOrigins,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    origin: [
+      // process.env.CLIENT_DOMAIN,
+      // process.env.CLIENT_ADMIN_DOMAIN,
+      // process.env.NEXT_PUBLIC_BACKEND_URL,
+      configService.get<string>('CLIENT_DOMAIN'),
+      configService.get<string>('CLIENT_ADMIN_DOMAIN'),
+      configService.get<string>('NEXT_PUBLIC_BACKEND_URL'),
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     preflightContinue: false,
     optionsSuccessStatus: 204,
     credentials: true, // Enable sending cookies and other credentials
-    allowedHeaders: [
-      'Origin',
-      'X-Requested-With', 
-      'Content-Type',
-      'Accept',
-      'Authorization',
-      'Cache-Control'
-    ],
   });
 
   app.useGlobalPipes(

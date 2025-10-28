@@ -55,8 +55,7 @@ export class OrdersService {
   ): Promise<ResWithPaginationDTO<any[]>> {
     console.log('request', request);
     try {
-      const queryBuilder = this.ordersRepo
-        .createQueryBuilder('o')
+      const queryBuilder = this.ordersRepo.createQueryBuilder('o')
         .leftJoinAndSelect('o.member', 'member')
         .leftJoinAndSelect('o.coursePlan', 'coursePlan');
 
@@ -78,7 +77,7 @@ export class OrdersService {
       if (request.keyword) {
         queryBuilder.andWhere(
           '(member.name LIKE :keyword OR o.no LIKE :keyword)',
-          { keyword: `%${request.keyword}%` },
+          { keyword: `%${request.keyword}%` }
         );
       }
 
@@ -122,14 +121,7 @@ export class OrdersService {
     try {
       const order = await this.ordersRepo.findOne({
         where: { id },
-        relations: [
-          'member',
-          'coursePlan',
-          'coursePlan.course',
-          'department',
-          'orderMembers',
-          'orderMembers.member',
-        ],
+        relations: ['member', 'coursePlan', 'coursePlan.course', 'department', 'orderMembers', 'orderMembers.member'],
       });
 
       if (!order) {
@@ -158,18 +150,17 @@ export class OrdersService {
         coursePlanImage: '',
         coursePlanDescription: order.coursePlan?.course?.description || '',
         departmentName: order.department?.name || '',
-        orderMembers:
-          order.orderMembers?.map((om) => ({
-            id: om.id,
-            memberId: om.memberId,
-            memberName: om.member?.name || '',
-            memberPhone: om.member?.phone || '',
-            memberBirthday: om.member?.birthday,
-            snowboard: om.member?.snowboard || 1,
-            skis: om.member?.skis || 1,
-            courseCount: om.courseCount,
-            courseLeft: om.courseLeft,
-          })) || [],
+        orderMembers: order.orderMembers?.map((om) => ({
+          id: om.id,
+          memberId: om.memberId,
+          memberName: om.member?.name || '',
+          memberPhone: om.member?.phone || '',
+          memberBirthday: om.member?.birthday,
+          snowboard: om.member?.snowboard || 1,
+          skis: om.member?.skis || 1,
+          courseCount: om.courseCount,
+          courseLeft: om.courseLeft,
+        })) || [],
       };
 
       return orderDetail;
@@ -178,52 +169,6 @@ export class OrdersService {
         throw err;
       }
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-
-  // get order list by member id (for client)
-  async getOrdersByMemberId(
-    memberId: string,
-    page: number = 1,
-    limit: number = 10,
-  ): Promise<ResWithPaginationDTO<GetOrdersResponseDTO[]>> {
-    try {
-      const customPage = isNaN(Number(page)) || page <= 0 ? 1 : Number(page);
-      const customLimit =
-        isNaN(Number(limit)) || limit <= 0 ? 10 : Number(limit);
-      const skip = (customPage - 1) * customLimit;
-
-      const [orders, total] = await this.ordersRepo.findAndCount({
-        where: { orderer: memberId },
-        relations: ['coursePlan', 'department', 'transaction'],
-        order: { createdTime: 'DESC' },
-        skip,
-        take: customLimit,
-      });
-
-      const formatData = orders.map((order) => ({
-        id: order.id,
-        courseName: order.coursePlan?.name || '課程名稱',
-        price: order.coursePlan?.price || 0,
-        status: order.status,
-        paymentStatus: order.transaction?.status || 0,
-        number: order.planNumber,
-        people: order.adultCount + order.childCount,
-        process: order.status,
-        createdTime: order.createdTime,
-      }));
-
-      const res = {
-        data: formatData,
-        total,
-        page: customPage,
-        limit: customLimit,
-        pages: Math.ceil(total / customLimit),
-      };
-
-      return res;
-    } catch (err) {
-      throw new HttpException(err.message, 500);
     }
   }
 
@@ -390,49 +335,43 @@ export class OrdersService {
       }
 
       // 獲取所有 order member IDs
-      const orderMemberIds = orderMembers.map((om) => om.id);
+      const orderMemberIds = orderMembers.map(om => om.id);
 
       // 查詢這些 order members 關聯的所有 reservation members
       const reservationMembers = await this.reservationMembersRepo.find({
-        where: orderMemberIds.map((id) => ({ orderMemberId: id })),
+        where: orderMemberIds.map(id => ({ orderMemberId: id })),
         relations: ['reservation', 'reservation.department'],
       });
 
       // 提取唯一的 reservations（去重）
       const uniqueReservations = new Map();
 
-      reservationMembers.forEach((rm) => {
+      reservationMembers.forEach(rm => {
         if (rm.reservation && !uniqueReservations.has(rm.reservation.id)) {
           uniqueReservations.set(rm.reservation.id, rm.reservation);
         }
       });
 
       // 轉換為陣列並格式化回傳
-      const reservations = Array.from(uniqueReservations.values()).map(
-        (reservation) => ({
-          id: reservation.id,
-          reservationNo: reservation.reservationNo,
-          reservationStatus: reservation.reservationStatus,
-          classTime: reservation.classTime,
-          teachingLevel: reservation.teachingLevel,
-          instructor: reservation.instructor,
-          departmentId: reservation.department?.id || null,
-          createdTime: reservation.createdTime,
-          updatedTime: reservation.updatedTime,
-          department: reservation.department
-            ? {
-                id: reservation.department.id,
-                name: reservation.department.name,
-              }
-            : null,
-        }),
-      );
+      const reservations = Array.from(uniqueReservations.values()).map(reservation => ({
+        id: reservation.id,
+        reservationNo: reservation.reservationNo,
+        reservationStatus: reservation.reservationStatus,
+        classTime: reservation.classTime,
+        teachingLevel: reservation.teachingLevel,
+        instructor: reservation.instructor,
+        departmentId: reservation.department?.id || null,
+        createdTime: reservation.createdTime,
+        updatedTime: reservation.updatedTime,
+        department: reservation.department ? {
+          id: reservation.department.id,
+          name: reservation.department.name,
+        } : null,
+      }));
 
       // 按照上課時間排序（最新的在前）
       reservations.sort((a, b) => {
-        return (
-          new Date(b.classTime).getTime() - new Date(a.classTime).getTime()
-        );
+        return new Date(b.classTime).getTime() - new Date(a.classTime).getTime();
       });
 
       return reservations;

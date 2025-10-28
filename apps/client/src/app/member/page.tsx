@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthGuard } from '@/components/Layout/AuthGuard';
 import ChangePassword from '@/components/Project/Member/ChangePassword';
 import CurrentOrders from '@/components/Project/Member/CurrentOrders';
-import OrderHistory from '@/components/Project/Member/OrderHistory';
 import PersonalInfo from '@/components/Project/Member/PersonalInfo';
 import Sidebar from '@/components/Project/Member/Sidebar';
 import Terms from '@/components/Project/Member/Terms';
@@ -43,7 +42,7 @@ const MemberPage = ({ params, searchParams }: Props) => {
 			case 'current-orders':
 				return <CurrentOrders />;
 			case 'order-history':
-				return <OrderHistory />;
+				return <div>Order History Component</div>;
 			case 'terms':
 				return <Terms />;
 			default:

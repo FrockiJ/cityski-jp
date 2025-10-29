@@ -62,6 +62,67 @@ const ManageBannerModal = ({ handleCloseModal, handleRefresh }: ManageBannerModa
 		onSuccess: () => showToast(`已更新`, 'success'),
 	});
 
+	// --- COURSE OPTIONS STATE ---
+
+	const [courseOptions, setCourseOptions] = useState<Array<{ label: string; value: string }>>([]);
+	const [coursesLoading, setCoursesLoading] = useState(false);
+	const [departmentId, setDepartmentId] = useState<string>('');
+
+	// --- FETCH COURSES ---
+
+	useEffect(() => {
+		// 從 localStorage 讀取當前選擇的部門 ID
+		const storedDepartmentId = localStorage.getItem('departmentId');
+		if (storedDepartmentId) {
+			setDepartmentId(storedDepartmentId);
+		}
+	}, []);
+
+	useEffect(() => {
+		const fetchCourses = async () => {
+			if (!departmentId) {
+				return;
+			}
+
+			try {
+				setCoursesLoading(true);
+				const response = await api.getCoursePublishedList({ departmentId });
+
+				// 後端直接返回陣列，或者包裝在 ResponseWrapper 中
+				let courseList: any[] = [];
+
+				if (Array.isArray(response)) {
+					// 如果 response 本身是陣列
+					courseList = response;
+				} else if (Array.isArray(response.result)) {
+					// 如果 response.result 是陣列
+					courseList = response.result;
+				} else if (response.result) {
+					// 如果 response.result 是單個對象
+					courseList = [response.result];
+				}
+
+				// 轉換課程資料為 FormikSelect 需要的格式
+				const options = courseList.map((course) => ({
+					label: course.name,
+					value: `/courses/course-detail?id=${course.id}`,
+				}));
+
+				setCourseOptions(options);
+			} catch (err) {
+				if (err instanceof Error) {
+					generalErrorHandler(err);
+				}
+			} finally {
+				setCoursesLoading(false);
+			}
+		};
+
+		if (departmentId) {
+			fetchCourses();
+		}
+	}, [departmentId]);
+
 	// --- FORMIK ---
 
 	const [initialValues, setInitialValues] = useState<InitialValuesProps>({
@@ -189,8 +250,9 @@ const ManageBannerModal = ({ handleCloseModal, handleRefresh }: ManageBannerModa
 											name='buttonUrl'
 											title='點擊按鈕連結的課程'
 											placeholder='選擇'
-											options={[{ label: '單板教練課', value: 'https://www.google.com/' }]}
+											options={courseOptions}
 											width='100%'
+											disabled={coursesLoading}
 										/>
 									</Box>
 								</CoreBlockRow>

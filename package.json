@@ -32,6 +32,7 @@
     "@radix-ui/react-popover": "^1.1.6",
     "@types/multer": "^1.4.12",
     "@types/uuid": "^10.0.0",
+    "bcrypt": "^6.0.0",
     "dotenv-flow": "^4.1.0",
     "formik": "^2.4.6",
     "jsonwebtoken": "^9.0.2",

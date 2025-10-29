@@ -24,7 +24,7 @@ import { CustomRequest } from 'src/shared/interfaces/custom-request';
 export class OrdersController {
   constructor(private ordersService: OrdersService) {}
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, ClientAuthGuard)
   @Get('/')
   getOrders(
     @Query() request: GetOrdersRequestDTO,
@@ -32,7 +32,7 @@ export class OrdersController {
     return this.ordersService.getOrders(request);
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, ClientAuthGuard)
   @Get('/:id')
   getOrderDetail(
     @Param('id') id: string,
@@ -40,7 +40,7 @@ export class OrdersController {
     return this.ordersService.getOrderDetail(id);
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, ClientAuthGuard)
   @Get('/:id/reservations')
   getOrderReservations(
     @Param('id') id: string,

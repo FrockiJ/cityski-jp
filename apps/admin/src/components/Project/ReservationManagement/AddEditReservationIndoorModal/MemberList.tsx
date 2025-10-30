@@ -7,7 +7,6 @@ import {
   Stack,
   Chip,
   IconButton,
-  Divider,
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { ReservationMember } from '@/utils/http/api/reservation-members';
@@ -45,7 +44,7 @@ const MemberList: React.FC<MemberListProps> = ({ members, onRemoveMember, loadin
         const { orderMember } = reservationMember;
         if (!orderMember) return null;
 
-        const { member, courseCount, courseLeft, order } = orderMember;
+        const { member, order } = orderMember;
 
         return (
           <Paper
@@ -116,29 +115,6 @@ const MemberList: React.FC<MemberListProps> = ({ members, onRemoveMember, loadin
               </Typography>
               <Typography variant="body2" color="text.primary">
                 {order.no}
-              </Typography>
-            </Stack>
-
-            {/* 直線分隔 */}
-            <Divider orientation="vertical" flexItem sx={{ mx: 1, opacity: 0.25 }} />
-
-            {/* 使用堂數 */}
-            <Stack spacing={1} sx={{ minWidth: 80 }}>
-              <Typography variant="caption" color="text.secondary">
-                使用堂數
-              </Typography>
-              <Typography variant="body2" color="text.primary">
-                {courseCount - courseLeft}/{courseCount}
-              </Typography>
-            </Stack>
-
-            {/* 剩餘堂數 */}
-            <Stack spacing={1} sx={{ minWidth: 80 }}>
-              <Typography variant="caption" color="text.secondary">
-                剩餘堂數
-              </Typography>
-              <Typography variant="body2" color="text.primary">
-                {courseLeft}
               </Typography>
             </Stack>
 

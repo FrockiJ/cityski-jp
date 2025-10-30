@@ -11,12 +11,6 @@ export class OrderMemberSearchResponseDto {
   memberId: string;
 
   @Expose()
-  courseCount: number;
-
-  @Expose()
-  courseLeft: number;
-
-  @Expose()
   member: {
     id: string;
     name: string;

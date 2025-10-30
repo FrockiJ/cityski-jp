@@ -107,8 +107,7 @@ export class OrderMembersService {
       const queryBuilder = this.orderMembersRepo
         .createQueryBuilder('orderMember')
         .leftJoinAndSelect('orderMember.member', 'member')
-        .leftJoinAndSelect('orderMember.order', 'order')
-        .where('orderMember.courseLeft > :zero', { zero: 0 });
+        .leftJoinAndSelect('orderMember.order', 'order');
 
       if (keyword && keyword.trim()) {
         queryBuilder.andWhere(

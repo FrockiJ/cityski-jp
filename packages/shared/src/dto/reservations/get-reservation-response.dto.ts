@@ -22,6 +22,7 @@ export interface ReservationResponseDto {
   departmentId: string;
   createdTime: Date;
   updatedTime: Date;
+  index: number;
   department?: {
     id: string;
     name: string;

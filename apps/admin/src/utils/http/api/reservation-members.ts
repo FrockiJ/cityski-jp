@@ -10,8 +10,6 @@ export interface ReservationMember {
     id: string;
     orderId: string;
     memberId: string;
-    courseCount: number;
-    courseLeft: number;
     member: {
       id: string;
       name: string;

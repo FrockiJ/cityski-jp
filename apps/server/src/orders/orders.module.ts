@@ -15,6 +15,7 @@ import { OrderMembersModule } from 'src/order-members/order-members.module';
 import { Reservation } from 'src/reservations/entities/reservation.entity';
 import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
+import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ReservationMember } from 'src/reservation-members/entities/reservation-
       Reservation,
       OrderMember,
       ReservationMember,
+      OrderReservation,
     ]),
     forwardRef(() => UsersModule),
     forwardRef(() => MembersModule),

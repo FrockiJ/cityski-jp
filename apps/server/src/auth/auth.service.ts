@@ -736,11 +736,11 @@ export class AuthService {
       const verificationUrl = `${this.configService.get('CLIENT_DOMAIN')}/verify-account?token=${verificationToken}`;
 
       // Send verification email using SMTP service
-      await this.smtpService.sendVerificationEmail({
-        to: member.email,
-        name: member.name,
-        verificationUrl,
-      });
+      // await this.smtpService.sendVerificationEmail({
+      //   to: member.email,
+      //   name: member.name,
+      //   verificationUrl,
+      // });
 
       return true;
     } catch (error) {

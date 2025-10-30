@@ -13,6 +13,7 @@ import {
   GetOrdersRequestDTO,
   GetOrdersResponseDTO,
   ResWithPaginationDTO,
+  ReservationResponseDto,
 } from '@repo/shared';
 import { Order } from './entities/order.entity';
 import { Department } from 'src/departments/entities/department.entity';
@@ -24,6 +25,7 @@ import { OrderMembersService } from 'src/order-members/order-members.service';
 import { Reservation } from 'src/reservations/entities/reservation.entity';
 import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
+import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
 
 @Injectable()
 export class OrdersService {
@@ -43,6 +45,8 @@ export class OrdersService {
     private readonly orderMembersRepo: Repository<OrderMember>,
     @InjectRepository(ReservationMember)
     private readonly reservationMembersRepo: Repository<ReservationMember>,
+    @InjectRepository(OrderReservation)
+    private readonly orderReservationsRepo: Repository<OrderReservation>,
     @Inject(forwardRef(() => TransactionsService))
     private readonly transactionsService: TransactionsService,
     @Inject(forwardRef(() => OrderMembersService))
@@ -167,8 +171,6 @@ export class OrdersService {
             memberBirthday: om.member?.birthday,
             snowboard: om.member?.snowboard || 1,
             skis: om.member?.skis || 1,
-            courseCount: om.courseCount,
-            courseLeft: om.courseLeft,
           })) || [],
       };
 
@@ -188,6 +190,7 @@ export class OrdersService {
     limit: number = 10,
   ): Promise<ResWithPaginationDTO<GetOrdersResponseDTO[]>> {
     try {
+      console.log('memberId', memberId);
       const customPage = isNaN(Number(page)) || page <= 0 ? 1 : Number(page);
       const customLimit =
         isNaN(Number(limit)) || limit <= 0 ? 10 : Number(limit);
@@ -345,12 +348,9 @@ export class OrdersService {
 
       // 創建 order-member 記錄
       if (savedOrder) {
-        const totalCourseCount = body.planNumber || 0;
         await this.orderMembersService.create({
           orderId: savedOrder.id,
           memberId: memberId,
-          courseCount: totalCourseCount,
-          courseLeft: totalCourseCount,
         });
 
         // todo: 創order同時要創交易資料 尚未完成
@@ -365,8 +365,8 @@ export class OrdersService {
   }
 
   // 獲取訂單相關的預約列表
-  // 關聯邏輯: Order -> OrderMember -> ReservationMember -> Reservation
-  async getOrderReservations(orderId: string): Promise<any[]> {
+  // 關聯邏輯: Order -> OrderReservation -> Reservation + ReservationMember
+  async getOrderReservations(orderId: string): Promise<ReservationResponseDto[]> {
     try {
       // 先驗證訂單是否存在
       const order = await this.ordersRepo.findOne({
@@ -380,59 +380,39 @@ export class OrdersService {
         );
       }
 
-      // 查詢該訂單的所有 order members
-      const orderMembers = await this.orderMembersRepo.find({
+      // 查詢該訂單的所有 order-reservations
+      const orderReservations = await this.orderReservationsRepo.find({
         where: { orderId },
+        relations: ['reservation', 'reservation.department', 'reservation.reservationMembers'],
+        order: { index: 'ASC' },
       });
 
-      if (orderMembers.length === 0) {
+      if (orderReservations.length === 0) {
         return [];
       }
 
-      // 獲取所有 order member IDs
-      const orderMemberIds = orderMembers.map((om) => om.id);
-
-      // 查詢這些 order members 關聯的所有 reservation members
-      const reservationMembers = await this.reservationMembersRepo.find({
-        where: orderMemberIds.map((id) => ({ orderMemberId: id })),
-        relations: ['reservation', 'reservation.department'],
-      });
-
-      // 提取唯一的 reservations（去重）
-      const uniqueReservations = new Map();
-
-      reservationMembers.forEach((rm) => {
-        if (rm.reservation && !uniqueReservations.has(rm.reservation.id)) {
-          uniqueReservations.set(rm.reservation.id, rm.reservation);
-        }
-      });
-
       // 轉換為陣列並格式化回傳
-      const reservations = Array.from(uniqueReservations.values()).map(
-        (reservation) => ({
-          id: reservation.id,
-          reservationNo: reservation.reservationNo,
-          reservationStatus: reservation.reservationStatus,
-          classTime: reservation.classTime,
-          teachingLevel: reservation.teachingLevel,
-          instructor: reservation.instructor,
-          departmentId: reservation.department?.id || null,
-          createdTime: reservation.createdTime,
-          updatedTime: reservation.updatedTime,
-          department: reservation.department
+      const reservations = orderReservations.map((orderReservation) => {
+        const reservation = orderReservation.reservation;
+
+        return {
+          id: reservation?.id || null,
+          reservationNo: reservation?.reservationNo || null,
+          reservationStatus: reservation?.reservationStatus || null,
+          classTime: reservation?.classTime || null,
+          teachingLevel: reservation?.teachingLevel || null,
+          instructor: reservation?.instructor || null,
+          departmentId: reservation?.department?.id || null,
+          createdTime: reservation?.createdTime || null,
+          updatedTime: reservation?.updatedTime || null,
+          index: orderReservation.index,
+          department: reservation?.department
             ? {
                 id: reservation.department.id,
                 name: reservation.department.name,
               }
             : null,
-        }),
-      );
-
-      // 按照上課時間排序（最新的在前）
-      reservations.sort((a, b) => {
-        return (
-          new Date(b.classTime).getTime() - new Date(a.classTime).getTime()
-        );
+        };
       });
 
       return reservations;

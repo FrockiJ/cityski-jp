@@ -11,7 +11,7 @@ interface UseSearchMembersResult {
 }
 
 /**
- * Hook for searching order members with remaining courses (courseLeft > 0) with debounce
+ * Hook for searching order members with debounce
  * @param debounceMs - Debounce delay in milliseconds (default: 500)
  * @returns Search results, loading state, error, and search function
  */

@@ -21,12 +21,6 @@ export class OrderMember {
   @Column({ name: 'member_id', type: 'uuid' })
   memberId: string;
 
-  @Column({ name: 'course_count', type: 'int' })
-  courseCount: number;
-
-  @Column({ name: 'course_left', type: 'int' })
-  courseLeft: number;
-
   @ManyToOne(() => Order, (order) => order.orderMembers)
   @JoinColumn({ name: 'order_id' })
   order: Order;

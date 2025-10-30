@@ -69,7 +69,5 @@ export class GetOrderDetailResponseDTO {
     memberBirthday: Date;
     snowboard: number;
     skis: number;
-    courseCount: number;
-    courseLeft: number;
   }>;
 }

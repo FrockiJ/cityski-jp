@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { debounce } from '@mui/material';
+import { useRouter } from 'next/router';
 import { ReservationIndoorTableListResult, GetReservationsRequestDto } from '@repo/shared';
 import { ModalType } from '@repo/shared';
 import { configReservationsIndoorTable } from 'src/tableConfigs/reservations-indoor';
@@ -16,6 +17,7 @@ import useModalProvider from '@/hooks/useModalProvider';
 
 const IndoorCoursePage = () => {
 	const modal = useModalProvider();
+	const router = useRouter();
 	const [keyword, setKeyword] = useState<string>('');
 	const [departmentId, setDepartmentId] = useState<string>('');
 	const handleSearch = debounce((e: any) => {
@@ -29,6 +31,19 @@ const IndoorCoursePage = () => {
 
 		if (departmentId) setDepartmentId(departmentId);
 	}, []);
+
+	// Auto-open modal when reservationId is in URL query
+	useEffect(() => {
+		if (router.isReady && router.query.reservationId) {
+			const reservationId = router.query.reservationId as string;
+
+			// Open the edit reservation modal
+			handleEditReservation(reservationId);
+
+			// Clean up the URL query parameter
+			router.replace('/reservation-management/indoor-course', undefined, { shallow: true });
+		}
+	}, [router.isReady, router.query.reservationId]);
 
 	// --- HANDLERS ---
 	const handleEditReservation = (reservationId: string) => {

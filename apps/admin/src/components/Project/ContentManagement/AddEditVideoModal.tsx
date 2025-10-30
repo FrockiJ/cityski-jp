@@ -12,6 +12,8 @@ import FormikInput from '@/Formik/FormikInput';
 import FormikSelect from '@/Formik/FormikSelect';
 import FormikYoutubeThumbnail from '@/Formik/FormikYoutubeThumbnail';
 import { youtubeRegex } from '@/hooks/useGetYoutubeImage';
+import api from '@/utils/http/api';
+import { generalErrorHandler } from '@/utils/http/handler';
 
 interface InitialValuesProps extends GetHomeVideoResponseDTO {
 	currentEditIndex: number;
@@ -37,6 +39,67 @@ const AddEditVideoModal = ({
 	handleDelete,
 	handleConfirm,
 }: AddEditVideoModalProps) => {
+	// --- COURSE OPTIONS STATE ---
+
+	const [courseOptions, setCourseOptions] = useState<Array<{ label: string; value: string }>>([]);
+	const [coursesLoading, setCoursesLoading] = useState(false);
+	const [departmentId, setDepartmentId] = useState<string>('');
+
+	// --- FETCH COURSES ---
+
+	useEffect(() => {
+		// 從 localStorage 讀取當前選擇的部門 ID
+		const storedDepartmentId = localStorage.getItem('departmentId');
+		if (storedDepartmentId) {
+			setDepartmentId(storedDepartmentId);
+		}
+	}, []);
+
+	useEffect(() => {
+		const fetchCourses = async () => {
+			if (!departmentId) {
+				return;
+			}
+
+			try {
+				setCoursesLoading(true);
+				const response = await api.getCoursePublishedList({ departmentId });
+
+				// 後端直接返回陣列，或者包裝在 ResponseWrapper 中
+				let courseList: any[] = [];
+
+				if (Array.isArray(response)) {
+					// 如果 response 本身是陣列
+					courseList = response;
+				} else if (Array.isArray(response.result)) {
+					// 如果 response.result 是陣列
+					courseList = response.result;
+				} else if (response.result) {
+					// 如果 response.result 是單個對象
+					courseList = [response.result];
+				}
+
+				// 轉換課程資料為 FormikSelect 需要的格式
+				const options = courseList.map((course) => ({
+					label: course.name,
+					value: `/courses/course-detail?id=${course.id}`,
+				}));
+
+				setCourseOptions(options);
+			} catch (err) {
+				if (err instanceof Error) {
+					generalErrorHandler(err);
+				}
+			} finally {
+				setCoursesLoading(false);
+			}
+		};
+
+		if (departmentId) {
+			fetchCourses();
+		}
+	}, [departmentId]);
+
 	// --- EFFECTS ---
 
 	useEffect(() => {
@@ -110,13 +173,13 @@ const AddEditVideoModal = ({
 						<FormikSelect
 							name='buttonUrl'
 							placeholder='選擇'
-							options={[{ label: '團體課', value: 'https://www.google.com/' }]}
+							options={courseOptions}
 							isRequired
 							width='100%'
 							menuPortal
 							title='點擊按鈕連結的課程'
 							maxMenuHeight={150}
-							disabled={modalType === ModalType.VIEW}
+							disabled={modalType === ModalType.VIEW || coursesLoading}
 						/>
 					</CoreModalContent>
 					<StyledAbsoluteModalActions justifyContent={modalType === ModalType.ADD ? 'flex-end' : 'space-between'}>

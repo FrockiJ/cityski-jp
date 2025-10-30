@@ -243,7 +243,12 @@ export default function VideoSection() {
 								</div>
 								<button
 									className='bg-white text-black px-4 py-2 rounded-full w-fit text-center mt-3 flex items-center justify-center gap-1'
-									onClick={() => setIsOpen(false)}
+									onClick={() => {
+										setIsOpen(false);
+										if (video?.buttonUrl) {
+											window.open(video.buttonUrl, '_blank');
+										}
+									}}
 								>
 									<span className='flex items-center'>
 										{video?.buttonName}

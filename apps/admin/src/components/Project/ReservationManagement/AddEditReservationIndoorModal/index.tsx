@@ -177,7 +177,19 @@ const AddEditReservationIndoorModal = ({
 			const formattedMembers = orderDetail.orderMembers.map((orderMember: any) => ({
 				id: `pending-${orderMember.id}`,
 				orderMemberId: orderMember.id,
-				orderMember: orderMember,
+				orderMember: {
+					member: {
+						name: orderMember.memberName,
+						phone: orderMember.memberPhone,
+						avatar: orderMember.avatar,
+						id: orderMember.memberId,
+						skis: orderMember.skis,
+						snowboard: orderMember.snowboard,
+					},
+					memberId: orderMember.memberId,
+					order: orderDetail,
+					orderId: orderDetail.id,
+				} 
 			}));
 
 			setPendingAddMembers(formattedMembers);

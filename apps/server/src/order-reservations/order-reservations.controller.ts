@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from 'src/guards/auth.guard';
+import { CreateOrderReservationRequestDto, UpdateOrderReservationRequestDto } from '@repo/shared';
 import { OrderReservationsService } from './order-reservations.service';
 import { OrderReservation } from './entities/order-reservation.entity';
 
@@ -21,12 +22,7 @@ export class OrderReservationsController {
   @UseGuards(AuthGuard)
   @Post('/')
   create(
-    @Body()
-    body: {
-      orderId: string;
-      reservationId?: string;
-      index: number;
-    },
+    @Body() body: CreateOrderReservationRequestDto,
   ): Promise<OrderReservation> {
     return this.orderReservationsService.create(body);
   }
@@ -57,11 +53,7 @@ export class OrderReservationsController {
   @Put('/:id')
   update(
     @Param('id') id: string,
-    @Body()
-    body: {
-      reservationId?: string;
-      index?: number;
-    },
+    @Body() body: UpdateOrderReservationRequestDto,
   ): Promise<OrderReservation> {
     return this.orderReservationsService.update(id, body);
   }

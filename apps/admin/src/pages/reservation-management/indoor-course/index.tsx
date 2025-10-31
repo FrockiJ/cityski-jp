@@ -32,18 +32,24 @@ const IndoorCoursePage = () => {
 		if (departmentId) setDepartmentId(departmentId);
 	}, []);
 
-	// Auto-open modal when reservationId is in URL query
+	// Auto-open modal when reservationId or action=add is in URL query
 	useEffect(() => {
-		if (router.isReady && router.query.reservationId) {
-			const reservationId = router.query.reservationId as string;
-
-			// Open the edit reservation modal
-			handleEditReservation(reservationId);
-
-			// Clean up the URL query parameter
-			router.replace('/reservation-management/indoor-course', undefined, { shallow: true });
+		if (router.isReady) {
+			// 編輯模式：有 reservationId
+			if (router.query.reservationId) {
+				const reservationId = router.query.reservationId as string;
+				handleEditReservation(reservationId);
+				router.replace('/reservation-management/indoor-course', undefined, { shallow: true });
+			}
+			// 新增模式：action=add 且有 orderId 和 index
+			else if (router.query.action === 'add' && router.query.orderId && router.query.index !== undefined) {
+				const orderId = router.query.orderId as string;
+				const index = parseInt(router.query.index as string, 10);
+				handleAddReservation(orderId, index);
+				router.replace('/reservation-management/indoor-course', undefined, { shallow: true });
+			}
 		}
-	}, [router.isReady, router.query.reservationId]);
+	}, [router.isReady, router.query]);
 
 	// --- HANDLERS ---
 	const handleEditReservation = (reservationId: string) => {
@@ -54,11 +60,31 @@ const IndoorCoursePage = () => {
 			noAction: true,
 			marginBottom: true,
 			children: (
-				<AddEditReservationIndoorModal 
-					modalType={ModalType.EDIT} 
-					courseType={''} 
+				<AddEditReservationIndoorModal
+					modalType={ModalType.EDIT}
+					courseType={''}
 					courseStatusType={0}
 					reservationId={reservationId}
+					handleRefresh={handleRefresh}
+				/>
+			),
+		});
+	};
+
+	const handleAddReservation = (orderId: string, index: number) => {
+		modal.openModal({
+			title: `新增預約`,
+			center: true,
+			fullScreen: true,
+			noAction: true,
+			marginBottom: true,
+			children: (
+				<AddEditReservationIndoorModal
+					modalType={ModalType.ADD}
+					courseType={''}
+					courseStatusType={0}
+					orderId={orderId}
+					reservationIndex={index}
 					handleRefresh={handleRefresh}
 				/>
 			),

@@ -1,12 +1,25 @@
 import { Expose } from "class-transformer";
 import { OrderStatusEnum, CourseType, CourseSkiType, CourseBkgType, OrderChannelEnum } from "src/constants/enums";
-
+export  class OrderMemberDetailDTO {
+        id: string;
+        memberId: string;
+        memberName: string;
+        memberPhone: string;
+        memberBirthday: Date;
+        snowboard: number;
+        skis: number;
+        avatar: string;
+        orderNo: string;
+    }
 export class GetOrderDetailResponseDTO {
   @Expose()
   id: string;
 
   @Expose()
   no: string;
+
+  @Expose()
+  courseId: string;
 
   @Expose()
   type: CourseType;
@@ -61,13 +74,5 @@ export class GetOrderDetailResponseDTO {
 
   // Order members information
   @Expose()
-  orderMembers: Array<{
-    id: string;
-    memberId: string;
-    memberName: string;
-    memberPhone: string;
-    memberBirthday: Date;
-    snowboard: number;
-    skis: number;
-  }>;
+  orderMembers: Array<OrderMemberDetailDTO>;
 }

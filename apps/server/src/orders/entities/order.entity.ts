@@ -12,6 +12,7 @@ import { Member } from 'src/members/entities/member.entity';
 import { UserDate } from 'src/shared/entities/user_date.entity';
 import { Transaction } from 'src/transaction/entities/transaction.entity';
 import { OrderMember } from 'src/order-members/entities/order-member.entity';
+import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -108,5 +109,8 @@ export class Order extends UserDate {
 
   @OneToMany(() => OrderMember, (orderMember) => orderMember.order)
   orderMembers: OrderMember[];
+
+  @OneToMany(() => OrderReservation, (orderReservation) => orderReservation.order)
+  orderReservations: OrderReservation[];
 
 }

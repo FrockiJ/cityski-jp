@@ -1,4 +1,4 @@
-import { Response } from '@repo/shared';
+import { ResponseWrapper ,Response} from '@repo/shared';
 import http from '@/utils/http/instance';
 
 export interface ReservationMember {
@@ -34,13 +34,13 @@ export interface CreateReservationMemberDto {
 }
 
 export const getReservationMembers = (reservationId: string) =>
-  http.get<Response<ReservationMember[]>>(`/api/reservation-members/reservation/${reservationId}`);
+  http.get<ResponseWrapper<ReservationMember[]>>(`/api/reservation-members/reservation/${reservationId}`);
 
 export const createReservationMember = (data: CreateReservationMemberDto) =>
-  http.post<Response<ReservationMember>>('/api/reservation-members', data);
+  http.post<ResponseWrapper<ReservationMember>>('/api/reservation-members', data);
 
 export const updateReservationMember = (id: string, data: Partial<CreateReservationMemberDto>) =>
-  http.patch<Response<ReservationMember>>(`/api/reservation-members/${id}`, data);
+  http.patch<ResponseWrapper<ReservationMember>>(`/api/reservation-members/${id}`, data);
 
 export const deleteReservationMember = (id: string) =>
   http.delete<Response>(`/api/reservation-members/${id}`);

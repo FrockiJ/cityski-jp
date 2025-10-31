@@ -30,7 +30,7 @@ export class OrdersController {
   @Get('/')
   getOrders(
     @Query() request: GetOrdersRequestDTO,
-     @Req() req: CustomRequest,
+    @Req() req: CustomRequest,
   ): Promise<ResWithPaginationDTO<GetOrdersResponseDTO[]>> {
     const user = req['user'];
     console.log('Authenticated user:', user);

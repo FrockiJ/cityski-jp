@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { SkiAndSnowboardLevelEnum } from '@repo/shared';
 import { Reservation } from './entities/reservation.entity';
 import { Department } from 'src/departments/entities/department.entity';
+import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { ReservationStatus } from './entities/reservation.entity';
 
@@ -37,6 +38,45 @@ export interface GetReservationDetailResponseDTO {
   departmentName: string;
   createdTime: Date;
   updatedTime: Date;
+  linkedOrders?: Array<{
+    orderId: string;
+    orderNo: string;
+    index: number;
+    orderReservationId: string;
+  }>;
+  reservationMembers?: Array<{
+    id: string;
+    reservationId: string;
+    orderMemberId: string;
+    note?: string;
+    orderMember?: {
+      id: string;
+      orderId: string;
+      memberId: string;
+      member: {
+        id: string;
+        name: string;
+        phone: string | null;
+        birthday: Date | null;
+        avatar: string | null;
+        skis: number;
+        snowboard: number;
+      };
+      order: {
+        id: string;
+        no: string;
+        status: number;
+      };
+    };
+  }>;
+}
+
+export interface UpdateReservationRequestDTO {
+  departmentId?: string;
+  classTime?: Date;
+  teachingLevel?: SkiAndSnowboardLevelEnum;
+  instructor?: string;
+  reservationStatus?: ReservationStatus;
 }
 
 export interface ResWithPaginationDTO<T> {
@@ -54,6 +94,8 @@ export class ReservationsService {
     private readonly reservationsRepo: Repository<Reservation>,
     @InjectRepository(Department)
     private readonly departmentsRepo: Repository<Department>,
+    @InjectRepository(OrderReservation)
+    private readonly orderReservationsRepo: Repository<OrderReservation>,
   ) {}
 
   // 獲取預約列表
@@ -126,7 +168,7 @@ export class ReservationsService {
     try {
       const reservation = await this.reservationsRepo.findOne({
         where: { id },
-        relations: ['department'],
+        relations: ['department', 'reservationMembers', 'reservationMembers.orderMember', 'reservationMembers.orderMember.member', 'reservationMembers.orderMember.order'],
       });
 
       if (!reservation) {
@@ -135,6 +177,47 @@ export class ReservationsService {
           HttpStatus.NOT_FOUND,
         );
       }
+
+      // 獲取連結的訂單資訊
+      const orderReservations = await this.orderReservationsRepo.find({
+        where: { reservationId: id },
+        relations: ['order'],
+        order: { index: 'ASC' },
+      });
+
+      const linkedOrders = orderReservations.map(or => ({
+        orderId: or.orderId,
+        orderNo: or.order?.no || '',
+        index: or.index,
+        orderReservationId: or.id,
+      }));
+
+      // 格式化 reservationMembers
+      const reservationMembers: GetReservationDetailResponseDTO['reservationMembers'] = reservation.reservationMembers?.map(rm => ({
+        id: rm.id,
+        reservationId: rm.reservationId,
+        orderMemberId: rm.orderMemberId,
+        note: rm.note || undefined,
+        orderMember: rm.orderMember ? {
+          id: rm.orderMember.id,
+          orderId: rm.orderMember.orderId,
+          memberId: rm.orderMember.memberId,
+          member: {
+            id: rm.orderMember.member.id,
+            name: rm.orderMember.member.name,
+            phone: rm.orderMember.member.phone,
+            birthday: rm.orderMember.member.birthday,
+            avatar: rm.orderMember.member.avatar,
+            skis: rm.orderMember.member.skis,
+            snowboard: rm.orderMember.member.snowboard,
+          },
+          order: {
+            id: rm.orderMember.order.id,
+            no: rm.orderMember.order.no,
+            status: rm.orderMember.order.status,
+          },
+        } : undefined,
+      }));
 
       const reservationDetail: GetReservationDetailResponseDTO = {
         id: reservation.id,
@@ -146,6 +229,8 @@ export class ReservationsService {
         departmentName: reservation.department?.name || '',
         createdTime: reservation.createdTime,
         updatedTime: reservation.updatedTime,
+        linkedOrders: linkedOrders.length > 0 ? linkedOrders : undefined,
+        reservationMembers: reservationMembers,
       };
 
       return reservationDetail;
@@ -191,7 +276,7 @@ export class ReservationsService {
   }
 
   // 更新預約
-  async updateReservation(id: string, body: CreateReservationRequestDTO, userId?: string) {
+  async updateReservation(id: string, body: UpdateReservationRequestDTO, userId?: string) {
     try {
       const reservation = await this.reservationsRepo.findOne({
         where: { id },
@@ -204,25 +289,36 @@ export class ReservationsService {
         );
       }
 
-      // 驗證部門
-      const department = await this.departmentsRepo.findOne({
-        where: { id: body.departmentId },
-      });
+      // 如果有提供 departmentId，驗證部門
+      if (body.departmentId) {
+        const department = await this.departmentsRepo.findOne({
+          where: { id: body.departmentId },
+        });
 
-      if (!department) {
-        throw new CustomException(
-          `Department with id: ${body.departmentId} not found`,
-          HttpStatus.NOT_FOUND,
-        );
+        if (!department) {
+          throw new CustomException(
+            `Department with id: ${body.departmentId} not found`,
+            HttpStatus.NOT_FOUND,
+          );
+        }
+
+        reservation.department = department;
       }
 
-      // 更新預約資料
-      reservation.classTime = body.classTime;
-      reservation.teachingLevel = body.teachingLevel;
-      reservation.instructor = body.instructor;
-      reservation.reservationStatus = body.reservationStatus as ReservationStatus;
+      // 更新預約資料（只更新有提供的欄位）
+      if (body.classTime !== undefined) {
+        reservation.classTime = body.classTime;
+      }
+      if (body.teachingLevel !== undefined) {
+        reservation.teachingLevel = body.teachingLevel;
+      }
+      if (body.instructor !== undefined) {
+        reservation.instructor = body.instructor;
+      }
+      if (body.reservationStatus !== undefined) {
+        reservation.reservationStatus = body.reservationStatus as ReservationStatus;
+      }
       reservation.updatedUser = userId;
-      reservation.department = department;
 
       return await this.reservationsRepo.save(reservation);
     } catch (err) {
@@ -251,6 +347,45 @@ export class ReservationsService {
       reservation.updatedUser = userId;
 
       return await this.reservationsRepo.save(reservation);
+    } catch (err) {
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  // 獲取連結此預約的訂單詳細資訊
+  async getLinkedOrders(reservationId: string) {
+    try {
+      const reservation = await this.reservationsRepo.findOne({
+        where: { id: reservationId },
+      });
+
+      if (!reservation) {
+        throw new CustomException(
+          `Reservation with id: ${reservationId} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const orderReservations = await this.orderReservationsRepo.find({
+        where: { reservationId },
+        relations: ['order'],
+        order: { index: 'ASC' },
+      });
+
+      const linkedOrders = orderReservations.map(or => ({
+        orderId: or.orderId,
+        orderNo: or.order?.no || '',
+        index: or.index,
+        orderReservationId: or.id,
+      }));
+
+      return {
+        reservationId,
+        linkedOrders,
+      };
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;

@@ -11,6 +11,7 @@ type Props = {
 	reservations?: any[];
 	loading?: boolean;
 	size?: number;
+	orderId?: string;
 };
 
 // 輔助函數：獲取狀態文字
@@ -32,7 +33,7 @@ const getTeachingLevelText = (level: number): string => {
 	return SkiAndSnowboardLevel[level as keyof typeof SkiAndSnowboardLevel] || '未知等級';
 };
 
-const CourseReservation = ({ reservations = [], loading = false, size = 4 }: Props) => {
+const CourseReservation = ({ reservations = [], loading = false, size = 4, orderId }: Props) => {
 	const [reservationMembers, setReservationMembers] = useState<Record<string, ReservationMember[]>>({});
 	const [loadingMembers, setLoadingMembers] = useState(false);
 
@@ -111,7 +112,13 @@ const CourseReservation = ({ reservations = [], loading = false, size = 4 }: Pro
 					<Button
 						endIcon={<RoundedArrowTopRight />}
 						onClick={() => {
-							window.open(`/reservation-management/indoor-course?reservationId=${reservation.id}`, '_blank');
+							if (reservation) {
+								// 已有預約：跳轉至檢視模式
+								window.open(`/reservation-management/indoor-course?reservationId=${reservation.id}`, '_blank');
+							} else {
+								// 尚未預約：跳轉至新增模式，帶上 orderId 和 index
+								window.open(`/reservation-management/indoor-course?action=add&orderId=${orderId}&index=${index}`, '_blank');
+							}
 						}}
 					>
 						{reservation ? '檢視' : '立即預約'}

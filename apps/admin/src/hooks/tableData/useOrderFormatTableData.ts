@@ -51,8 +51,9 @@ export const useOrderFormatTableData = (options?: Props) => {
 					}[data.status],
 					lessons: data.planNumber,
 					people: data.adultCount + data.childCount,
-					progress: `0/${data.planNumber}`,
+					progress: `${data.process}/${data.planNumber}`,
 					orderTime: formatDate(data.updatedTime),
+					
 				};
 				return tableRowData;
 			});

@@ -56,13 +56,14 @@ export class OrdersService {
   // get order list of all
   async getOrders(
     request: GetOrdersRequestDTO,
-  ): Promise<ResWithPaginationDTO<any[]>> {
+  ): Promise<ResWithPaginationDTO<GetOrdersResponseDTO[]>> {
     console.log('request', request);
     try {
       const queryBuilder = this.ordersRepo
         .createQueryBuilder('o')
         .leftJoinAndSelect('o.member', 'member')
-        .leftJoinAndSelect('o.coursePlan', 'coursePlan');
+        .leftJoinAndSelect('o.coursePlan', 'coursePlan')
+        .leftJoinAndSelect('o.orderReservations', 'orderReservations');
 
       // 根據部門ID篩選
       if (request.departmentId) {
@@ -106,9 +107,18 @@ export class OrdersService {
       const paginatedOrders = orders.slice(startIndex, endIndex);
 
       const total = orders.length;
-
+      const resultPaginatedOrders:GetOrdersResponseDTO[] = paginatedOrders.map((order) => ({
+        ...order,
+         courseName: order.coursePlan?.name || '課程名稱',
+         price: order.coursePlan?.price || 0,
+         paymentStatus: order.transaction?.status || 0,
+         number: order.planNumber,
+         people: order.adultCount + order.childCount,
+         process: order.orderReservations?.length || 0
+      }));
+      
       const res = {
-        data: paginatedOrders,
+        data: resultPaginatedOrders,
         total,
         page: customPage,
         limit: customLimit,
@@ -146,6 +156,7 @@ export class OrdersService {
       const orderDetail: GetOrderDetailResponseDTO = {
         id: order.id,
         no: order.no,
+        courseId: order.coursePlan?.course?.id || '',
         type: order.type,
         skiType: order.skiType,
         bkgType: order.bkgType,
@@ -171,6 +182,8 @@ export class OrdersService {
             memberBirthday: om.member?.birthday,
             snowboard: om.member?.snowboard || 1,
             skis: om.member?.skis || 1,
+            avatar: om.member?.avatar || '',
+            orderNo: order.no,
           })) || [],
       };
 
@@ -198,7 +211,7 @@ export class OrdersService {
 
       const [orders, total] = await this.ordersRepo.findAndCount({
         where: { orderer: memberId },
-        relations: ['coursePlan', 'department', 'transaction'],
+        relations: ['coursePlan', 'department', 'transaction', 'orderReservations'],
         order: { createdTime: 'DESC' },
         skip,
         take: customLimit,
@@ -214,6 +227,7 @@ export class OrdersService {
         people: order.adultCount + order.childCount,
         process: order.status,
         createdTime: order.createdTime,
+        reservationCount: order.orderReservations?.length || 0,
       }));
 
       const res = {

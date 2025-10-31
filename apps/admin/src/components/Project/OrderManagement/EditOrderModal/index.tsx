@@ -176,6 +176,7 @@ const EditOrderModal = ({
 									reservations={reservations}
 									loading={reservationsLoading}
 									size={orderDetail?.planNumber}
+									orderId={orderId}
 								/>
 								<FormikDatePicker
 									name='courseExpiryDate'

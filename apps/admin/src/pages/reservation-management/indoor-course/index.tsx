@@ -109,25 +109,25 @@ const IndoorCoursePage = () => {
 	return (
 		<TablePageLayout
 			title='預約管理'
-			handleActionList={
-				<CoreButton
-					variant='contained'
-					iconType='add'
-					label='新增預約'
-					onClick={() =>
-						modal.openModal({
-							title: `新增預約`,
-							center: true,
-							fullScreen: true,
-							noAction: true,
-							marginBottom: true,
-							children: (
-								<AddEditReservationIndoorModal modalType={ModalType.ADD} courseType={''} courseStatusType={0} />
-							),
-						})
-					}
-				/>
-			}
+			// handleActionList={
+				// <CoreButton
+					// variant='contained'
+					// iconType='add'
+					// label='新增預約'
+					// onClick={() =>
+					// 	modal.openModal({
+					// 		title: `新增預約`,
+					// 		center: true,
+					// 		fullScreen: true,
+					// 		noAction: true,
+					// 		marginBottom: true,
+					// 		children: (
+					// 			<AddEditReservationIndoorModal modalType={ModalType.ADD} courseType={''} courseStatusType={0} />
+					// 		),
+					// 	})
+					// }
+				// />
+			// }
 		>
 			<StyledSearchFilterWrapper>
 				<CoreFilter

@@ -43,7 +43,7 @@ export interface GetReservationDetailResponseDto {
   }>;
 }
 
-export interface ReservationResponseDto {
+export class ReservationResponseDto {
   id: string;
   reservationNo: number;
   reservationStatus: number;
@@ -53,8 +53,22 @@ export interface ReservationResponseDto {
   departmentId: string;
   createdTime: Date;
   updatedTime: Date;
-  department?: {
+  reservationMembers?: Array<{
     id: string;
-    name: string;
-  };
+    reservationId: string;
+    orderMemberId: string;
+    orderMember?: {
+      id: string;
+      orderId: string;
+      memberId: string;
+      order: {
+        id: string;
+        no: string;
+        status: string;
+        type: number;
+        planNumber: number
+      };
+    };
+  }>;
+ 
 }

@@ -126,7 +126,7 @@ const AddMemberModal = ({ onSelectMember, handleCloseModal }: Props) => {
 											</Stack>
 
 											<Typography variant='caption' color='text.secondary'>
-												sample@email.com
+												{member.member.email || '無 Email'}
 											</Typography>
 										</Stack>
 									</Stack>
@@ -137,7 +137,7 @@ const AddMemberModal = ({ onSelectMember, handleCloseModal }: Props) => {
 											手機號碼
 										</Typography>
 										<Typography variant='body2' color='text.primary'>
-											091234567
+											{member.member.phone || '無電話'}
 										</Typography>
 									</Stack>
 
@@ -150,7 +150,7 @@ const AddMemberModal = ({ onSelectMember, handleCloseModal }: Props) => {
 											訂單類型
 										</Typography>
 										<Typography variant='body2' color='text.primary'>
-											私人預約式
+											私人預約式????
 										</Typography>
 									</Stack>
 
@@ -163,7 +163,7 @@ const AddMemberModal = ({ onSelectMember, handleCloseModal }: Props) => {
 											使用堂數
 										</Typography>
 										<Typography variant='body2' color='text.primary'>
-											2/5
+											{member.order.orderReservations.length}/{member.order.planNumber}
 										</Typography>
 									</Stack>
 								</Paper>

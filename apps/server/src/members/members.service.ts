@@ -403,11 +403,11 @@ export class MembersService {
    **/
   async getMemberDetailsById(id: string): Promise<MemberResponseDto> {
     const member = await this.findMemberById(id);
-    // console.log('member:', member);
+    console.log('member:', member);
     const memberDto = plainToInstance(MemberResponseDto, member);
     memberDto.lineName = member.lineName;
     memberDto.lineId = member.lineId;
-    // console.log('memberDto:', memberDto);
+    console.log('memberDto:', memberDto);
 
     return memberDto;
   }

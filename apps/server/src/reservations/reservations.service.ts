@@ -4,7 +4,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Or, ILike } from 'typeorm';
 import { SkiAndSnowboardLevelEnum } from '@repo/shared';
 import { Reservation } from './entities/reservation.entity';
 import { Department } from 'src/departments/entities/department.entity';
@@ -103,35 +103,27 @@ export class ReservationsService {
     request: GetReservationsRequestDTO,
   ): Promise<ResWithPaginationDTO<Reservation[]>> {
     try {
-      const queryBuilder = this.reservationsRepo.createQueryBuilder('r')
-        .leftJoinAndSelect('r.department', 'department');
-
+      // 構建查詢條件
+      let where: any = {};
+      
       // 根據部門ID篩選
       if (request.departmentId) {
-        queryBuilder.andWhere('r.department_id = :departmentId', {
-          departmentId: request.departmentId,
-        });
+        where.department = { id: request.departmentId };
       }
 
       // 根據課程狀態篩選
       if (request.reservationStatus !== undefined && request.reservationStatus !== null) {
-        queryBuilder.andWhere('r.course_status = :reservationStatus', {
-          reservationStatus: request.reservationStatus,
-        });
+        where.reservationStatus = request.reservationStatus;
       }
 
       // 根據關鍵字搜索預約編號或指定教練
       if (request.keyword) {
-        queryBuilder.andWhere(
-          '(r.reservation_no LIKE :keyword OR r.instructor LIKE :keyword)',
-          { keyword: `%${request.keyword}%` }
-        );
+        const keywordConditions = [
+          { ...where, reservationNo: ILike(`%${request.keyword}%`) },
+          { ...where, instructor: ILike(`%${request.keyword}%`) },
+        ];
+        where = Or(...keywordConditions);
       }
-
-      // 排序：最新的預約在前
-      queryBuilder.orderBy('r.createdTime', 'DESC');
-
-      const reservations = await queryBuilder.getMany();
 
       const customPage =
         isNaN(Number(request.page)) || request.page <= 0
@@ -142,22 +134,24 @@ export class ReservationsService {
           ? 10
           : Number(request.limit);
 
-      // 分頁處理
-      const startIndex = (customPage - 1) * customLimit;
-      const endIndex = startIndex + customLimit;
-      const paginatedReservations = reservations.slice(startIndex, endIndex);
+      // 使用 find() 方法
+      const [reservations, total] = await this.reservationsRepo.findAndCount({
+        where,
+        relations: ['reservationMembers', 'reservationMembers.orderMember', 'reservationMembers.orderMember.member', 'reservationMembers.orderMember.order','reservationMembers.orderMember.order.coursePlan','reservationMembers.orderMember.order.coursePlan.course','reservationMembers.orderMember.order.coursePlan.course.coursePeople'],
+        order: {
+          createdTime: 'DESC',
+        },
+        skip: (customPage - 1) * customLimit,
+        take: customLimit,
+      });
 
-      const total = reservations.length;
-
-      const res = {
-        data: paginatedReservations,
+      return {
+        data: reservations,
         total,
         page: customPage,
         limit: customLimit,
         pages: Math.ceil(total / customLimit),
       };
-
-      return res;
     } catch (err) {
       throw new HttpException(err.message, 500);
     }

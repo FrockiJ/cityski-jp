@@ -227,7 +227,6 @@ export class OrdersService {
         people: order.adultCount + order.childCount,
         process: order.status,
         createdTime: order.createdTime,
-        reservationCount: order.orderReservations?.length || 0,
       }));
 
       const res = {

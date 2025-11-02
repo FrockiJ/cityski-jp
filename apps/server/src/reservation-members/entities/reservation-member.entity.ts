@@ -22,6 +22,9 @@ export class ReservationMember {
   @Column({ type: 'text', nullable: true })
   note: string;
 
+  @Column({ type: 'boolean', default: true })
+  attended: boolean;
+
   @ManyToOne(() => Reservation, (reservation) => reservation.reservationMembers)
   @JoinColumn({ name: 'reservation_id' })
   reservation: Reservation;

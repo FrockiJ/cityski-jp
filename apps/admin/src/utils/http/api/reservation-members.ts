@@ -6,6 +6,7 @@ export interface ReservationMember {
   reservationId: string;
   orderMemberId: string;
   note?: string;
+  attended: boolean;
   orderMember?: {
     id: string;
     orderId: string;
@@ -31,6 +32,7 @@ export interface CreateReservationMemberDto {
   reservationId: string;
   orderMemberId: string;
   note?: string;
+  attended?: boolean;
 }
 
 export const getReservationMembers = (reservationId: string) =>

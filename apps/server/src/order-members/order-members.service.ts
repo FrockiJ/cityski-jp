@@ -1,7 +1,8 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { OrderMember } from './entities/order-member.entity';
+import { OrderMemberSearchResponseDto } from '@repo/shared';
 
 @Injectable()
 export class OrderMembersService {
@@ -102,21 +103,32 @@ export class OrderMembersService {
     }
   }
 
-  async searchWithCoursesLeft(keyword: string): Promise<OrderMember[]> {
+  async searchWithCoursesLeft(keyword: string): Promise<OrderMemberSearchResponseDto[]> {
     try {
-      const queryBuilder = this.orderMembersRepo
-        .createQueryBuilder('orderMember')
-        .leftJoinAndSelect('orderMember.member', 'member')
-        .leftJoinAndSelect('orderMember.order', 'order');
+      const where = keyword && keyword.trim()
+        ? [
+            { member: { name: ILike(`%${keyword}%`) } },
+            { member: { phone: ILike(`%${keyword}%`) } },
+            { member: { email: ILike(`%${keyword}%`) } },
+          ]
+        : {};
 
-      if (keyword && keyword.trim()) {
-        queryBuilder.andWhere(
-          '(member.name LIKE :keyword OR member.phone LIKE :keyword)',
-          { keyword: `%${keyword}%` },
-        );
-      }
-      console.log(queryBuilder.getSql());
-      return await queryBuilder.orderBy('member.name', 'ASC').getMany();
+
+
+      return await this.orderMembersRepo.find({
+        where,
+        relations: {
+          member: true,
+          order: {
+            orderReservations: true,
+          },
+        },
+        order: {
+          member: {
+            name: 'ASC',
+          },
+        },
+      });
     } catch (err) {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }

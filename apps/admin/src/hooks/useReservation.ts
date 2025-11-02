@@ -8,6 +8,7 @@ import {
 } from '@repo/shared';
 import { createReservation, getReservationDetail, updateReservation } from '@/utils/http/api/reservation';
 import { createOrderReservation, deleteOrderReservation } from '@/utils/http/api/order-reservation';
+import { getReservationHistoryByReservationId, ReservationHistory } from '@/utils/http/api/reservation-history';
 
 interface UseReservationDetailReturn {
   reservationDetail: GetReservationDetailResponseDto | null;
@@ -43,6 +44,13 @@ interface UseCreateReservationWithLinkReturn {
     orderId: string,
     index: number
   ) => Promise<string | null>;
+}
+
+interface UseReservationHistoryReturn {
+  histories: ReservationHistory[];
+  loading: boolean;
+  error: string | null;
+  fetchReservationHistory: (reservationId: string) => Promise<void>;
 }
 
 /**
@@ -230,5 +238,36 @@ export const useCreateReservationWithLink = (): UseCreateReservationWithLinkRetu
     loading,
     error,
     createReservationWithLink,
+  };
+};
+
+/**
+ * Hook for fetching reservation history
+ */
+export const useReservationHistory = (): UseReservationHistoryReturn => {
+  const [histories, setHistories] = useState<ReservationHistory[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchReservationHistory = useCallback(async (reservationId: string) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await getReservationHistoryByReservationId(reservationId);
+      setHistories(response.result);
+    } catch (err) {
+      console.error('獲取預約歷史失敗:', err);
+      setError('獲取預約歷史失敗');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return {
+    histories,
+    loading,
+    error,
+    fetchReservationHistory,
   };
 };

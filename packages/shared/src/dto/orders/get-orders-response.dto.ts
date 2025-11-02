@@ -30,6 +30,4 @@ export class GetOrdersResponseDTO {
   @Expose()
   createdTime: Date;
 
-  @Expose()
-  reservationCount: number;
 }

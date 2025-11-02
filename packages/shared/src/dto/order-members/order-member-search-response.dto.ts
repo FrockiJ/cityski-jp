@@ -1,4 +1,38 @@
-import { Expose } from "class-transformer";
+import { Expose, Type } from "class-transformer";
+import { MemberResponseDto } from "../member/get-members-response.dto";
+
+
+class OrderReservationDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  index: number;
+
+  @Expose()
+  orderId: string;
+
+  @Expose()
+  reservationId: string;
+}
+
+class OrderDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  no: string;
+
+  @Expose()
+  status: number;
+
+  @Expose()
+  planNumber: number;
+
+  @Expose()
+  @Type(() => OrderReservationDto)
+  orderReservations: OrderReservationDto[];
+}
 
 export class OrderMemberSearchResponseDto {
   @Expose()
@@ -11,20 +45,10 @@ export class OrderMemberSearchResponseDto {
   memberId: string;
 
   @Expose()
-  member: {
-    id: string;
-    name: string;
-    phone: string | null;
-    birthday: Date | null;
-    avatar: string | null;
-    skis: number;
-    snowboard: number;
-  };
+  @Type(() => MemberResponseDto)
+  member: MemberResponseDto;
 
   @Expose()
-  order: {
-    id: string;
-    no: string;
-    status: string;
-  };
+  @Type(() => OrderDto)
+  order: OrderDto;
 }

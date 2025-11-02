@@ -18,7 +18,12 @@ import {
 import dayjs, { Dayjs } from 'dayjs';
 import { Form, Formik, FormikProps } from 'formik';
 import * as Yup from 'yup';
-import { useReservationDetail, useCreateReservation, useUpdateReservation, useCreateReservationWithLink } from '@/hooks/useReservation';
+import {
+	useReservationDetail,
+	useCreateReservation,
+	useUpdateReservation,
+	useCreateReservationWithLink,
+} from '@/hooks/useReservation';
 import { useReservationMembers } from '@/hooks/useReservationMembers';
 import { useGetOrderDetail } from '@/hooks/useGetOrderDetail';
 import { getCourseDetail } from '@/utils/http/api/course';
@@ -40,6 +45,7 @@ import AddMemberModal from '../AddMemberModal';
 import OrderChangesBlock from './OrderChangesBlock';
 import ReservationInfo from './ReservationInfo';
 import MemberList from './MemberList';
+import NoteBox from '../NoteBox';
 
 const anchorItems = [
 	{ id: 'basic', label: '參加成員', requireFields: [] },
@@ -84,14 +90,21 @@ const AddEditReservationIndoorModal = ({
 	const { reservationDetail, loading: detailLoading, fetchReservationDetail } = useReservationDetail();
 	const { loading: createLoading, createReservationWithLink } = useCreateReservationWithLink();
 	const { loading: updateLoading, updateExistingReservation } = useUpdateReservation();
-	const { members: savedMembers, loading: membersLoading, fetchMembers, addMember, removeMember } = useReservationMembers();
+	const {
+		members: savedMembers,
+		loading: membersLoading,
+		fetchMembers,
+		addMember,
+		removeMember,
+		updateMember,
+	} = useReservationMembers();
 
 	// 在 edit mode 時，orderId 從 reservationDetail 讀取；在 add mode 時從 props 讀取
 	const [effectiveOrderId, setEffectiveOrderId] = useState<string | undefined>(
-		modalType === ModalType.ADD ? orderId : undefined
+		modalType === ModalType.ADD ? orderId : undefined,
 	);
 
-	const { orderDetail , loading: orderDetailLoading } = useGetOrderDetail(effectiveOrderId);
+	const { orderDetail, loading: orderDetailLoading } = useGetOrderDetail(effectiveOrderId);
 
 	// Debug: 監測 effectiveOrderId 變化
 	useEffect(() => {
@@ -102,13 +115,16 @@ const AddEditReservationIndoorModal = ({
 	const [pendingAddMembers, setPendingAddMembers] = useState<any[]>([]);
 	const [pendingRemoveMembers, setPendingRemoveMembers] = useState<string[]>([]);
 
+	// 管理成員的備註和出席狀態
+	const [memberNotes, setMemberNotes] = useState<Record<string, { note: string; attended: boolean }>>({});
+
 	// 課程詳情狀態
 	const [courseDetail, setCourseDetail] = useState<any>(null);
 	const [courseDetailLoading, setCourseDetailLoading] = useState(false);
 
 	// 合併已儲存和待新增的成員，排除待刪除的成員
 	const displayMembers = React.useMemo(() => {
-		const saved = savedMembers.filter(m => !pendingRemoveMembers.includes(m.id));
+		const saved = savedMembers.filter((m) => !pendingRemoveMembers.includes(m.id));
 		return [...saved, ...pendingAddMembers];
 	}, [savedMembers, pendingAddMembers, pendingRemoveMembers]);
 
@@ -189,7 +205,7 @@ const AddEditReservationIndoorModal = ({
 					memberId: orderMember.memberId,
 					order: orderDetail,
 					orderId: orderDetail.id,
-				} 
+				},
 			}));
 
 			setPendingAddMembers(formattedMembers);
@@ -218,14 +234,13 @@ const AddEditReservationIndoorModal = ({
 					setMemberInfo((prevState) => ({
 						...prevState,
 						no: orderDetail.no || '--',
-						type: {
-							[CourseType.PRIVATE]: '私人課',
-							[CourseType.GROUP]: '團體課',
-							[CourseType.INDIVIDUAL]: '個人練習',
-						}[orderDetail.type] || prevState.type,
-						teachingType: course.teaching
-							? '教練授課'
-							: '無教練授課',
+						type:
+							{
+								[CourseType.PRIVATE]: '私人課',
+								[CourseType.GROUP]: '團體課',
+								[CourseType.INDIVIDUAL]: '個人練習',
+							}[orderDetail.type] || prevState.type,
+						teachingType: course.teaching ? '教練授課' : '無教練授課',
 					}));
 
 					console.log('課程詳情:', course);
@@ -279,6 +294,20 @@ const AddEditReservationIndoorModal = ({
 		}
 	}, [modalType, savedMembers]);
 
+	// 初始化成員備註狀態
+	useEffect(() => {
+		if (savedMembers.length > 0) {
+			const notes: Record<string, { note: string; attended: boolean }> = {};
+			savedMembers.forEach((member) => {
+				notes[member.id] = {
+					note: member.note || '',
+					attended: member.attended !== undefined ? member.attended : true, // 從資料庫讀取或預設為出席
+				};
+			});
+			setMemberNotes(notes);
+		}
+	}, [savedMembers]);
+
 	// --- FORMIK ---
 
 	const [initialValues, setInitialValues] = useState<InitialValuesProps>({
@@ -302,9 +331,7 @@ const AddEditReservationIndoorModal = ({
 	// 處理選擇成員 - 加入到待處理列表
 	const handleSelectMember = (member: any) => {
 		// 檢查是否已經存在（避免重複加入）
-		const alreadyExists = displayMembers.some(m =>
-			(m.orderMember?.id === member.id) || (m.id === member.id)
-		);
+		const alreadyExists = displayMembers.some((m) => m.orderMember?.id === member.id || m.id === member.id);
 
 		if (alreadyExists) {
 			console.warn('此成員已在列表中');
@@ -318,7 +345,7 @@ const AddEditReservationIndoorModal = ({
 			orderMember: member,
 		};
 
-		setPendingAddMembers(prev => [...prev, formattedMember]);
+		setPendingAddMembers((prev) => [...prev, formattedMember]);
 		console.log('成員已加入待處理列表，將在按下更新按鈕後儲存');
 	};
 
@@ -329,12 +356,34 @@ const AddEditReservationIndoorModal = ({
 
 		if (isPending) {
 			// 從待新增列表中移除
-			setPendingAddMembers(prev => prev.filter(m => m.id !== memberId));
+			setPendingAddMembers((prev) => prev.filter((m) => m.id !== memberId));
 		} else {
 			// 加入到待刪除列表
-			setPendingRemoveMembers(prev => [...prev, memberId]);
+			setPendingRemoveMembers((prev) => [...prev, memberId]);
 		}
 		console.log('成員已標記為刪除，將在按下更新按鈕後生效');
+	};
+
+	// 處理備註變更
+	const handleNoteChange = (memberId: string, note: string) => {
+		setMemberNotes((prev) => ({
+			...prev,
+			[memberId]: {
+				...prev[memberId],
+				note,
+			},
+		}));
+	};
+
+	// 處理出席狀態變更
+	const handleAttendedChange = (memberId: string, attended: boolean) => {
+		setMemberNotes((prev) => ({
+			...prev,
+			[memberId]: {
+				...prev[memberId],
+				attended,
+			},
+		}));
 	};
 
 	const handleFormSubmit = async (values: InitialValuesProps) => {
@@ -354,7 +403,7 @@ const AddEditReservationIndoorModal = ({
 			success = await updateExistingReservation(reservationId, reservationData);
 
 			if (success) {
-				// 更新成功後，處理成員的新增和刪除
+				// 更新成功後，處理成員的新增、刪除和更新
 				console.log('開始處理成員變更...');
 
 				// 1. 刪除待刪除的成員
@@ -376,7 +425,18 @@ const AddEditReservationIndoorModal = ({
 					}
 				}
 
-				// 3. 清空待處理列表
+				// 3. 更新所有成員的備註和出席狀態
+				for (const [memberId, data] of Object.entries(memberNotes)) {
+					const updateSuccess = await updateMember(memberId, {
+						note: data.note,
+						attended: data.attended,
+					});
+					if (!updateSuccess) {
+						console.error(`更新成員 ${memberId} 的備註失敗`);
+					}
+				}
+
+				// 4. 清空待處理列表
 				setPendingAddMembers([]);
 				setPendingRemoveMembers([]);
 
@@ -420,7 +480,6 @@ const AddEditReservationIndoorModal = ({
 	};
 
 	const isLoading = detailLoading || createLoading || updateLoading || orderDetailLoading || courseDetailLoading;
-
 	return (
 		<Formik
 			initialValues={initialValues}
@@ -448,23 +507,17 @@ const AddEditReservationIndoorModal = ({
 										children: (
 											<AddMemberModal
 												onSelectMember={handleSelectMember}
-												handleCloseModal={(action) => {
-													if (action === 'confirm') {
-														modal.closeModal();
-													}
-												}}
+												// handleCloseModal={(action) => {
+												// 	if (action === 'confirm') {
+												// 		modal.closeModal();
+												// 	}
+												// }}
 											/>
 										),
 									});
 								}}
 							>
-								<BlockArea>
-									<MemberList
-										members={displayMembers}
-										onRemoveMember={handleRemoveMember}
-										loading={membersLoading}
-									/>
-								</BlockArea>
+								<MemberList members={displayMembers} onRemoveMember={handleRemoveMember} loading={membersLoading} />
 							</CoreBlock>
 							<CoreBlock
 								title='預約資訊'
@@ -474,23 +527,25 @@ const AddEditReservationIndoorModal = ({
 									console.log('課程資訊');
 								}}
 							>
-								{modalType === ModalType.EDIT && reservationDetail?.linkedOrders && reservationDetail.linkedOrders.length > 1 && (
-									<Alert severity="warning" icon={<WarningAmberIcon />} sx={{ mb: 2 }}>
-										<AlertTitle>共享預約警告</AlertTitle>
-										此預約已連結到 <strong>{reservationDetail.linkedOrders.length} 個訂單</strong>。
-										修改此預約將會影響所有連結的訂單。
-										<div style={{ marginTop: '8px' }}>
-											連結的訂單：
-											<ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
-												{reservationDetail.linkedOrders.map((order) => (
-													<li key={order.orderReservationId}>
-														訂單 {order.orderNo} - 第 {order.index + 1} 堂課
-													</li>
-												))}
-											</ul>
-										</div>
-									</Alert>
-								)}
+								{modalType === ModalType.EDIT &&
+									reservationDetail?.linkedOrders &&
+									reservationDetail.linkedOrders.length > 1 && (
+										<Alert severity='warning' icon={<WarningAmberIcon />} sx={{ mb: 2 }}>
+											<AlertTitle>共享預約警告</AlertTitle>
+											此預約已連結到 <strong>{reservationDetail.linkedOrders.length} 個訂單</strong>。
+											修改此預約將會影響所有連結的訂單。
+											<div style={{ marginTop: '8px' }}>
+												連結的訂單：
+												<ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
+													{reservationDetail.linkedOrders.map((order) => (
+														<li key={order.orderReservationId}>
+															訂單 {order.orderNo} - 第 {order.index + 1} 堂課
+														</li>
+													))}
+												</ul>
+											</div>
+										</Alert>
+									)}
 								<ReservationInfo
 									courseInfo={courseInfo}
 									reservationDetail={reservationDetail}
@@ -532,10 +587,21 @@ const AddEditReservationIndoorModal = ({
 								</Stack>
 							</CoreBlock>
 							<CoreBlock title='上課紀錄'>
-								<BlockArea>加入成員紀錄上課情形</BlockArea>
+								{modalType === ModalType.ADD && <BlockArea>加入成員紀錄上課情形</BlockArea>}
+								{modalType === ModalType.EDIT &&
+									savedMembers.map((member) => (
+										<NoteBox
+											key={member.id}
+											member={member}
+											note={memberNotes[member.id]?.note || ''}
+											attended={memberNotes[member.id]?.attended ?? true}
+											onNoteChange={handleNoteChange}
+											onAttendedChange={handleAttendedChange}
+										/>
+									))}
 							</CoreBlock>
-							<CoreBlock title='訂單異動紀錄'>
-								<OrderChangesBlock />
+							<CoreBlock title='預約異動紀錄'>
+								<OrderChangesBlock reservationId={reservationId} />
 							</CoreBlock>
 						</CoreAnchorModal>
 						<StyledAbsoluteModalActions justifyContent='flex-end'>

@@ -5,6 +5,7 @@ import {
   getReservationMembers,
   createReservationMember,
   deleteReservationMember,
+  updateReservationMember,
 } from '@/utils/http/api/reservation-members';
 
 interface UseReservationMembersReturn {
@@ -14,6 +15,7 @@ interface UseReservationMembersReturn {
   fetchMembers: (reservationId: string) => Promise<void>;
   addMember: (data: CreateReservationMemberDto) => Promise<boolean>;
   removeMember: (id: string) => Promise<boolean>;
+  updateMember: (id: string, data: Partial<CreateReservationMemberDto>) => Promise<boolean>;
 }
 
 /**
@@ -81,6 +83,29 @@ export const useReservationMembers = (): UseReservationMembersReturn => {
     }
   }, []);
 
+  const updateMember = useCallback(async (id: string, data: Partial<CreateReservationMemberDto>): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await updateReservationMember(id, data);
+      if (response.result) {
+        // 更新列表中的成員
+        setMembers((prevMembers) =>
+          prevMembers.map((member) => (member.id === id ? response.result : member))
+        );
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('更新成員失敗:', err);
+      setError('更新成員失敗');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     members,
     loading,
@@ -88,5 +113,6 @@ export const useReservationMembers = (): UseReservationMembersReturn => {
     fetchMembers,
     addMember,
     removeMember,
+    updateMember,
   };
 };

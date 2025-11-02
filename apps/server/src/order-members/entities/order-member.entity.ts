@@ -31,4 +31,8 @@ export class OrderMember {
   
   @OneToMany(() => ReservationMember, (reservationMember) => reservationMember.orderMember)
   reservationMembers: ReservationMember[];
+
+  
+
+  
 }

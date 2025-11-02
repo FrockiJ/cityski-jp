@@ -37,7 +37,7 @@ const MemberList: React.FC<MemberListProps> = ({ members, onRemoveMember, loadin
 			{members.map((reservationMember) => {
 				const { orderMember } = reservationMember;
 				console.log(orderMember);
-				if (!orderMember) return null;
+				if (!orderMember || !orderMember.member	) return null;
 
 				// const { member, order } = orderMember;
 				console.log('orderMember', orderMember);

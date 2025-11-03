@@ -41,6 +41,7 @@ import { VerificationCode } from './verification/entities/verification-code.enti
 import { CourseCancelPolicy } from './course-cancel-policy/entities/course-cancel-policy.entity';
 import { CourseCancelPolicyModule } from './course-cancel-policy/course-cancel-policy.module';
 import { HomeModule } from './home/home.module';
+import { EcpayModule } from './ecpay/ecpay.module';
 import { Order } from './orders/entities/order.entity';
 import { OrdersModule } from './orders/orders.module';
 import { Transaction } from './transaction/entities/transaction.entity';
@@ -138,6 +139,7 @@ import { OrderInvitationsModule } from './order-invitations/order-invitations.mo
     CoursePlanSessionModule,
     SMTPModule,
     HomeModule,
+    EcpayModule,
     OrdersModule,
     TransactionsModule,
     ReservationsModule,

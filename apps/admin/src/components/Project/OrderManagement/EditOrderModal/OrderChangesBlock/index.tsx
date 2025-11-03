@@ -1,35 +1,48 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import dayjs from 'dayjs';
 
 import { Button } from '@/components/Common/CIBase/CoreDynamicTable/CoreFilter/styles';
 import FormikModalTable from '@/components/Common/CIBase/Formik/FormikModalTable';
 import useModalProvider from '@/hooks/useModalProvider';
+import { useOrderHistory } from '@/hooks/useOrder';
+import CoreLoaders from '@/CIBase/CoreLoaders';
 
 import InspectChangesModal from './InspectChangesModal';
 
-type Props = {};
+type Props = {
+	orderId?: string;
+};
 
-const OrderChangesBlock = (props: Props) => {
+const OrderChangesBlock = ({ orderId }: Props) => {
 	const modal = useModalProvider();
+	const { histories, loading, error, fetchOrderHistory } = useOrderHistory();
 
-	const fakeRow = [
+	useEffect(() => {
+		if (orderId) {
+			fetchOrderHistory(orderId);
+		}
+	}, [orderId, fetchOrderHistory]);
+
+	// 將歷史記錄轉換為表格行格式
+	const historyRows = histories.map((history) => [
 		{
 			width: '120px',
-			label: '訂單取消',
+			label: history.event,
 			show: true,
 		},
 		{
 			width: '100px',
-			label: '李大明',
+			label: history.operator,
 			show: true,
 		},
 		{
 			width: '150px',
-			label: '2024/12/15 16:00',
+			label: dayjs(history.time).format('YYYY/MM/DD HH:mm'),
 			show: true,
 		},
 		{
 			width: '280px',
-			label: '因個人安排，無法參與滑雪夏令營的任何檔次，故取消訂單。',
+			label: history.reason || '無',
 			show: true,
 		},
 		{
@@ -46,7 +59,7 @@ const OrderChangesBlock = (props: Props) => {
 							noTitleBorder: true,
 							noCancel: true,
 							confirmLabel: '關閉',
-							children: <InspectChangesModal reason='因個人安排，無法參與滑雪夏令營的任何檔次，故取消訂單。' />,
+							children: <InspectChangesModal reason={history.reason || '無'} />,
 						});
 					}}
 				>
@@ -54,12 +67,20 @@ const OrderChangesBlock = (props: Props) => {
 				</Button>
 			),
 		},
-	];
+	]);
+
+	if (loading) {
+		return <CoreLoaders />;
+	}
+
+	if (error) {
+		return <div>載入訂單異動紀錄時發生錯誤: {error}</div>;
+	}
 
 	return (
 		<div>
 			<FormikModalTable
-				name='orderJoinedMembersTable'
+				name='orderChangesTable'
 				tableHeader={[
 					{
 						label: '事件',
@@ -87,7 +108,7 @@ const OrderChangesBlock = (props: Props) => {
 						show: true,
 					},
 				]}
-				tableRowCell={Array(4).fill(fakeRow)}
+				tableRowCell={historyRows}
 			/>
 		</div>
 	);

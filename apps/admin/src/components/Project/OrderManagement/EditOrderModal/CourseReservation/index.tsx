@@ -79,7 +79,10 @@ const CourseReservation = ({ reservations = [], loading = false, size = 4, order
 						onClick={() => {
 							if (orderReservation) {
 								// 已有預約：跳轉至檢視模式
-								window.open(`/reservation-management/indoor-course?reservationId=${orderReservation.id}`, '_blank');
+								window.open(
+									`/reservation-management/indoor-course?reservationId=${orderReservation.reservation.id}`,
+									'_blank',
+								);
 							} else {
 								// 尚未預約：跳轉至新增模式，帶上 orderId 和 index
 								window.open(

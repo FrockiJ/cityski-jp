@@ -51,7 +51,7 @@ const anchorItems = [
 	{ id: 'basic', label: '參加成員', requireFields: [] },
 	{ id: 'courseIntroduce', label: '預約資訊', requireFields: [] },
 	{ id: 'planInfo', label: '上課紀錄', requireFields: [] },
-	{ id: 'courseManage', label: '訂單異動紀錄', requireFields: [] },
+	{ id: 'courseManage', label: '預約異動紀錄', requireFields: [] },
 ];
 
 interface InitialValuesProps {
@@ -380,7 +380,10 @@ const AddEditReservationIndoorModal = ({
 	};
 
 	// 更新授課等級（用於待刪除成員變更）
-	const updateCourseLevelAfterRemove = (updatedRemoveList: string[], setFieldValue?: (field: string, value: any) => void) => {
+	const updateCourseLevelAfterRemove = (
+		updatedRemoveList: string[],
+		setFieldValue?: (field: string, value: any) => void,
+	) => {
 		if (!setFieldValue || !orderDetail) return;
 
 		// 合併已儲存的成員（排除待刪除）和待新增的成員

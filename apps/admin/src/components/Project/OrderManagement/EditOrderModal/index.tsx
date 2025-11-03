@@ -199,7 +199,7 @@ const EditOrderModal = ({
 								<JoinedMembersBlock members={orderDetail?.orderMembers} reservations={reservations} />
 							</CoreBlock>
 							<CoreBlock title='訂單異動紀錄'>
-								<OrderChangesBlock />
+								<OrderChangesBlock orderId={orderId} />
 							</CoreBlock>
 							<CoreBlock title='備註'>
 								<Typography variant='body2' color='text.secondary'>

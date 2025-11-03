@@ -55,6 +55,8 @@ import { OrderReservation } from './order-reservations/entities/order-reservatio
 import { OrderReservationsModule } from './order-reservations/order-reservations.module';
 import { ReservationHistory } from './reservation-history/entities/reservation-history.entity';
 import { ReservationHistoryModule } from './reservation-history/reservation-history.module';
+import { OrderHistory } from './order-history/entities/order-history.entity';
+import { OrderHistoryModule } from './order-history/order-history.module';
 
 @Module({
   imports: [
@@ -103,6 +105,7 @@ import { ReservationHistoryModule } from './reservation-history/reservation-hist
             ReservationMember,
             OrderReservation,
             ReservationHistory,
+            OrderHistory,
           ],
           synchronize:
             dbSyncEnv === 'dev'
@@ -138,7 +141,8 @@ import { ReservationHistoryModule } from './reservation-history/reservation-hist
     OrderMembersModule,
     ReservationMembersModule,
     OrderReservationsModule,
-    ReservationHistoryModule,    
+    ReservationHistoryModule,
+    OrderHistoryModule,    
   ],
   controllers: [AppController],
 })

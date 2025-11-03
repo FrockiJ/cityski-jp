@@ -36,7 +36,7 @@ export class ReservationMembersService {
     try {
       const reservationMember = await this.reservationMembersRepo.findOne({
         where: { id },
-        relations: ['reservation', 'orderMember'],
+        relations: ['reservation', 'orderMember', 'orderMember.member', 'orderMember.order'],
       });
 
       if (!reservationMember) {

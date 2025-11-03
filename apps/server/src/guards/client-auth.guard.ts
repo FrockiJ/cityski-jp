@@ -2,6 +2,7 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -22,6 +23,7 @@ export class ClientAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
+    Logger.log(`ClientAuthGuard - extracted token: ${token}`);
 
     if (!token) {
       throw new UnauthorizedException();
@@ -48,6 +50,8 @@ export class ClientAuthGuard implements CanActivate {
       // Throw UnauthorizedException if JWT validation fails
       throw new UnauthorizedException('Invalid token');
     }
+
+    console.log('User authenticated:', request['user']);
     return true;
   }
 

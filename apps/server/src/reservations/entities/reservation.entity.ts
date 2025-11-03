@@ -1,6 +1,8 @@
 import { SkiAndSnowboardLevelEnum } from '@repo/shared';
 import { Department } from 'src/departments/entities/department.entity';
+import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
 import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
+import { ReservationHistory } from 'src/reservation-history/entities/reservation-history.entity';
 import { UserDate } from 'src/shared/entities/user_date.entity';
 import {
   Entity,
@@ -47,5 +49,11 @@ export class Reservation extends UserDate {
 
   @OneToMany(() => ReservationMember, (reservationMember) => reservationMember.reservation)
   reservationMembers: ReservationMember[];
+
+  @OneToMany(() => OrderReservation, (orderReservation) => orderReservation.reservation)
+  orderReservations: OrderReservation[];
+
+  @OneToMany(() => ReservationHistory, (reservationHistory) => reservationHistory.reservation)
+  reservationHistories: ReservationHistory[];
 
 }

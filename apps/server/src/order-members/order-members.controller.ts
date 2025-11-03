@@ -12,6 +12,8 @@ import {
 import { OrderMembersService } from './order-members.service';
 import { OrderMember } from './entities/order-member.entity';
 import { AuthGuard } from 'src/guards/auth.guard';
+import { OrderMemberSearchResponseDto, OrderMemberResponseDto } from '@repo/shared';
+import { plainToInstance } from 'class-transformer';
 
 @Controller('/order-members')
 export class OrderMembersController {
@@ -25,28 +27,44 @@ export class OrderMembersController {
 
   @UseGuards(AuthGuard)
   @Get('/search')
-  searchWithCoursesLeft(
+  async searchWithCoursesLeft(
     @Query('keyword') keyword: string,
-  ): Promise<OrderMember[]> {
-    return this.orderMembersService.searchWithCoursesLeft(keyword || '');
+  ): Promise<OrderMemberSearchResponseDto[]> {
+    return plainToInstance(
+      OrderMemberSearchResponseDto,
+      await this.orderMembersService.searchWithCoursesLeft(keyword || ''),
+      { excludeExtraneousValues: true }
+    );
   }
 
   @UseGuards(AuthGuard)
   @Get('/')
-  findAll(): Promise<OrderMember[]> {
-    return this.orderMembersService.findAll();
+  async findAll(): Promise<OrderMemberResponseDto[]> {
+    return plainToInstance(
+      OrderMemberResponseDto,
+      await this.orderMembersService.findAll(),
+      { excludeExtraneousValues: true }
+    );
   }
 
   @UseGuards(AuthGuard)
   @Get('/:id')
-  findOne(@Param('id') id: string): Promise<OrderMember> {
-    return this.orderMembersService.findOne(id);
+  async findOne(@Param('id') id: string): Promise<OrderMemberResponseDto> {
+    return plainToInstance(
+      OrderMemberResponseDto,
+      await this.orderMembersService.findOne(id),
+      { excludeExtraneousValues: true }
+    );
   }
 
   @UseGuards(AuthGuard)
   @Get('/order/:orderId')
-  findByOrderId(@Param('orderId') orderId: string): Promise<OrderMember[]> {
-    return this.orderMembersService.findByOrderId(orderId);
+  async findByOrderId(@Param('orderId') orderId: string): Promise<OrderMemberResponseDto[]> {
+    return plainToInstance(
+      OrderMemberResponseDto,
+      await this.orderMembersService.findByOrderId(orderId),
+      { excludeExtraneousValues: true }
+    );
   }
 
   @UseGuards(AuthGuard)
@@ -57,11 +75,15 @@ export class OrderMembersController {
 
   @UseGuards(AuthGuard)
   @Patch('/:id')
-  update(
+  async update(
     @Param('id') id: string,
     @Body() body: Partial<OrderMember>,
-  ): Promise<OrderMember> {
-    return this.orderMembersService.update(id, body);
+  ): Promise<OrderMemberResponseDto> {
+    return plainToInstance(
+      OrderMemberResponseDto,
+      await this.orderMembersService.update(id, body),
+      { excludeExtraneousValues: true }
+    );
   }
 
   @UseGuards(AuthGuard)

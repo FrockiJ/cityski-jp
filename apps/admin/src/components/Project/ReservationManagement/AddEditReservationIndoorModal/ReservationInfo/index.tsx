@@ -1,6 +1,12 @@
 import React from 'react';
 import { Stack, Typography } from '@mui/material';
-import { CourseType, GetReservationDetailResponseDto } from '@repo/shared';
+import {
+	CourseType,
+	GetReservationDetailResponseDto,
+	GetOrderDetailResponseDTO,
+	GetCourseDetailResponseDTO,
+	CourseSkiType,
+} from '@repo/shared';
 
 import BlockArea from '@/components/Project/shared/BlockArea';
 
@@ -14,10 +20,11 @@ interface CourseInfo {
 type Props = {
 	courseInfo?: CourseInfo;
 	reservationDetail?: GetReservationDetailResponseDto | null;
-	courseType?: CourseType;
+	orderDetail?: GetOrderDetailResponseDTO | null;
+	courseDetail?: GetCourseDetailResponseDTO | null;
 };
 
-const ReservationInfo = ({ courseInfo, reservationDetail, courseType }: Props) => {
+const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDetail }: Props) => {
 	// 根據預約狀態顯示中文狀態
 	const getReservationStatusText = (status?: number) => {
 		if (!status) return '--';
@@ -33,6 +40,39 @@ const ReservationInfo = ({ courseInfo, reservationDetail, courseType }: Props) =
 		}
 	};
 
+	// 獲取課程類型文字
+	const getCourseTypeText = () => {
+		if (!orderDetail) return courseInfo?.type || '--';
+
+		const typeMap = {
+			[CourseType.PRIVATE]: '私人課',
+			[CourseType.GROUP]: '團體課',
+			[CourseType.INDIVIDUAL]: '個人練習',
+		};
+
+		return typeMap[orderDetail.type] || '--';
+	};
+
+	// 獲取滑雪類型文字
+	const getSkiTypeText = () => {
+		if (!orderDetail) return '--';
+
+		//  CourseSkiType: 1=雙板, 2=單板
+		const skiTypeMap: { [key: number]: string } = {
+			0: '單板和雙板',
+			1: '雙板',
+			2: '單板',
+		};
+		return skiTypeMap[orderDetail.skiType] || '--';
+	};
+
+	// 計算人數限制
+	const getPersonLimit = () => {
+		if (!orderDetail || !courseDetail) return [];
+		return [courseDetail?.coursePeople[0].minPeople, courseDetail?.coursePeople[0].maxPeople];
+	};
+	const personLimit = getPersonLimit();
+	console.log('reservationDetail', reservationDetail);
 	return (
 		<BlockArea>
 			<Stack gap={3} width='100%'>
@@ -41,35 +81,43 @@ const ReservationInfo = ({ courseInfo, reservationDetail, courseType }: Props) =
 						<Typography variant='body2' color='text.secondary'>
 							預約編號
 						</Typography>
-						<Typography variant='body1'>
-							{reservationDetail?.reservationNo || courseInfo?.no || '--'}
-						</Typography>
+						<Typography variant='body1'>{reservationDetail?.reservationNo || '--'}</Typography>
 					</Stack>
 					<Stack gap={0.5} width='33%'>
 						<Typography variant='body2' color='text.secondary'>
 							課程狀態
 						</Typography>
 						<Typography variant='body1'>
-							{getReservationStatusText(reservationDetail?.reservationStatus) || courseInfo?.status || '--'}
+							{getReservationStatusText(reservationDetail?.reservationStatus) || '--'}
 						</Typography>
 					</Stack>
 					<Stack gap={0.5} width='33%'>
 						<Typography variant='body2' color='text.secondary'>
 							剩餘名額
 						</Typography>
+						<Typography variant='body1'>
+							{personLimit.length == 0 ? '--' : personLimit[1] - (reservationDetail?.reservationMembers?.length || 0)}
+						</Typography>
 					</Stack>
 				</Stack>
 				<Stack direction='row' gap={3}>
-					<Stack gap={0.5} width='31%'>
+					<Stack gap={0.5} width='33%'>
 						<Typography variant='body2' color='text.secondary'>
-							人數限制
+							人數限制 (還沒完成,需要考慮平日或假日)
 						</Typography>
+						<Typography variant='body1'>{personLimit.join(' - ')}</Typography>
 					</Stack>
-					<Stack gap={0.5} width='31%'>
+					<Stack gap={0.5} width='33%'>
 						<Typography variant='body2' color='text.secondary'>
 							課程類型
 						</Typography>
-						<Typography variant='body1'>預約團體｜雙板</Typography>
+						<Typography variant='body1'>
+							{getCourseTypeText()} | {getSkiTypeText()}
+						</Typography>
+					</Stack>
+					<Stack gap={0.5} width='33%'>
+						<Typography variant='body2' color='text.secondary'></Typography>
+						<Typography variant='body1'></Typography>
 					</Stack>
 				</Stack>
 			</Stack>

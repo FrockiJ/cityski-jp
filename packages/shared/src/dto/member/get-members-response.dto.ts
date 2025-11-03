@@ -47,10 +47,10 @@ export class MemberResponseDto {
   status: number | null;
 
   @Expose()
-  createdTime: string | null;
+  createdTime: Date | null;
 
   @Expose()
-  updatedTime: string | null;
+  updatedTime: Date | null;
 
   @Exclude()
   password: string;

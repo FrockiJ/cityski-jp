@@ -10,14 +10,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from 'src/guards/auth.guard';
-import { ReservationsService, 
-  CreateReservationRequestDTO, 
-  GetReservationsRequestDTO, 
+import { ReservationsService,
+  CreateReservationRequestDTO,
+  UpdateReservationRequestDTO,
+  GetReservationsRequestDTO,
   GetReservationDetailResponseDTO,
-  ResWithPaginationDTO 
+  ResWithPaginationDTO
 } from './reservations.service';
 import { CustomRequest } from 'src/shared/interfaces/custom-request';
 import { Reservation, ReservationStatus } from './entities/reservation.entity';
+import { validate } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
 
 @Controller('/reservations')
 export class ReservationsController {
@@ -30,13 +33,12 @@ export class ReservationsController {
   ): Promise<ResWithPaginationDTO<Reservation[]>> {
     return this.reservationsService.getReservations(request);
   }
-
   @UseGuards(AuthGuard)
   @Get('/:id')
   getReservationDetail(
     @Param('id') id: string,
   ): Promise<GetReservationDetailResponseDTO> {
-    return this.reservationsService.getReservationDetail(id);
+    return  this.reservationsService.getReservationDetail(id);
   }
 
   @UseGuards(AuthGuard)
@@ -50,10 +52,16 @@ export class ReservationsController {
   }
 
   @UseGuards(AuthGuard)
+  @Get('/:id/linked-orders')
+  getLinkedOrders(@Param('id') id: string) {
+    return this.reservationsService.getLinkedOrders(id);
+  }
+
+  @UseGuards(AuthGuard)
   @Put('/:id')
   updateReservation(
     @Param('id') id: string,
-    @Body() body: CreateReservationRequestDTO,
+    @Body() body: UpdateReservationRequestDTO,
     @Req() request: CustomRequest,
   ) {
     const userId = request['user']?.sub;

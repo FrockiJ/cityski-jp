@@ -171,15 +171,13 @@ const EditOrderModal = ({
 								</CoreBlock>
 							}
 						 */}
-							<CoreBlock
-								title='課程預約'
-								buttonLabel='新增預約'
-								buttonIsLink
-								handleClick={() => {
-									window.open('/reservation-management/indoor-course', '_blank');
-								}}
-							>
-								<CourseReservation reservations={reservations} loading={reservationsLoading} />
+							<CoreBlock title='課程預約' buttonIsLink>
+								<CourseReservation
+									reservations={reservations}
+									loading={reservationsLoading}
+									size={orderDetail?.planNumber}
+									orderId={orderId}
+								/>
 								<FormikDatePicker
 									name='courseExpiryDate'
 									title='課程使用期限'

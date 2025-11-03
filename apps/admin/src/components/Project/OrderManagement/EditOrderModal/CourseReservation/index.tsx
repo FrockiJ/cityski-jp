@@ -10,6 +10,8 @@ import { getReservationMembers, ReservationMember } from '@/utils/http/api/reser
 type Props = {
 	reservations?: any[];
 	loading?: boolean;
+	size?: number;
+	orderId?: string;
 };
 
 // 輔助函數：獲取狀態文字
@@ -31,7 +33,7 @@ const getTeachingLevelText = (level: number): string => {
 	return SkiAndSnowboardLevel[level as keyof typeof SkiAndSnowboardLevel] || '未知等級';
 };
 
-const CourseReservation = ({ reservations = [], loading = false }: Props) => {
+const CourseReservation = ({ reservations = [], loading = false, size = 4, orderId }: Props) => {
 	const [reservationMembers, setReservationMembers] = useState<Record<string, ReservationMember[]>>({});
 	const [loadingMembers, setLoadingMembers] = useState(false);
 
@@ -75,52 +77,61 @@ const CourseReservation = ({ reservations = [], loading = false }: Props) => {
 	};
 
 	// 將預約數據轉換為表格行格式
-	const tableRows = reservations.map((reservation) => [
-		{
-			width: '60px',
-			label: `#${reservation.reservationNo}`,
-			show: true,
-		},
-		{
-			width: '80px',
-			label: getStatusText(reservation.reservationStatus),
-			show: true,
-		},
-		{
-			width: '150px',
-			label: dayjs(reservation.classTime).format('YYYY/MM/DD HH:mm'),
-			show: true,
-		},
-		{
-			width: '60px',
-			label: getTeachingLevelText(reservation.teachingLevel),
-			show: true,
-		},
-		{
-			width: '300px',
-			label: loadingMembers ? '載入中...' : formatMemberNames(reservation.id),
-			show: true,
-		},
-		{
-			width: '150px',
-			show: true,
-			component: (
-				<Button
-					endIcon={<RoundedArrowTopRight />}
-					onClick={() => {
-						window.open(`/reservation-management/indoor-course?reservationId=${reservation.id}`, '_blank');
-					}}
-				>
-					檢視
-				</Button>
-			),
-		},
-	]);
+	const tableRows = new Array(size).fill(null).map((_, index) => {
+		const reservation = reservations.find((res) => res.index == index);
+		return [
+			{
+				width: '60px',
+				label: `#${index + 1}`,
+				show: true,
+			},
+			{
+				width: '80px',
+				label: reservation ? getStatusText(reservation.reservationStatus) : '未預約',
+				show: true,
+			},
+			{
+				width: '150px',
+				label: reservation ? dayjs(reservation.classTime).format('YYYY/MM/DD HH:mm') : '',
+				show: true,
+			},
+			{
+				width: '60px',
+				label: reservation ? getTeachingLevelText(reservation.teachingLevel) : '',
+				show: true,
+			},
+			{
+				width: '300px',
+				label: reservation ? (loadingMembers ? '載入中...' : formatMemberNames(reservation.id)) : '',
+				show: true,
+			},
+			{
+				width: '150px',
+				show: true,
+				component: (
+					<Button
+						endIcon={<RoundedArrowTopRight />}
+						onClick={() => {
+							if (reservation) {
+								// 已有預約：跳轉至檢視模式
+								window.open(`/reservation-management/indoor-course?reservationId=${reservation.id}`, '_blank');
+							} else {
+								// 尚未預約：跳轉至新增模式，帶上 orderId 和 index
+								window.open(`/reservation-management/indoor-course?action=add&orderId=${orderId}&index=${index}`, '_blank');
+							}
+						}}
+					>
+						{reservation ? '檢視' : '立即預約'}
+					</Button>
+				),
+			},
+		];
+	});
 
 	// 如果沒有預約數據，顯示空狀態
-	if (!loading && (!reservations || reservations.length === 0)) {
-		return <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>此訂單尚無課程預約</div>;
-	}
+	// if (!loading && (!reservations || reservations.length === 0)) {
+	// 	return <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>此訂單尚無課程預約</div>;
+	// }
 
 	return (
 		<div>

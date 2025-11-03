@@ -51,6 +51,10 @@ import { OrderMember } from './order-members/entities/order-member.entity';
 import { OrderMembersModule } from './order-members/order-members.module';
 import { ReservationMember } from './reservation-members/entities/reservation-member.entity';
 import { ReservationMembersModule } from './reservation-members/reservation-members.module';
+import { OrderReservation } from './order-reservations/entities/order-reservation.entity';
+import { OrderReservationsModule } from './order-reservations/order-reservations.module';
+import { ReservationHistory } from './reservation-history/entities/reservation-history.entity';
+import { ReservationHistoryModule } from './reservation-history/reservation-history.module';
 
 @Module({
   imports: [
@@ -97,6 +101,8 @@ import { ReservationMembersModule } from './reservation-members/reservation-memb
             Reservation,
             OrderMember,
             ReservationMember,
+            OrderReservation,
+            ReservationHistory,
           ],
           synchronize:
             dbSyncEnv === 'dev'
@@ -108,7 +114,7 @@ import { ReservationMembersModule } from './reservation-members/reservation-memb
       },
       inject: [ConfigService],
     }),
-    AuthModule,
+    AuthModule,    
     UsersModule,
     MenuModule,
     RolesModule,
@@ -131,6 +137,8 @@ import { ReservationMembersModule } from './reservation-members/reservation-memb
     ReservationsModule,
     OrderMembersModule,
     ReservationMembersModule,
+    OrderReservationsModule,
+    ReservationHistoryModule,    
   ],
   controllers: [AppController],
 })

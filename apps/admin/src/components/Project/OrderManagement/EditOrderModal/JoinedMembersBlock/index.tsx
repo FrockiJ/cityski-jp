@@ -11,8 +11,6 @@ interface OrderMember {
 	memberBirthday: Date;
 	snowboard: number;
 	skis: number;
-	courseCount: number;
-	courseLeft: number;
 }
 
 interface Props {

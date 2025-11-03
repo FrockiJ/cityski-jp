@@ -67,8 +67,8 @@ export const useReservationFormatTableData = (options?: Props) => {
 					// 室內課程的資料結構
 					const indoorData: ReservationIndoorTableListResult = {
 						...baseData,
-						number: Math.floor(Math.random() * 15) + 1, // 暫時用隨機數，實際應該從API獲取
-						remaining: Math.floor(Math.random() * 10), // 暫時用隨機數，實際應該從API獲取
+						number: reservation?.reservationMembers?.length || 0,
+						remaining:  (reservation?.reservationMembers?.[0]?.orderMember?.order?.coursePlan?.course?.coursePeople?.[0]?.maxPeople || 0) - (reservation?.reservationMembers?.length || 0)
 					};
 					return indoorData;
 				}

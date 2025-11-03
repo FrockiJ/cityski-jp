@@ -1,6 +1,13 @@
 import React from 'react';
 import { Box, Divider, Stack, Typography } from '@mui/material';
-import { GetOrderDetailResponseDTO, CourseType, CourseSkiType, CourseBkgType, OrderChannel , OrderChannelEnum } from '@repo/shared';
+import {
+	GetOrderDetailResponseDTO,
+	CourseType,
+	CourseSkiType,
+	CourseBkgType,
+	OrderChannel,
+	OrderChannelEnum,
+} from '@repo/shared';
 import dayjs from 'dayjs';
 
 import BlockArea from '@/components/Project/shared/BlockArea';
@@ -25,6 +32,7 @@ const OrderInfoBlock = ({ orderDetail }: Props) => {
 
 	// 滑板類型映射
 	const skiTypeMap = {
+		[CourseSkiType.BOTH]: '雙板 / 單板',
 		[CourseSkiType.SNOWBOARD]: '單板',
 		[CourseSkiType.SKI]: '雙板',
 	};
@@ -49,9 +57,10 @@ const OrderInfoBlock = ({ orderDetail }: Props) => {
 	const channel = channelMap[orderDetail.channel] || orderDetail.channel;
 
 	const totalPeople = orderDetail.adultCount + orderDetail.childCount;
-	const peopleText = orderDetail.childCount > 0
-		? `${orderDetail.adultCount}成人 + ${orderDetail.childCount}青少年/兒童`
-		: `${orderDetail.adultCount}成人`;
+	const peopleText =
+		orderDetail.childCount > 0
+			? `${orderDetail.adultCount}成人 + ${orderDetail.childCount}青少年/兒童`
+			: `${orderDetail.adultCount}成人`;
 
 	return (
 		<BlockArea>
@@ -66,7 +75,9 @@ const OrderInfoBlock = ({ orderDetail }: Props) => {
 					<Stack direction='row' justifyContent='space-between' width='100%'>
 						<Stack>
 							<Typography variant='h4'>{orderDetail.coursePlanName}</Typography>
-							<Typography variant='body2'>{orderDetail.planNumber}堂{courseType}</Typography>
+							<Typography variant='body2'>
+								{orderDetail.planNumber}堂{courseType}
+							</Typography>
 						</Stack>
 						{orderDetail.coursePlanImage && (
 							<Box
@@ -85,12 +96,16 @@ const OrderInfoBlock = ({ orderDetail }: Props) => {
 					<Stack direction='row' width='100%' mt={2.5} gap={2}>
 						<Stack direction='row' alignItems='center' gap={0.5}>
 							<Box component='img' src='/icons/plan.svg' />
-							<Typography variant='body2'>室內 / {courseType} / {bkgType}</Typography>
+							<Typography variant='body2'>
+								室內 / {courseType} / {bkgType}
+							</Typography>
 						</Stack>
 						<Divider orientation='vertical' flexItem />
 						<Stack direction='row' alignItems='center' gap={0.5}>
 							<Box component='img' src='/icons/ski-man.svg' />
-							<Typography variant='body2'>{skiType} / {orderDetail.planNumber}堂</Typography>
+							<Typography variant='body2'>
+								{skiType} / {orderDetail.planNumber}堂
+							</Typography>
 						</Stack>
 						<Divider orientation='vertical' flexItem />
 						<Stack direction='row' alignItems='center' gap={0.5}>

@@ -28,7 +28,7 @@ export class Member extends UserDate {
     unique: true,
   })
   lineId: string | null; // Line ID (nullable, unique)
-
+  
   @Column({ type: 'varchar', length: 255, nullable: true })
   password: string | null; // 密碼 (nullable, only for email registration)
 

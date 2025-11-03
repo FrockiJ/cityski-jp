@@ -38,23 +38,27 @@ export default function CoachSection() {
 						className='object-cover h-[440px] xs:h-[auto] absolute top-0 left-1/2 transform -translate-x-1/2'
 					/>
 				)}
-				{/* <div className='py-[40px] px-[35px] xs:py-[92px] xs:pl-[140px] relative z-10 text-system-white'>
-					<p className='coach-banner-text-sm-shadow'>單板教練培訓課</p>
+				<div className='py-[40px] px-[35px] xs:py-[92px] xs:pl-[140px] relative z-10 text-system-white'>
+					{/* <p className='coach-banner-text-sm-shadow'>單板教練培訓課</p>
 					<p className='coach-banner-text-lg-shadow text-[20px] xs:text-[27px] font-medium leading-[26px] xs:leading-[35px] mt-[10px]'>
 						加入 CASI 認證專業單板教練會員
 					</p>
 					<p className='coach-banner-text-lg-shadow text-[27px] xs:text-[36px] leading-[35px] xs:leading-[46px] font-medium'>
 						你將獲得更多機會與福利
-					</p>
-					<button
-						className='mt-[28px] px-[16px] py-[5px] rounded-[24px] border border-solid border-white bg-system-white text-system-navy text-sm'
-						onClick={() => {
-							window.open(adBanner.buttonUrl, '_blank');
-						}}
-					>
-						立即報名
-					</button>
-				</div> */}
+					</p>  */}
+				</div>
+				{adBanner && adBanner.buttonUrl && (
+					<div className='absolute bottom-[30px] left-[35px] xs:bottom-[90px] xs:left-[140px] z-10'>
+						<button
+							className='px-[16px] py-[8px] rounded-[24px] border border-solid border-white bg-system-white text-system-navy text-sm font-medium hover:opacity-90 transition-opacity'
+							onClick={() => {
+								window.open(adBanner.buttonUrl, '_blank');
+							}}
+						>
+							立即報名
+						</button>
+					</div>
+				)}
 			</FadeIn>
 
 			<FadeIn className='custom-background pt-[80px] pb-[100px] xs:pb-[130px] xs:mt-[100px]'>

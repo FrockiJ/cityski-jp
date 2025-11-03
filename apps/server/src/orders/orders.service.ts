@@ -379,7 +379,7 @@ export class OrdersService {
 
   // 獲取訂單相關的預約列表
   // 關聯邏輯: Order -> OrderReservation -> Reservation + ReservationMember
-  async getOrderReservations(orderId: string): Promise<ReservationResponseDto[]> {
+  async getOrderReservations(orderId: string): Promise<any[]> {
     try {
       // 先驗證訂單是否存在
       const order = await this.ordersRepo.findOne({
@@ -396,39 +396,12 @@ export class OrdersService {
       // 查詢該訂單的所有 order-reservations
       const orderReservations = await this.orderReservationsRepo.find({
         where: { orderId },
-        relations: ['reservation', 'reservation.department', 'reservation.reservationMembers'],
+        relations: ['reservation', 'reservation.reservationMembers','reservation.reservationMembers.orderMember','reservation.reservationMembers.orderMember.member'],
         order: { index: 'ASC' },
       });
 
-      if (orderReservations.length === 0) {
-        return [];
-      }
 
-      // 轉換為陣列並格式化回傳
-      const reservations = orderReservations.map((orderReservation) => {
-        const reservation = orderReservation.reservation;
-
-        return {
-          id: reservation?.id || null,
-          reservationNo: reservation?.reservationNo || null,
-          reservationStatus: reservation?.reservationStatus || null,
-          classTime: reservation?.classTime || null,
-          teachingLevel: reservation?.teachingLevel || null,
-          instructor: reservation?.instructor || null,
-          departmentId: reservation?.department?.id || null,
-          createdTime: reservation?.createdTime || null,
-          updatedTime: reservation?.updatedTime || null,
-          index: orderReservation.index,
-          department: reservation?.department
-            ? {
-                id: reservation.department.id,
-                name: reservation.department.name,
-              }
-            : null,
-        };
-      });
-
-      return reservations;
+      return orderReservations;
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;

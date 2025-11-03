@@ -2,6 +2,7 @@ import React from 'react';
 
 import { Button } from '@/components/Common/CIBase/CoreDynamicTable/CoreFilter/styles';
 import FormikModalTable from '@/components/Common/CIBase/Formik/FormikModalTable';
+import { ReservationResponseDto } from '@repo/shared';
 
 interface OrderMember {
 	id: string;
@@ -15,9 +16,10 @@ interface OrderMember {
 
 interface Props {
 	members?: OrderMember[];
+	reservations?: ReservationResponseDto[];
 }
 
-const JoinedMembersBlock = ({ members = [] }: Props) => {
+const JoinedMembersBlock = ({ members = [], reservations = [] }: Props) => {
 	// Calculate age from birthday
 	const calculateAge = (birthday: Date | null | undefined): number => {
 		if (!birthday) return 0;
@@ -30,7 +32,19 @@ const JoinedMembersBlock = ({ members = [] }: Props) => {
 		}
 		return age;
 	};
+	const getUsedReservations = (member: OrderMember): number => {
+		let count = 0;
+		console.log('reservations|||', member.memberName, member.id, reservations.length);
 
+		reservations.forEach((reservation) => {
+			console.log('reservation|||', reservation.reservation.reservationMembers);
+			if (reservation.reservation.reservationMembers.some((m) => m.orderMemberId === member.id)) {
+				count++;
+			}
+		});
+		console.log('count|||', count);
+		return count;
+	};
 	// Format board type and level
 	const formatBoardLevel = (snowboard: number, skis: number): string => {
 		const parts: string[] = [];
@@ -72,7 +86,7 @@ const JoinedMembersBlock = ({ members = [] }: Props) => {
 		},
 		{
 			width: '192px',
-			label: '',
+			label: getUsedReservations(member).toString(),
 			show: true,
 		},
 	]);
@@ -108,7 +122,7 @@ const JoinedMembersBlock = ({ members = [] }: Props) => {
 						show: true,
 					},
 					{
-						label: ' ',
+						label: '使用堂數',
 						width: '192px',
 						show: true,
 					},

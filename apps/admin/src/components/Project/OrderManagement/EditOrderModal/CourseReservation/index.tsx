@@ -34,51 +34,16 @@ const getTeachingLevelText = (level: number): string => {
 };
 
 const CourseReservation = ({ reservations = [], loading = false, size = 4, orderId }: Props) => {
-	const [reservationMembers, setReservationMembers] = useState<Record<string, ReservationMember[]>>({});
-	const [loadingMembers, setLoadingMembers] = useState(false);
-
-	// 獲取所有預約的成員信息
-	useEffect(() => {
-		if (reservations && reservations.length > 0) {
-			const fetchAllMembers = async () => {
-				setLoadingMembers(true);
-				try {
-					const membersData: Record<string, ReservationMember[]> = {};
-
-					await Promise.all(
-						reservations.map(async (reservation) => {
-							try {
-								const response = await getReservationMembers(reservation.id);
-								membersData[reservation.id] = response.result || [];
-							} catch (error) {
-								console.error(`Failed to fetch members for reservation ${reservation.id}:`, error);
-								membersData[reservation.id] = [];
-							}
-						}),
-					);
-
-					setReservationMembers(membersData);
-				} catch (error) {
-					console.error('Failed to fetch reservation members:', error);
-				} finally {
-					setLoadingMembers(false);
-				}
-			};
-
-			fetchAllMembers();
-		}
-	}, [reservations]);
-
 	// 格式化參加人員名單
-	const formatMemberNames = (reservationId: string): string => {
-		const members = reservationMembers[reservationId] || [];
-		if (members.length === 0) return '無';
-		return members.map((m) => m.orderMember?.member?.name || '未知').join('、');
+	const formatMemberNames = (reservationMembers: ReservationMember[]): string => {
+		if (!reservationMembers || reservationMembers.length === 0) return '無';
+
+		return reservationMembers.map((m) => m.orderMember?.member?.name || '未知').join('、');
 	};
 
 	// 將預約數據轉換為表格行格式
 	const tableRows = new Array(size).fill(null).map((_, index) => {
-		const reservation = reservations.find((res) => res.index == index);
+		const orderReservation = reservations.find((res) => res.index == index);
 		return [
 			{
 				width: '60px',
@@ -87,22 +52,22 @@ const CourseReservation = ({ reservations = [], loading = false, size = 4, order
 			},
 			{
 				width: '80px',
-				label: reservation ? getStatusText(reservation.reservationStatus) : '未預約',
+				label: orderReservation ? getStatusText(orderReservation.reservation.reservationStatus) : '未預約',
 				show: true,
 			},
 			{
 				width: '150px',
-				label: reservation ? dayjs(reservation.classTime).format('YYYY/MM/DD HH:mm') : '',
+				label: orderReservation ? dayjs(orderReservation.reservation.classTime).format('YYYY/MM/DD HH:mm') : '',
 				show: true,
 			},
 			{
 				width: '60px',
-				label: reservation ? getTeachingLevelText(reservation.teachingLevel) : '',
+				label: orderReservation ? getTeachingLevelText(orderReservation.reservation.teachingLevel) : '',
 				show: true,
 			},
 			{
 				width: '300px',
-				label: reservation ? (loadingMembers ? '載入中...' : formatMemberNames(reservation.id)) : '',
+				label: orderReservation ? formatMemberNames(orderReservation.reservation.reservationMembers) : '',
 				show: true,
 			},
 			{
@@ -112,16 +77,19 @@ const CourseReservation = ({ reservations = [], loading = false, size = 4, order
 					<Button
 						endIcon={<RoundedArrowTopRight />}
 						onClick={() => {
-							if (reservation) {
+							if (orderReservation) {
 								// 已有預約：跳轉至檢視模式
-								window.open(`/reservation-management/indoor-course?reservationId=${reservation.id}`, '_blank');
+								window.open(`/reservation-management/indoor-course?reservationId=${orderReservation.id}`, '_blank');
 							} else {
 								// 尚未預約：跳轉至新增模式，帶上 orderId 和 index
-								window.open(`/reservation-management/indoor-course?action=add&orderId=${orderId}&index=${index}`, '_blank');
+								window.open(
+									`/reservation-management/indoor-course?action=add&orderId=${orderId}&index=${index}`,
+									'_blank',
+								);
 							}
 						}}
 					>
-						{reservation ? '檢視' : '立即預約'}
+						{orderReservation ? '檢視' : '立即預約'}
 					</Button>
 				),
 			},

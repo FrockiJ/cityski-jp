@@ -196,7 +196,7 @@ const EditOrderModal = ({
 									console.log('轉讓');
 								}}
 							>
-								<JoinedMembersBlock members={orderDetail?.orderMembers} />
+								<JoinedMembersBlock members={orderDetail?.orderMembers} reservations={reservations} />
 							</CoreBlock>
 							<CoreBlock title='訂單異動紀錄'>
 								<OrderChangesBlock />

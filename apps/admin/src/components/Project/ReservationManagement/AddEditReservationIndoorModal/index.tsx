@@ -328,8 +328,76 @@ const AddEditReservationIndoorModal = ({
 		departmentId: Yup.string().required('必填欄位'),
 	});
 
+	// 計算並更新授課等級的輔助函數
+	const calculateMinLevel = (members: any[]) => {
+		if (!orderDetail) return null;
+
+		const skiType = orderDetail.skiType;
+		let minLevel = Infinity;
+
+		members.forEach((m) => {
+			const memberData = m.orderMember?.member;
+			if (memberData) {
+				let memberLevel: number;
+
+				if (skiType === 1) {
+					// 雙板課程，使用 skis 等級
+					memberLevel = Number(memberData.skis) || Infinity;
+				} else if (skiType === 2) {
+					// 單板課程，使用 snowboard 等級
+					memberLevel = Number(memberData.snowboard) || Infinity;
+				} else {
+					// 單板和雙板，取較小值
+					const skisLevel = Number(memberData.skis) || Infinity;
+					const snowboardLevel = Number(memberData.snowboard) || Infinity;
+					memberLevel = Math.min(skisLevel, snowboardLevel);
+				}
+
+				if (memberLevel < minLevel) {
+					minLevel = memberLevel;
+				}
+			}
+		});
+
+		return minLevel === Infinity ? null : minLevel;
+	};
+
+	// 更新授課等級（用於待新增成員變更）
+	const updateCourseLevel = (updatedPendingMembers: any[], setFieldValue?: (field: string, value: any) => void) => {
+		if (!setFieldValue || !orderDetail) return;
+
+		// 合併已儲存的成員（排除待刪除）和待新增的成員
+		const saved = savedMembers.filter((m) => !pendingRemoveMembers.includes(m.id));
+		const allMembers = [...saved, ...updatedPendingMembers];
+
+		const minLevel = calculateMinLevel(allMembers);
+
+		if (minLevel !== null) {
+			const newCourseLevel = minLevel + 1;
+			setFieldValue('courseLevel', newCourseLevel.toString());
+			console.log(`授課等級已更新為: ${newCourseLevel} (最低成員等級: ${minLevel})`);
+		}
+	};
+
+	// 更新授課等級（用於待刪除成員變更）
+	const updateCourseLevelAfterRemove = (updatedRemoveList: string[], setFieldValue?: (field: string, value: any) => void) => {
+		if (!setFieldValue || !orderDetail) return;
+
+		// 合併已儲存的成員（排除待刪除）和待新增的成員
+		const saved = savedMembers.filter((m) => !updatedRemoveList.includes(m.id));
+		const allMembers = [...saved, ...pendingAddMembers];
+
+		const minLevel = calculateMinLevel(allMembers);
+
+		if (minLevel !== null) {
+			const newCourseLevel = minLevel + 1;
+			setFieldValue('courseLevel', newCourseLevel.toString());
+			console.log(`授課等級已更新為: ${newCourseLevel} (最低成員等級: ${minLevel})`);
+		}
+	};
+
 	// 處理選擇成員 - 加入到待處理列表
-	const handleSelectMember = (member: any) => {
+	const handleSelectMember = (member: any, setFieldValue?: (field: string, value: any) => void) => {
 		// 檢查是否已經存在（避免重複加入）
 		const alreadyExists = displayMembers.some((m) => m.orderMember?.id === member.id || m.id === member.id);
 
@@ -345,21 +413,42 @@ const AddEditReservationIndoorModal = ({
 			orderMember: member,
 		};
 
-		setPendingAddMembers((prev) => [...prev, formattedMember]);
+		setPendingAddMembers((prev) => {
+			const updatedMembers = [...prev, formattedMember];
+
+			// 更新授課等級
+			updateCourseLevel(updatedMembers, setFieldValue);
+
+			return updatedMembers;
+		});
 		console.log('成員已加入待處理列表，將在按下更新按鈕後儲存');
 	};
 
 	// 處理移除成員 - 加入到待刪除列表或從待新增列表移除
-	const handleRemoveMember = (memberId: string) => {
+	const handleRemoveMember = (memberId: string, setFieldValue?: (field: string, value: any) => void) => {
 		// 檢查是否為待新增的成員
 		const isPending = memberId.startsWith('pending-');
 
 		if (isPending) {
 			// 從待新增列表中移除
-			setPendingAddMembers((prev) => prev.filter((m) => m.id !== memberId));
+			setPendingAddMembers((prev) => {
+				const updatedMembers = prev.filter((m) => m.id !== memberId);
+
+				// 更新授課等級
+				updateCourseLevel(updatedMembers, setFieldValue);
+
+				return updatedMembers;
+			});
 		} else {
 			// 加入到待刪除列表
-			setPendingRemoveMembers((prev) => [...prev, memberId]);
+			setPendingRemoveMembers((prev) => {
+				const updatedRemoveList = [...prev, memberId];
+
+				// 更新授課等級（需要考慮待刪除的成員）
+				updateCourseLevelAfterRemove(updatedRemoveList, setFieldValue);
+
+				return updatedRemoveList;
+			});
 		}
 		console.log('成員已標記為刪除，將在按下更新按鈕後生效');
 	};
@@ -487,7 +576,7 @@ const AddEditReservationIndoorModal = ({
 			validationSchema={validationSchema}
 			enableReinitialize
 		>
-			{({ isSubmitting, values }) => {
+			{({ isSubmitting, values, setFieldValue }) => {
 				return (
 					<Form>
 						{isLoading || (isSubmitting && <CoreLoaders hasOverlay />)}
@@ -506,7 +595,7 @@ const AddEditReservationIndoorModal = ({
 										noEscAndBackdrop: true,
 										children: (
 											<AddMemberModal
-												onSelectMember={handleSelectMember}
+												onSelectMember={(member) => handleSelectMember(member, setFieldValue)}
 												// handleCloseModal={(action) => {
 												// 	if (action === 'confirm') {
 												// 		modal.closeModal();
@@ -517,7 +606,11 @@ const AddEditReservationIndoorModal = ({
 									});
 								}}
 							>
-								<MemberList members={displayMembers} onRemoveMember={handleRemoveMember} loading={membersLoading} />
+								<MemberList
+									members={displayMembers}
+									onRemoveMember={(memberId) => handleRemoveMember(memberId, setFieldValue)}
+									loading={membersLoading}
+								/>
 							</CoreBlock>
 							<CoreBlock
 								title='預約資訊'

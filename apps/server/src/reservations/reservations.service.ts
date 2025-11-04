@@ -11,81 +11,17 @@ import { Department } from 'src/departments/entities/department.entity';
 import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { ReservationStatus } from './entities/reservation.entity';
+import {
+  CreateReservationRequestDto,
+  CreateReservationResponseDTO,
+  UpdateReservationRequestDto,
+  GetReservationsRequestDto,
+  GetReservationDetailResponseDto,
+  GetLinkedOrdersResponseDto,
+  ReservationResponseDto,
+  ResWithPaginationDTO,
 
-export interface CreateReservationRequestDTO {
-  departmentId: string;
-  classTime: Date;
-  teachingLevel: SkiAndSnowboardLevelEnum;
-  instructor?: string;
-  reservationStatus?: ReservationStatus;
-}
-
-export interface GetReservationsRequestDTO {
-  departmentId?: string;
-  reservationStatus?: ReservationStatus;
-  keyword?: string;
-  page?: number;
-  limit?: number;
-}
-
-export interface GetReservationDetailResponseDTO {
-  id: string;
-  reservationNo: number;
-  reservationStatus: ReservationStatus;
-  classTime: Date;
-  teachingLevel: SkiAndSnowboardLevelEnum;
-  instructor: string | null;
-  departmentName: string;
-  createdTime: Date;
-  updatedTime: Date;
-  linkedOrders?: Array<{
-    orderId: string;
-    orderNo: string;
-    index: number;
-    orderReservationId: string;
-  }>;
-  reservationMembers?: Array<{
-    id: string;
-    reservationId: string;
-    orderMemberId: string;
-    note?: string;
-    orderMember?: {
-      id: string;
-      orderId: string;
-      memberId: string;
-      member: {
-        id: string;
-        name: string;
-        phone: string | null;
-        birthday: Date | null;
-        avatar: string | null;
-        skis: number;
-        snowboard: number;
-      };
-      order: {
-        id: string;
-        no: string;
-        status: number;
-      };
-    };
-  }>;
-}
-
-export interface UpdateReservationRequestDTO {
-  departmentId?: string;
-  classTime?: Date;
-  teachingLevel?: SkiAndSnowboardLevelEnum;
-  instructor?: string;
-  reservationStatus?: ReservationStatus;
-}
-
-export interface ResWithPaginationDTO<T> {
-  data: T;
-  total: number;
-  page: number;
-  limit: number;
-  pages: number;
-}
+} from '@repo/shared';
 
 @Injectable()
 export class ReservationsService {
@@ -100,7 +36,7 @@ export class ReservationsService {
 
   // 獲取預約列表
   async getReservations(
-    request: GetReservationsRequestDTO,
+    request: GetReservationsRequestDto,
   ): Promise<ResWithPaginationDTO<Reservation[]>> {
     try {
       // 構建查詢條件
@@ -158,11 +94,11 @@ export class ReservationsService {
   }
 
   // 根據ID獲取預約詳情
-  async getReservationDetail(id: string): Promise<GetReservationDetailResponseDTO> {
+  async getReservationDetail(id: string): Promise<GetReservationDetailResponseDto> {
     try {
       const reservation = await this.reservationsRepo.findOne({
         where: { id },
-        relations: ['department', 'reservationMembers', 'reservationMembers.orderMember', 'reservationMembers.orderMember.member', 'reservationMembers.orderMember.order'],
+        relations: [ 'reservationMembers', 'reservationMembers.orderMember', 'reservationMembers.orderMember.member', 'reservationMembers.orderMember.order','reservationMembers.orderMember.order.coursePlan.course.coursePeople'],
       });
 
       if (!reservation) {
@@ -187,7 +123,7 @@ export class ReservationsService {
       }));
 
       // 格式化 reservationMembers
-      const reservationMembers: GetReservationDetailResponseDTO['reservationMembers'] = reservation.reservationMembers?.map(rm => ({
+      const reservationMembers: GetReservationDetailResponseDto['reservationMembers'] = reservation.reservationMembers?.map(rm => ({
         id: rm.id,
         reservationId: rm.reservationId,
         orderMemberId: rm.orderMemberId,
@@ -208,12 +144,15 @@ export class ReservationsService {
           order: {
             id: rm.orderMember.order.id,
             no: rm.orderMember.order.no,
-            status: rm.orderMember.order.status,
+            status: String(rm.orderMember.order.status),
           },
         } : undefined,
       }));
 
-      const reservationDetail: GetReservationDetailResponseDTO = {
+      const maxStudentCount = reservation.reservationMembers[0].orderMember.order.coursePlan.course.coursePeople[0].maxPeople;
+
+      const minStudentCount = reservation.reservationMembers[0].orderMember.order.coursePlan.course.coursePeople[0].minPeople;
+      const reservationDetail: GetReservationDetailResponseDto = {
         id: reservation.id,
         reservationNo: reservation.reservationNo,
         reservationStatus: reservation.reservationStatus,
@@ -225,6 +164,11 @@ export class ReservationsService {
         updatedTime: reservation.updatedTime,
         linkedOrders: linkedOrders.length > 0 ? linkedOrders : undefined,
         reservationMembers: reservationMembers,
+        minStudentCount ,
+        maxStudentCount,
+        courseType: reservation.reservationMembers[0].orderMember.order.type,
+        skiType: reservation.reservationMembers[0].orderMember.order.skiType,
+
       };
 
       return reservationDetail;
@@ -237,7 +181,7 @@ export class ReservationsService {
   }
 
   // 創建預約
-  async createReservation(body: CreateReservationRequestDTO, userId?: string) {
+  async createReservation(body: CreateReservationRequestDto, userId?: string) {
     try {
       const department = await this.departmentsRepo.findOne({
         where: { id: body.departmentId },
@@ -270,7 +214,7 @@ export class ReservationsService {
   }
 
   // 更新預約
-  async updateReservation(id: string, body: UpdateReservationRequestDTO, userId?: string) {
+  async updateReservation(id: string, body: UpdateReservationRequestDto, userId?: string) {
     try {
       const reservation = await this.reservationsRepo.findOne({
         where: { id },

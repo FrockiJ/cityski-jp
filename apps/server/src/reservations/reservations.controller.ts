@@ -9,18 +9,21 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from 'src/guards/auth.guard';
-import { ReservationsService,
-  CreateReservationRequestDTO,
-  UpdateReservationRequestDTO,
-  GetReservationsRequestDTO,
-  GetReservationDetailResponseDTO,
-  ResWithPaginationDTO
-} from './reservations.service';
-import { CustomRequest } from 'src/shared/interfaces/custom-request';
-import { Reservation, ReservationStatus } from './entities/reservation.entity';
-import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
+import { AuthGuard } from 'src/guards/auth.guard';
+import { ReservationsService } from './reservations.service';
+import {
+  CreateReservationRequestDto,
+  CreateReservationResponseDTO,
+  UpdateReservationRequestDto,
+  GetReservationsRequestDto,
+  GetReservationDetailResponseDto,
+  GetLinkedOrdersResponseDto,
+  ReservationResponseDto,
+  ResWithPaginationDTO,
+} from '@repo/shared';
+import { CustomRequest } from 'src/shared/interfaces/custom-request';
+import { ReservationStatus } from './entities/reservation.entity';
 
 @Controller('/reservations')
 export class ReservationsController {
@@ -28,49 +31,65 @@ export class ReservationsController {
 
   @UseGuards(AuthGuard)
   @Get('/')
-  getReservations(
-    @Query() request: GetReservationsRequestDTO,
-  ): Promise<ResWithPaginationDTO<Reservation[]>> {
-    return this.reservationsService.getReservations(request);
+  async getReservations(
+    @Query() request: GetReservationsRequestDto,
+  ): Promise<ResWithPaginationDTO<ReservationResponseDto[]>> {
+    const result = await this.reservationsService.getReservations(request);
+    return {
+      ...result,
+      data: plainToInstance(ReservationResponseDto, result.data, {
+        excludeExtraneousValues: true,
+      }),
+    };
   }
   @UseGuards(AuthGuard)
   @Get('/:id')
-  getReservationDetail(
+  async getReservationDetail(
     @Param('id') id: string,
-  ): Promise<GetReservationDetailResponseDTO> {
-    return  this.reservationsService.getReservationDetail(id);
+  ): Promise<GetReservationDetailResponseDto> {
+    const result = await this.reservationsService.getReservationDetail(id);
+    return plainToInstance(GetReservationDetailResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Post('/')
-  createReservation(
-    @Body() body: CreateReservationRequestDTO,
+  async createReservation(
+    @Body() body: CreateReservationRequestDto,
     @Req() request: CustomRequest,
-  ) {
+  ): Promise<CreateReservationResponseDTO> {
     const userId = request['user']?.sub;
-    return this.reservationsService.createReservation(body, userId);
+    const result = await this.reservationsService.createReservation(body, userId);
+    return plainToInstance(CreateReservationResponseDTO, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Get('/:id/linked-orders')
-  getLinkedOrders(@Param('id') id: string) {
-    return this.reservationsService.getLinkedOrders(id);
+  async getLinkedOrders(@Param('id') id: string): Promise<GetLinkedOrdersResponseDto> {
+    const result = await this.reservationsService.getLinkedOrders(id);
+    return result; // Already returns correct DTO format
   }
 
   @UseGuards(AuthGuard)
   @Put('/:id')
-  updateReservation(
+  async updateReservation(
     @Param('id') id: string,
-    @Body() body: UpdateReservationRequestDTO,
+    @Body() body: UpdateReservationRequestDto,
     @Req() request: CustomRequest,
-  ) {
+  ): Promise<GetReservationDetailResponseDto> {
     const userId = request['user']?.sub;
-    return this.reservationsService.updateReservation(id, body, userId);
+    const result = await this.reservationsService.updateReservation(id, body, userId);
+    return plainToInstance(GetReservationDetailResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Put('/:id/status')
-  updateReservationStatus(
+  async updateReservationStatus(
     @Param('id') id: string,
     @Body() body: { status: ReservationStatus },
     @Req() request: CustomRequest,

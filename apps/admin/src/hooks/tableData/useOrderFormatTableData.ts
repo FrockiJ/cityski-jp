@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { GetOrdersRequestDTO, OrderByType, OrderStatus, SortType } from '@repo/shared';
+import { GetOrdersRequestDTO, GetOrdersResponseDTO, OrderByType, OrderStatus, SortType } from '@repo/shared';
 import dayjs from 'dayjs';
 
 import useGetTableData from '@/hooks/useGetTableData';
@@ -14,7 +14,7 @@ type Props = {
 export const useOrderFormatTableData = (options?: Props) => {
 	const tableSort = useAppSelector((state) => state.table.tableSort);
 
-	const { tableData, tableDataCount, tableDataLoading, handleRefresh } = useGetTableData<any>({
+	const { tableData, tableDataCount, tableDataLoading, handleRefresh } = useGetTableData<GetOrdersResponseDTO>({
 		queryUrl: '/api/orders',
 		tableId: configOrdersTable.tableId,
 		conditions: options?.query,
@@ -24,7 +24,7 @@ export const useOrderFormatTableData = (options?: Props) => {
 
 	const [formatTableData, setFormatTableData] = useState<any[]>([]);
 
-	const formatDate = (date: string | null) => {
+	const formatDate = (date: Date | null) => {
 		if (!date || !dayjs(date).isValid()) return '--';
 		return dayjs(date).format('YYYY/MM/DD');
 	};
@@ -49,10 +49,10 @@ export const useOrderFormatTableData = (options?: Props) => {
 						[OrderStatus.ORDER_SUCCESSFUL]: '訂購成功',
 						[OrderStatus.ORDER_COMPLETED]: '訂單完成',
 					}[data.status],
-					lessons: data.planNumber,
-					people: data.adultCount + data.childCount,
-					progress: `${data.process}/${data.planNumber}`,
-					orderTime: formatDate(data.updatedTime),
+					lessons: data.number,
+					people: data.people,
+					progress: `${data.process}/${data.number}`,
+					orderTime: formatDate(data.createdTime),
 					
 				};
 				return tableRowData;

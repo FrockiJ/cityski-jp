@@ -8,15 +8,17 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { OrdersService } from './orders.service';
 import {
   CreateOrderRequestDTO,
+  CreateOrderResponseDTO,
   GetOrderDetailResponseDTO,
   GetOrdersRequestDTO,
   GetOrdersResponseDTO,
+  OrderReservationResponseDto,
   ResWithPaginationDTO,
-  ReservationResponseDto,
 } from '@repo/shared';
 import { ClientAuthGuard } from 'src/guards/client-auth.guard';
 import { CustomRequest } from 'src/shared/interfaces/custom-request';
@@ -28,52 +30,74 @@ export class OrdersController {
 
   @UseGuards(AuthGuard)
   @Get('/')
-  getOrders(
+  async getOrders(
     @Query() request: GetOrdersRequestDTO,
     @Req() req: CustomRequest,
   ): Promise<ResWithPaginationDTO<GetOrdersResponseDTO[]>> {
     const user = req['user'];
     console.log('Authenticated user:', user);
-    return this.ordersService.getOrders(request);
+    const result = await this.ordersService.getOrders(request);
+    return {
+      ...result,
+      data: plainToInstance(GetOrdersResponseDTO, result.data, {
+        excludeExtraneousValues: true,
+      }),
+    };
   }
 
   @UseGuards(ClientAuthGuard)
   @Get('/my-orders')
-  getMyOrders(
+  async getMyOrders(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Req() request: CustomRequest,
   ): Promise<ResWithPaginationDTO<GetOrdersResponseDTO[]>> {
     console.log(request);
     const memberId = request['user'].sub;
-    return this.ordersService.getOrdersByMemberId(memberId, page, limit);
+    const result = await this.ordersService.getOrdersByMemberId(memberId, page, limit);
+    return {
+      ...result,
+      data: plainToInstance(GetOrdersResponseDTO, result.data, {
+        excludeExtraneousValues: true,
+      }),
+    };
   }
 
   @UseGuards(AdminOrMemberGuard)
   @Get('/:id')
-  getOrderDetail(
+  async getOrderDetail(
     @Param('id') id: string,
     @Req() request: CustomRequest,
   ): Promise<GetOrderDetailResponseDTO> {
     console.log(request['roles']);
-    return this.ordersService.getOrderDetail(id);
+    const result = await this.ordersService.getOrderDetail(id);
+    return plainToInstance(GetOrderDetailResponseDTO, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AdminOrMemberGuard)
   @Get('/:id/reservations')
-  getOrderReservations(
+  async getOrderReservations(
     @Param('id') id: string,
-  ): Promise<ReservationResponseDto[]> {
-    return this.ordersService.getOrderReservations(id);
+  ): Promise<OrderReservationResponseDto[]> {
+    const result = await this.ordersService.getOrderReservations(id);
+    
+    return plainToInstance(OrderReservationResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(ClientAuthGuard)
   @Post('/')
-  createOrder(
+  async createOrder(
     @Body() body: CreateOrderRequestDTO,
     @Req() request: CustomRequest,
-  ) {
+  ): Promise<CreateOrderResponseDTO> {
     const memberId = request['user'].sub;
-    return this.ordersService.createOrder(body, memberId);
+    const result = await this.ordersService.createOrder(body, memberId);
+    return plainToInstance(CreateOrderResponseDTO, result, {
+      excludeExtraneousValues: true,
+    });
   }
 }

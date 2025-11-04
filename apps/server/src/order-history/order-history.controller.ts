@@ -8,8 +8,13 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { OrderHistoryService } from './order-history.service';
-import { OrderHistory } from './entities/order-history.entity';
+import {
+  OrderHistoryResponseDTO,
+  CreateOrderHistoryRequestDTO,
+  UpdateOrderHistoryRequestDTO,
+} from '@repo/shared';
 import { AuthGuard } from 'src/guards/auth.guard';
 
 @Controller('/order-history')
@@ -18,35 +23,50 @@ export class OrderHistoryController {
 
   @UseGuards(AuthGuard)
   @Post('/')
-  create(@Body() body: Partial<OrderHistory>): Promise<OrderHistory> {
-    return this.orderHistoryService.create(body);
+  async create(@Body() body: CreateOrderHistoryRequestDTO): Promise<OrderHistoryResponseDTO> {
+    const result = await this.orderHistoryService.create(body);
+    return plainToInstance(OrderHistoryResponseDTO, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Get('/')
-  findAll(): Promise<OrderHistory[]> {
-    return this.orderHistoryService.findAll();
+  async findAll(): Promise<OrderHistoryResponseDTO[]> {
+    const result = await this.orderHistoryService.findAll();
+    return plainToInstance(OrderHistoryResponseDTO, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Get('/:id')
-  findOne(@Param('id') id: string): Promise<OrderHistory> {
-    return this.orderHistoryService.findOne(id);
+  async findOne(@Param('id') id: string): Promise<OrderHistoryResponseDTO> {
+    const result = await this.orderHistoryService.findOne(id);
+    return plainToInstance(OrderHistoryResponseDTO, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Get('/order/:orderId')
-  findByOrderId(@Param('orderId') orderId: string): Promise<OrderHistory[]> {
-    return this.orderHistoryService.findByOrderId(orderId);
+  async findByOrderId(@Param('orderId') orderId: string): Promise<OrderHistoryResponseDTO[]> {
+    const result = await this.orderHistoryService.findByOrderId(orderId);
+    return plainToInstance(OrderHistoryResponseDTO, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Patch('/:id')
-  update(
+  async update(
     @Param('id') id: string,
-    @Body() body: Partial<OrderHistory>,
-  ): Promise<OrderHistory> {
-    return this.orderHistoryService.update(id, body);
+    @Body() body: UpdateOrderHistoryRequestDTO,
+  ): Promise<OrderHistoryResponseDTO> {
+    const result = await this.orderHistoryService.update(id, body);
+    return plainToInstance(OrderHistoryResponseDTO, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)

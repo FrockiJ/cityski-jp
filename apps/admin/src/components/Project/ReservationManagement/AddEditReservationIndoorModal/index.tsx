@@ -106,6 +106,8 @@ const AddEditReservationIndoorModal = ({
 
 	const { orderDetail, loading: orderDetailLoading } = useGetOrderDetail(effectiveOrderId);
 
+	console.log('===savedMembers', savedMembers);
+
 	// Debug: 監測 effectiveOrderId 變化
 	useEffect(() => {
 		console.log('effectiveOrderId 已更新為:', effectiveOrderId);
@@ -484,7 +486,6 @@ const AddEditReservationIndoorModal = ({
 			classTime: values.courseStartDate!.toDate(),
 			teachingLevel: values.courseLevel,
 			instructor: values.pickTrainer === 'Y' ? values.trainerName : undefined,
-			reservationStatus: '1', // SCHEDULED 狀態
 		};
 
 		let success = false;
@@ -570,6 +571,8 @@ const AddEditReservationIndoorModal = ({
 		}
 		// 錯誤處理已經在 hook 中完成
 	};
+
+	console.log('===dis', displayMembers);
 
 	const isLoading = detailLoading || createLoading || updateLoading || orderDetailLoading || courseDetailLoading;
 	return (

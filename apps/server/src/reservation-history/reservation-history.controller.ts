@@ -8,8 +8,13 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { ReservationHistoryService } from './reservation-history.service';
-import { ReservationHistory } from './entities/reservation-history.entity';
+import {
+  ReservationHistoryResponseDto,
+  CreateReservationHistoryRequestDto,
+  UpdateReservationHistoryRequestDto,
+} from '@repo/shared';
 import { AuthGuard } from 'src/guards/auth.guard';
 
 @Controller('/reservation-history')
@@ -18,35 +23,50 @@ export class ReservationHistoryController {
 
   @UseGuards(AuthGuard)
   @Post('/')
-  create(@Body() body: Partial<ReservationHistory>): Promise<ReservationHistory> {
-    return this.reservationHistoryService.create(body);
+  async create(@Body() body: CreateReservationHistoryRequestDto): Promise<ReservationHistoryResponseDto> {
+    const result = await this.reservationHistoryService.create(body);
+    return plainToInstance(ReservationHistoryResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Get('/')
-  findAll(): Promise<ReservationHistory[]> {
-    return this.reservationHistoryService.findAll();
+  async findAll(): Promise<ReservationHistoryResponseDto[]> {
+    const result = await this.reservationHistoryService.findAll();
+    return plainToInstance(ReservationHistoryResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Get('/:id')
-  findOne(@Param('id') id: string): Promise<ReservationHistory> {
-    return this.reservationHistoryService.findOne(id);
+  async findOne(@Param('id') id: string): Promise<ReservationHistoryResponseDto> {
+    const result = await this.reservationHistoryService.findOne(id);
+    return plainToInstance(ReservationHistoryResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Get('/reservation/:reservationId')
-  findByReservationId(@Param('reservationId') reservationId: string): Promise<ReservationHistory[]> {
-    return this.reservationHistoryService.findByReservationId(reservationId);
+  async findByReservationId(@Param('reservationId') reservationId: string): Promise<ReservationHistoryResponseDto[]> {
+    const result = await this.reservationHistoryService.findByReservationId(reservationId);
+    return plainToInstance(ReservationHistoryResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Patch('/:id')
-  update(
+  async update(
     @Param('id') id: string,
-    @Body() body: Partial<ReservationHistory>,
-  ): Promise<ReservationHistory> {
-    return this.reservationHistoryService.update(id, body);
+    @Body() body: UpdateReservationHistoryRequestDto,
+  ): Promise<ReservationHistoryResponseDto> {
+    const result = await this.reservationHistoryService.update(id, body);
+    return plainToInstance(ReservationHistoryResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)

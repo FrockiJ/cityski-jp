@@ -42,37 +42,32 @@ const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDet
 
 	// 獲取課程類型文字
 	const getCourseTypeText = () => {
-		if (!orderDetail) return courseInfo?.type || '--';
-
 		const typeMap = {
 			[CourseType.PRIVATE]: '私人課',
 			[CourseType.GROUP]: '團體課',
 			[CourseType.INDIVIDUAL]: '個人練習',
 		};
 
-		return typeMap[orderDetail.type] || '--';
+		return typeMap[reservationDetail?.courseType] || '--';
 	};
 
 	// 獲取滑雪類型文字
 	const getSkiTypeText = () => {
-		if (!orderDetail) return '--';
-
 		//  CourseSkiType: 1=雙板, 2=單板
 		const skiTypeMap: { [key: number]: string } = {
 			0: '單板和雙板',
 			1: '雙板',
 			2: '單板',
 		};
-		return skiTypeMap[orderDetail.skiType] || '--';
+		return skiTypeMap[reservationDetail?.skiType] || '--';
 	};
 
 	// 計算人數限制
 	const getPersonLimit = () => {
-		if (!orderDetail || !courseDetail) return [];
-		return [courseDetail?.coursePeople[0].minPeople, courseDetail?.coursePeople[0].maxPeople];
+		return [reservationDetail?.minStudentCount || 0, reservationDetail?.maxStudentCount || 0];
 	};
 	const personLimit = getPersonLimit();
-	console.log('reservationDetail', reservationDetail);
+	console.log('===reservationDetail', reservationDetail);
 	return (
 		<BlockArea>
 			<Stack gap={3} width='100%'>

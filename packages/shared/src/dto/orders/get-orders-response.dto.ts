@@ -6,6 +6,9 @@ export class GetOrdersResponseDTO {
   id: string;
 
   @Expose()
+  no: string;
+
+  @Expose()
   courseName: string;
 
   @Expose()

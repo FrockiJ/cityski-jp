@@ -85,7 +85,7 @@ const OrderManagementIndoorCoursePage = () => {
 					handleRefresh={handleRefresh}
 					modalType={ModalType.EDIT}
 					rowData={rowData}
-					courseType={rowData.type}
+					courseType={typeof(rowData)}
 					courseStatusType={rowData.status}
 					orderId={orderId}
 				/>

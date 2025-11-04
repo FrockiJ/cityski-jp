@@ -1,14 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { ReservationStatus, SkiAndSnowboardLevel } from '@repo/shared';
+import {
+	ReservationStatus,
+	SkiAndSnowboardLevel,
+	ReservationResponseDto,
+	ReservationMemberResponseDto,
+} from '@repo/shared';
 import dayjs from 'dayjs';
 
 import { Button } from '@/components/Common/CIBase/CoreDynamicTable/CoreFilter/styles';
 import FormikModalTable from '@/components/Common/CIBase/Formik/FormikModalTable';
 import RoundedArrowTopRight from '@/components/Common/Icon/RoundedArrowTopRight';
-import { getReservationMembers, ReservationMember } from '@/utils/http/api/reservation-members';
 
 type Props = {
-	reservations?: any[];
+	reservations?: ReservationResponseDto[];
 	loading?: boolean;
 	size?: number;
 	orderId?: string;
@@ -35,7 +39,7 @@ const getTeachingLevelText = (level: number): string => {
 
 const CourseReservation = ({ reservations = [], loading = false, size = 4, orderId }: Props) => {
 	// 格式化參加人員名單
-	const formatMemberNames = (reservationMembers: ReservationMember[]): string => {
+	const formatMemberNames = (reservationMembers: ReservationMemberResponseDto[]): string => {
 		if (!reservationMembers || reservationMembers.length === 0) return '無';
 
 		return reservationMembers.map((m) => m.orderMember?.member?.name || '未知').join('、');
@@ -43,6 +47,7 @@ const CourseReservation = ({ reservations = [], loading = false, size = 4, order
 
 	// 將預約數據轉換為表格行格式
 	const tableRows = new Array(size).fill(null).map((_, index) => {
+		console.log('reservations===', reservations);
 		const orderReservation = reservations.find((res) => res.index == index);
 		return [
 			{

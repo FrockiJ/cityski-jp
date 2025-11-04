@@ -8,10 +8,14 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { AuthGuard } from 'src/guards/auth.guard';
-import { CreateOrderReservationRequestDto, UpdateOrderReservationRequestDto } from '@repo/shared';
+import {
+  CreateOrderReservationRequestDto,
+  UpdateOrderReservationRequestDto,
+  OrderReservationResponseDto,
+} from '@repo/shared';
 import { OrderReservationsService } from './order-reservations.service';
-import { OrderReservation } from './entities/order-reservation.entity';
 
 @Controller('/order-reservations')
 export class OrderReservationsController {
@@ -21,41 +25,56 @@ export class OrderReservationsController {
 
   @UseGuards(AuthGuard)
   @Post('/')
-  create(
+  async create(
     @Body() body: CreateOrderReservationRequestDto,
-  ): Promise<OrderReservation> {
-    return this.orderReservationsService.create(body);
+  ): Promise<OrderReservationResponseDto> {
+    const result = await this.orderReservationsService.create(body);
+    return plainToInstance(OrderReservationResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Get('/order/:orderId')
-  findByOrderId(
+  async findByOrderId(
     @Param('orderId') orderId: string,
-  ): Promise<OrderReservation[]> {
-    return this.orderReservationsService.findByOrderId(orderId);
+  ): Promise<OrderReservationResponseDto[]> {
+    const result = await this.orderReservationsService.findByOrderId(orderId);
+    return plainToInstance(OrderReservationResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Get('/reservation/:reservationId')
-  findByReservationId(
+  async findByReservationId(
     @Param('reservationId') reservationId: string,
-  ): Promise<OrderReservation[]> {
-    return this.orderReservationsService.findByReservationId(reservationId);
+  ): Promise<OrderReservationResponseDto[]> {
+    const result = await this.orderReservationsService.findByReservationId(reservationId);
+    return plainToInstance(OrderReservationResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Get('/:id')
-  findOne(@Param('id') id: string): Promise<OrderReservation> {
-    return this.orderReservationsService.findOne(id);
+  async findOne(@Param('id') id: string): Promise<OrderReservationResponseDto> {
+    const result = await this.orderReservationsService.findOne(id);
+    return plainToInstance(OrderReservationResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)
   @Put('/:id')
-  update(
+  async update(
     @Param('id') id: string,
     @Body() body: UpdateOrderReservationRequestDto,
-  ): Promise<OrderReservation> {
-    return this.orderReservationsService.update(id, body);
+  ): Promise<OrderReservationResponseDto> {
+    const result = await this.orderReservationsService.update(id, body);
+    return plainToInstance(OrderReservationResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(AuthGuard)

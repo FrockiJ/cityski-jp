@@ -219,6 +219,7 @@ export class OrdersService {
 
       const formatData = orders.map((order) => ({
         id: order.id,
+        no: order.no,
         courseName: order.coursePlan?.name || '課程名稱',
         price: order.coursePlan?.price || 0,
         status: order.status,

@@ -50,7 +50,7 @@ const OrderInfoBlock = ({ orderDetail }: Props) => {
 		// [OrderChannel.PHONE]: '電話',
 		// [OrderChannel.ONSITE]: '現場',
 	};
-
+	console.log('===orderDetail.type', orderDetail);
 	const courseType = courseTypeMap[orderDetail.type] || orderDetail.type;
 	const skiType = skiTypeMap[orderDetail.skiType] || orderDetail.skiType;
 	const bkgType = bkgTypeMap[orderDetail.bkgType] || orderDetail.bkgType;

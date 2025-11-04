@@ -25,7 +25,7 @@ export class ReservationMembersService {
   async findAll(): Promise<ReservationMember[]> {
     try {
       return await this.reservationMembersRepo.find({
-        relations: ['reservation', 'orderMember'],
+        relations: ['reservation', 'orderMember', 'orderMember.member', 'orderMember.order'],
       });
     } catch (err) {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -70,7 +70,7 @@ export class ReservationMembersService {
     try {
       return await this.reservationMembersRepo.find({
         where: { orderMemberId },
-        relations: ['reservation'],
+        relations: ['reservation', 'orderMember', 'orderMember.member', 'orderMember.order'],
       });
     } catch (err) {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);

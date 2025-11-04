@@ -37,8 +37,8 @@ const JoinedMembersBlock = ({ members = [], reservations = [] }: Props) => {
 		console.log('reservations|||', member.memberName, member.id, reservations.length);
 
 		reservations.forEach((reservation) => {
-			console.log('reservation|||', reservation.reservation.reservationMembers);
-			if (reservation.reservation.reservationMembers.some((m) => m.orderMemberId === member.id)) {
+			console.log('reservation|||', reservation.reservationMembers);
+			if (reservation.reservationMembers && reservation.reservationMembers.some((m) => m.orderMemberId === member.id)) {
 				count++;
 			}
 		});

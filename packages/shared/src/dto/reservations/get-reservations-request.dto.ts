@@ -1,24 +1,18 @@
-import { IsOptional, IsString, IsNumber, IsEnum } from 'class-validator';
-import { SkiAndSnowboardLevelEnum } from '../../constants/enums';
+import { IsOptional, IsString, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
+import { PaginationRequestDTO } from '../pagination/pagination-request.dto';
 
-export class GetReservationsRequestDto {
+export class GetReservationsRequestDto extends PaginationRequestDTO {
   @IsOptional()
   @IsString()
   departmentId?: string;
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   reservationStatus?: number;
 
   @IsOptional()
   @IsString()
   keyword?: string;
-
-  @IsOptional()
-  @IsNumber()
-  page?: number;
-
-  @IsOptional()
-  @IsNumber()
-  limit?: number;
 }

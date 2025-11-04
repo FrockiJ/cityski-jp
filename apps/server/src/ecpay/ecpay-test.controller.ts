@@ -727,9 +727,29 @@ export class EcpayTestController {
             <button type="button" class="btn btn-secondary" onclick="clearInitResult()">清除結果</button>
           </div>
           <div id="initResult" class="result"></div>
-          <div id="formHtmlContainer" class="form-html" style="display: none;">
-            <strong>ECPay 表單 HTML：</strong>
-            <code id="formHtml"></code>
+
+          <!-- 初始化結果容器 -->
+          <div id="initDataContainer" style="display: none; margin-top: 20px;">
+            <!-- 標籤按鈕和操作按鈕 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+              <div class="tab-buttons" style="margin-bottom: 0;">
+                <button class="tab-btn active" onclick="switchInitDataTab('json')">JSON 格式</button>
+                <button class="tab-btn" onclick="switchInitDataTab('html')">HTML 表單</button>
+              </div>
+              <button type="button" class="btn btn-primary" onclick="goToPayment()" style="flex: 0 0 auto; padding: 8px 20px; font-size: 14px;">前往支付</button>
+            </div>
+
+            <!-- JSON 標籤頁 -->
+            <div id="init-json-tab" class="tab-content active" style="display: block;">
+              <strong>初始化數據（JSON）：</strong>
+              <code id="initJsonData" style="display: block; background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; margin-top: 10px; white-space: pre-wrap; word-break: break-word;"></code>
+            </div>
+
+            <!-- HTML 標籤頁 -->
+            <div id="init-html-tab" class="tab-content" style="display: none;">
+              <strong>ECPay 表單 HTML：</strong>
+              <code id="formHtml" style="display: block; background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; margin-top: 10px; white-space: pre-wrap; word-break: break-word;"></code>
+            </div>
           </div>
         </form>
       </div>
@@ -768,11 +788,11 @@ export class EcpayTestController {
           <form id="verifyStringForm">
             <div class="form-group">
               <label>參數字符串（直接貼上官方範例）</label>
-              <textarea id="paramString" style="width: 100%; min-height: 150px; font-family: monospace; font-size: 12px;" placeholder="例：TradeDesc=促銷方案&PaymentType=aio&MerchantTradeDate=2023/03/12 15:30:23&MerchantTradeNo=ecpay20230312153023&MerchantID=3002607&ReturnURL=https://www.ecpay.com.tw/receive.php&ItemName=Apple iphone 15&TotalAmount=30000&ChoosePayment=ALL&EncryptType=1" required></textarea>
+              <textarea id="paramString" style="width: 100%; min-height: 150px; font-family: monospace; font-size: 12px;" placeholder="例：TradeDesc=促銷方案&PaymentType=aio&MerchantTradeDate=2023/03/12 15:30:23&MerchantTradeNo=ecpay20230312153023&MerchantID=3002607&ReturnURL=https://www.ecpay.com.tw/receive.php&ItemName=Apple iphone 15&TotalAmount=30000&ChoosePayment=ALL&EncryptType=1" required>TradeDesc=促銷方案&PaymentType=aio&MerchantTradeDate=2023/03/12 15:30:23&MerchantTradeNo=ecpay20230312153023&MerchantID=3002607&ReturnURL=https://www.ecpay.com.tw/receive.php&ItemName=Apple iphone 15&TotalAmount=30000&ChoosePayment=ALL&EncryptType=1</textarea>
             </div>
             <div class="form-group">
               <label>CheckMacValue</label>
-              <input type="text" id="paramCheckMacValue" placeholder="輸入 CheckMacValue 值" required>
+              <input type="text" id="paramCheckMacValue" placeholder="輸入 CheckMacValue 值" value="6C51C9E6888DE861FD62FB1DD17029FC742634498FD813DC43D4243B5685B840" required>
             </div>
             <div class="button-group">
               <button type="submit" class="btn btn-primary">驗證簽名</button>
@@ -828,11 +848,6 @@ export class EcpayTestController {
             </li>
           </ul>
 
-          <h3 style="color: #333; margin: 20px 0 10px;">🔧 快速操作</h3>
-          <div class="button-group">
-            <button class="btn btn-secondary" onclick="fillTestData()">填入測試數據</button>
-            <button class="btn btn-secondary" onclick="generateMerchantTradeNo()">生成 MerchantTradeNo</button>
-          </div>
         </div>
       </div>
     </div>
@@ -898,16 +913,25 @@ export class EcpayTestController {
             document.getElementById('callbackMerchantTradeNo').value = result.result.data.merchantTradeNo;
           }
 
-          // 自動重定向到 ECPay 支付頁面
-          if (result.result.data && result.result.data.formHtml) {
+          // 顯示初始化數據（JSON 和 HTML 表單）
+          if (result.result.data) {
+            // 顯示 JSON 格式數據
+            const jsonData = {
+              success: result.result.success,
+              merchantTradeNo: result.result.data.merchantTradeNo,
+              formHtml: result.result.data.formHtml,
+              testInfo: result.result.data.testInfo
+            };
+            document.getElementById('initJsonData').textContent = JSON.stringify(jsonData, null, 2);
+
             // 顯示 HTML 表單（用於備份/參考）
             document.getElementById('formHtml').textContent = result.result.data.formHtml;
-            document.getElementById('formHtmlContainer').style.display = 'block';
 
-            // 延遲 1 秒後自動重定向，讓用戶看到成功訊息
-            setTimeout(() => {
-              submitFormToECPayWindow(result.result.data.formHtml);
-            }, 1000);
+            // 顯示初始化結果容器
+            document.getElementById('initDataContainer').style.display = 'block';
+
+            // 儲存 formHtml 供使用者點擊按鈕時使用
+            window.currentFormHtml = result.result.data.formHtml;
           }
         } else {
           showResult('initResult', 'error', '❌ 初始化失敗', result.error || JSON.stringify(result));
@@ -1072,6 +1096,15 @@ export class EcpayTestController {
       }
     }
 
+    // 前往支付 - 使用者點擊「前往支付」按鈕時調用
+    function goToPayment() {
+      if (window.currentFormHtml) {
+        submitFormToECPayWindow(window.currentFormHtml);
+      } else {
+        showResult('initResult', 'error', '❌ 錯誤', '找不到支付表單資料，請重新初始化');
+      }
+    }
+
     // HTML 轉義函數
     function escapeHtml(text) {
       const map = {
@@ -1096,7 +1129,8 @@ export class EcpayTestController {
     // 清除結果
     function clearInitResult() {
       document.getElementById('initResult').className = 'result';
-      document.getElementById('formHtmlContainer').style.display = 'none';
+      document.getElementById('initDataContainer').style.display = 'none';
+      window.currentFormHtml = null;
     }
 
     function clearVerifyResult() {
@@ -1109,6 +1143,31 @@ export class EcpayTestController {
 
     function clearCallbackResult() {
       document.getElementById('callbackResult').className = 'result';
+    }
+
+    // 切換初始化數據標籤（JSON 和 HTML）
+    function switchInitDataTab(tabName) {
+      // 隱藏所有標籤頁
+      const jsonTab = document.getElementById('init-json-tab');
+      const htmlTab = document.getElementById('init-html-tab');
+
+      if (tabName === 'json') {
+        jsonTab.style.display = 'block';
+        htmlTab.style.display = 'none';
+      } else if (tabName === 'html') {
+        jsonTab.style.display = 'none';
+        htmlTab.style.display = 'block';
+      }
+
+      // 更新標籤按鈕的 active 狀態
+      const tabBtns = document.querySelectorAll('#initDataContainer .tab-btn');
+      tabBtns.forEach((btn, index) => {
+        if ((tabName === 'json' && index === 0) || (tabName === 'html' && index === 1)) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
     }
 
     // 切換 CheckMacValue 驗證標籤
@@ -1129,23 +1188,6 @@ export class EcpayTestController {
         document.getElementById('verify-string-tab').classList.add('active');
         tabBtns[1].classList.add('active');
       }
-    }
-
-    // 填入測試數據
-    function fillTestData() {
-      const now = Math.floor(Date.now() / 1000);
-      document.getElementById('orderId').value = 'TEST_ORDER_' + now;
-      document.getElementById('amount').value = 1000;
-      document.getElementById('callbackMerchantTradeNo').value = 'TEST_ORDER_' + now + '_' + now;
-      document.getElementById('callbackAmount').value = 1000;
-    }
-
-    // 生成 MerchantTradeNo
-    function generateMerchantTradeNo() {
-      const orderId = document.getElementById('orderId').value || 'TEST_ORDER';
-      const timestamp = Math.floor(Date.now() / 1000);
-      const merchantTradeNo = orderId + '_' + timestamp;
-      document.getElementById('callbackMerchantTradeNo').value = merchantTradeNo;
     }
 
     // 頁面加載完成後初始化

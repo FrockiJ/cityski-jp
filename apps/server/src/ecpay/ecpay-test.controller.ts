@@ -1346,8 +1346,8 @@ export class EcpayTestController {
           const textColor = isSuccess ? '#155724' : '#721c24';
           const borderColor = isSuccess ? '#c3e6cb' : '#f5c6cb';
           const message = isSuccess
-            ? '✅ 模擬回調成功！後端已調用你的 callbackUrl'
-            : '❌ 模擬回調失敗！後端調用 callbackUrl 時出錯';
+            ? \`✅ 模擬回調成功！後端已調用你的 callbackUrl (ecpayTradeNo: \${paymentResult.ecpayTradeNo})\`
+            : \`❌ 模擬回調失敗！後端調用 callbackUrl 時出錯 (ecpayTradeNo: \${paymentResult.ecpayTradeNo})\`;
 
           alertDiv.style.cssText = \`margin-top: 15px; padding: 12px; background: \${bgColor}; color: \${textColor}; border: 1px solid \${borderColor}; border-radius: 4px; font-size: 13px;\`;
           alertDiv.innerHTML = message;

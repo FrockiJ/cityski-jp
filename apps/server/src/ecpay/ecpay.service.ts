@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import axios from 'axios';
 import { EcpayConfig } from './ecpay.config';
 import { EcpayCryptoService } from './ecpay-crypto.service';
 import {
@@ -6,13 +7,12 @@ import {
   CreditCardPaymentInitializeResponse,
   EcpayCallbackNotification,
   PaymentResult,
-  PaymentCallback,
 } from './interfaces/payment.interface';
 
 @Injectable()
 export class EcpayService {
   private readonly logger = new Logger(EcpayService.name);
-  private paymentCallbacks: Map<string, PaymentCallback> = new Map();
+  private paymentCallbacks: Map<string, string> = new Map(); // merchantTradeNo => callbackUrl
 
   constructor(
     private ecpayConfig: EcpayConfig,
@@ -52,9 +52,10 @@ export class EcpayService {
       // 生成表單 HTML
       const formHtml = this.generateFormHtml(paymentParams);
 
-      this.logger.log(
-        `Payment initialized: orderId=${request.orderId}, merchantTradeNo=${merchantTradeNo}`,
-      );
+      // 保存 callbackUrl
+      if (request.callbackUrl) {
+        this.paymentCallbacks.set(merchantTradeNo, request.callbackUrl);
+      }
 
       return {
         success: true,
@@ -76,12 +77,11 @@ export class EcpayService {
   async handlePaymentCallback(
     notification: EcpayCallbackNotification,
   ): Promise<PaymentResult> {
-    this.logger.log(
-      `Received payment callback: MerchantTradeNo=${notification.MerchantTradeNo}`,
-    );
-
     // 驗證 CheckMacValue
-    if (!this.cryptoService.verifyCheckMacValue(notification, notification.CheckMacValue)) {
+    const receivedCheckMacValue = notification.CheckMacValue;
+    const isCheckMacValid = this.cryptoService.verifyCheckMacValue(notification, receivedCheckMacValue);
+
+    if (!isCheckMacValid) {
       throw new Error('CheckMacValue verification failed');
     }
 
@@ -102,42 +102,53 @@ export class EcpayService {
       merchantTradeNo: notification.MerchantTradeNo,
     };
 
-    // 執行已註冊的 callback（如果有）
-    const callback = this.paymentCallbacks.get(paymentResult.orderId);
-    if (callback) {
+    // 調用已註冊的 callbackUrl（如果有）
+    const callbackUrl = this.paymentCallbacks.get(notification.MerchantTradeNo);
+    if (callbackUrl) {
       try {
-        await callback(paymentResult);
-        this.logger.log(
-          `Callback executed successfully for orderId=${paymentResult.orderId}`,
-        );
+        await this.invokeCallbackUrl(callbackUrl, paymentResult);
       } catch (error) {
-        this.logger.error(
-          `Callback execution failed for orderId=${paymentResult.orderId}: ${error.message}`,
-          error,
-        );
         // 不拋出錯誤，因為我們已經驗證了通知
       }
     }
+    // 移除已使用的 callback
+    this.paymentCallbacks.delete(notification.MerchantTradeNo);
 
     return paymentResult;
   }
 
   /**
-   * 註冊支付完成的 callback
+   * 調用 callback URL
    */
-  registerPaymentCallback(
-    orderId: string,
-    callback: PaymentCallback,
-  ): void {
-    this.paymentCallbacks.set(orderId, callback);
-    this.logger.log(`Payment callback registered for orderId=${orderId}`);
-  }
+  private async invokeCallbackUrl(
+    callbackUrl: string,
+    paymentResult: PaymentResult,
+  ): Promise<void> {
+    try {
+      const response = await axios.post(callbackUrl, paymentResult, {
+        timeout: 10000, // 10 秒超時
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-  /**
-   * 移除支付 callback
-   */
-  removePaymentCallback(orderId: string): void {
-    this.paymentCallbacks.delete(orderId);
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(
+          `Callback URL returned status ${response.status}`,
+        );
+      }
+
+      this.logger.log(
+        `Callback URL returned: ${response.status}`,
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(
+          `Callback URL failed: ${error.message} (${error.response?.status || 'no response'})`,
+        );
+      }
+      throw error;
+    }
   }
 
   /**

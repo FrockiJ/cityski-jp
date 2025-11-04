@@ -6,7 +6,6 @@ import {
   Logger,
   BadRequestException,
   Res,
-  Query,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { EcpayService } from './ecpay.service';
@@ -84,8 +83,15 @@ export class EcpayTestController {
   }
 
   /**
-   * 模擬 ECPay 回調通知
+   * 模擬 ECPay 回調通知 (成功和失敗兩個 case)
    * POST /test/ecpay/api/simulate-callback
+   *
+   * Body:
+   * {
+   *   "merchantTradeNo": "1230451234",
+   *   "amount": 1000,
+   *   "simulateSuccess": true  // true 成功, false 失敗
+   * }
    */
   @Post('api/simulate-callback')
   async simulateCallback(
@@ -93,35 +99,37 @@ export class EcpayTestController {
     body: {
       merchantTradeNo: string;
       amount: number;
-      rtnCode?: number;
-      tradeNo?: string;
+      simulateSuccess?: boolean;
     },
   ) {
     try {
-      const rtnCode = body.rtnCode || 1; // 1 = 成功
-      const tradeNo = body.tradeNo || `ECPay_${Date.now()}`;
+      const simulateSuccess = body.simulateSuccess !== false; // 默認為成功
+      const rtnCode = simulateSuccess ? 1 : 0;
+      const tradeNo = `2412041${Date.now().toString().slice(-7)}`;
 
       this.logger.log(
-        `[TEST] Simulating callback: merchantTradeNo=${body.merchantTradeNo}, rtnCode=${rtnCode}`,
+        `[TEST] Simulating callback: merchantTradeNo=${body.merchantTradeNo}, rtnCode=${rtnCode}, simulateSuccess=${simulateSuccess}`,
       );
 
-      // 構造回調數據
-      const callbackData: any = {
-        MerchantID: this.ecpayConfig.merchantId,
-        MerchantTradeNo: body.merchantTradeNo,
-        PaymentType: 'aio',
-        RtnCode: rtnCode,
-        RtnMsg: rtnCode === 1 ? '成功' : '失敗',
-        TradeNo: tradeNo,
-        TradeAmt: body.amount,
-        PaymentDate: new Date().toISOString(),
-        PaymentMethod: 'Credit',
-        CardSix: '411111',
-        CardFour: '1111',
-        SimulatePaid: 1,
-        PaymentTypeChargeFee: 0,
-        TradeStatus: rtnCode === 1 ? 1 : 0,
-      };
+      // 格式化當前時間為 ECPay 格式: yyyy/MM/dd HH:mm:ss
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const paymentDate = `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
+
+      // 根據 simulateSuccess 參數構造不同的回調數據
+      const callbackData: any = this.buildCallbackData(
+        simulateSuccess,
+        body.merchantTradeNo,
+        body.amount,
+        rtnCode,
+        tradeNo,
+        paymentDate,
+      );
 
       // 計算 CheckMacValue
       const checkMacValue = this.cryptoService.calculateCheckMacValue(
@@ -137,9 +145,13 @@ export class EcpayTestController {
       return {
         success: true,
         data: {
-          callbackData,
-          checkMacValue,
           result,
+          simulationInfo: {
+            simulateSuccess,
+            rtnCode,
+            paymentDate,
+            callbackDataForReference: callbackData, // 供參考的原始回調數據
+          },
         },
       };
     } catch (error) {
@@ -150,6 +162,61 @@ export class EcpayTestController {
       return {
         success: false,
         error: error.message,
+      };
+    }
+  }
+
+  /**
+   * 構造 ECPay 回調數據（根據規格文件格式）
+   * 支持成功和失敗兩種情況
+   */
+  private buildCallbackData(
+    isSuccess: boolean,
+    merchantTradeNo: string,
+    amount: number,
+    rtnCode: number,
+    tradeNo: string,
+    paymentDate: string,
+  ): Record<string, any> {
+    if (isSuccess) {
+      // 成功範例
+      return {
+        CustomField1: '',
+        CustomField2: '',
+        CustomField3: '',
+        CustomField4: '',
+        MerchantID: this.ecpayConfig.merchantId,
+        MerchantTradeNo: merchantTradeNo,
+        PaymentDate: paymentDate,
+        PaymentType: 'Credit_CreditCard',
+        PaymentTypeChargeFee: 10,
+        RtnCode: rtnCode, // 1 = 成功
+        RtnMsg: '交易成功',
+        SimulatePaid: 0,
+        StoreID: '',
+        TradeAmt: amount,
+        TradeDate: paymentDate,
+        TradeNo: tradeNo,
+      };
+    } else {
+      // 失敗範例
+      return {
+        CustomField1: '',
+        CustomField2: '',
+        CustomField3: '',
+        CustomField4: '',
+        MerchantID: this.ecpayConfig.merchantId,
+        MerchantTradeNo: merchantTradeNo,
+        PaymentDate: paymentDate,
+        PaymentType: 'Credit_CreditCard',
+        PaymentTypeChargeFee: 10,
+        RtnCode: rtnCode, // 0 = 失敗
+        RtnMsg: '交易失敗',
+        SimulatePaid: 0,
+        StoreID: '',
+        TradeAmt: amount,
+        TradeDate: paymentDate,
+        TradeNo: tradeNo,
       };
     }
   }
@@ -720,6 +787,10 @@ export class EcpayTestController {
             <label>支付金額 (TWD)</label>
             <input type="number" id="amount" placeholder="例：1000" value="1000" min="1" required>
           </div>
+          <div class="form-group">
+            <label>回調 URL（選填）</label>
+            <input type="url" id="callbackUrl" placeholder="例：http://localhost:3001/api/payment-callback" value="http://localhost:3000/test/ecpay/api/payment-callback">
+          </div>
           <div class="button-group">
             <button type="submit" class="btn btn-primary">
               <span id="initBtnText">發起支付初始化</span>
@@ -754,9 +825,54 @@ export class EcpayTestController {
         </form>
       </div>
 
-      <!-- 2. CheckMacValue 驗證 -->
+      <!-- 2. 模擬回調 -->
       <div class="card">
-        <h2>2️⃣ CheckMacValue 驗證</h2>
+        <h2>2️⃣ 模擬回調</h2>
+        <p style="color: #666; font-size: 13px; margin-bottom: 15px;">
+          用於測試 ECPay 回調流程。點擊按鈕會模擬 ECPay 伺服器發送回調訊息到你的 callbackUrl。
+        </p>
+        <div style="margin-bottom: 15px;">
+          <strong>模擬回調內容：</strong>
+          <div id="simulateCallbackMonitor" style="background: #f5f5f5; padding: 15px; border-radius: 4px; margin-top: 10px; min-height: 100px; max-height: 400px; overflow-y: auto; display: none;">
+            <div id="simulateCallbackContent" style="font-size: 12px; font-family: monospace; white-space: pre-wrap; word-break: break-word;"></div>
+          </div>
+          <div id="simulateCallbackPlaceholder" style="color: #999; font-size: 13px; padding: 15px; text-align: center;">
+            暫無模擬內容
+          </div>
+        </div>
+        <div class="button-group">
+          <button type="button" class="btn btn-primary" onclick="simulateECPayReturnURL(true)" style="flex: 1;">
+            <span id="simulateReturnURLBtnText">✅ 模擬成功回調</span>
+          </button>
+          <button type="button" class="btn btn-danger" onclick="simulateECPayReturnURL(false)" style="flex: 1; background-color: #dc3545;">
+            <span id="simulateReturnURLFailBtnText">❌ 模擬失敗回調</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. Callback 監聽 -->
+      <div class="card">
+        <h2>3️⃣ Callback 監聽</h2>
+        <p style="color: #666; font-size: 13px; margin-bottom: 15px;">
+          此面板用於監聽 ECPay 伺服器的真實回調訊息。當用戶完成支付後，ECPay 會向你提供的 callbackUrl 發送訊息，後端會自動接收並調用該 URL。
+        </p>
+        <div style="margin-bottom: 15px;">
+          <strong>最近一次 Callback 結果：</strong>
+          <div id="callbackMonitor" style="background: #f5f5f5; padding: 15px; border-radius: 4px; margin-top: 10px; min-height: 100px; max-height: 400px; overflow-y: auto; display: none;">
+            <div id="callbackMonitorContent" style="font-size: 12px; font-family: monospace; white-space: pre-wrap; word-break: break-word;"></div>
+          </div>
+          <div id="callbackMonitorPlaceholder" style="color: #999; font-size: 13px; padding: 15px; text-align: center;">
+            暫無 Callback 結果
+          </div>
+        </div>
+        <div style="margin-top: 10px;">
+          <button type="button" class="btn btn-secondary" onclick="clearCallbackMonitor()" style="width: 100%;">清除結果</button>
+        </div>
+      </div>
+
+      <!-- 4. CheckMacValue 驗證 -->
+      <div class="card">
+        <h2>4️⃣ CheckMacValue 驗證</h2>
 
         <!-- 切換標籤 -->
         <div class="tab-buttons">
@@ -803,36 +919,9 @@ export class EcpayTestController {
         </div>
       </div>
 
-      <!-- 3. 回調模擬 -->
+      <!-- 5. 測試工具 -->
       <div class="card">
-        <h2>3️⃣ 回調通知模擬</h2>
-        <form id="callbackForm">
-          <div class="form-group">
-            <label>MerchantTradeNo</label>
-            <input type="text" id="callbackMerchantTradeNo" placeholder="例：TEST_ORDER_001_1735731600" value="TEST_ORDER_001_1735731600" required>
-          </div>
-          <div class="form-group">
-            <label>金額 (TWD)</label>
-            <input type="number" id="callbackAmount" value="1000" min="1" required>
-          </div>
-          <div class="form-group">
-            <label>交易狀態</label>
-            <select id="callbackStatus">
-              <option value="1">✅ 成功 (RtnCode: 1)</option>
-              <option value="0">❌ 失敗 (RtnCode: 0)</option>
-            </select>
-          </div>
-          <div class="button-group">
-            <button type="submit" class="btn btn-primary">模擬回調</button>
-            <button type="button" class="btn btn-secondary" onclick="clearCallbackResult()">清除結果</button>
-          </div>
-          <div id="callbackResult" class="result"></div>
-        </form>
-      </div>
-
-      <!-- 4. 測試工具 -->
-      <div class="card">
-        <h2>4️⃣ 測試信息</h2>
+        <h2>5️⃣ 測試信息</h2>
         <div style="margin-top: 15px;">
           <h3 style="color: #333; margin-bottom: 10px;">📋 測試信用卡</h3>
           <ul class="test-card-list">
@@ -892,6 +981,7 @@ export class EcpayTestController {
 
       const orderId = document.getElementById('orderId').value;
       const amount = parseInt(document.getElementById('amount').value);
+      const callbackUrl = document.getElementById('callbackUrl').value;
 
       const btnText = document.getElementById('initBtnText');
       const originalText = btnText.textContent;
@@ -899,20 +989,20 @@ export class EcpayTestController {
       btnText.parentElement.disabled = true;
 
       try {
+        const payload = { orderId, amount };
+        if (callbackUrl) {
+          payload.callbackUrl = callbackUrl;
+        }
+
         const response = await fetch('/api/test/ecpay/api/initialize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId, amount }),
+          body: JSON.stringify(payload),
         });
 
         const result = await response.json();
 
         if (result.result && result.result.success) {
-          // 自動填入回調測試的 MerchantTradeNo
-          if (result.result.data) {
-            document.getElementById('callbackMerchantTradeNo').value = result.result.data.merchantTradeNo;
-          }
-
           // 顯示初始化數據（JSON 和 HTML 表單）
           if (result.result.data) {
             // 顯示 JSON 格式數據
@@ -1040,33 +1130,6 @@ export class EcpayTestController {
       }
     });
 
-    // 回調模擬表單提交
-    document.getElementById('callbackForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const merchantTradeNo = document.getElementById('callbackMerchantTradeNo').value;
-      const amount = parseInt(document.getElementById('callbackAmount').value);
-      const rtnCode = parseInt(document.getElementById('callbackStatus').value);
-
-      try {
-        const response = await fetch('/api/test/ecpay/api/simulate-callback', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ merchantTradeNo, amount, rtnCode }),
-        });
-
-        const result = await response.json();
-
-        if (result.result && result.result.success) {
-          showResult('callbackResult', 'success', '✅ 回調模擬成功', JSON.stringify(result.result.data, null, 2));
-        } else {
-          showResult('callbackResult', 'error', '❌ 回調失敗', result.error || JSON.stringify(result));
-        }
-      } catch (error) {
-        showResult('callbackResult', 'error', '❌ 請求失敗', error.message);
-      }
-    });
-
     // 在新分頁中打開支付表單
     function submitFormToECPayWindow(formHtml) {
       try {
@@ -1141,10 +1204,6 @@ export class EcpayTestController {
       document.getElementById('stringVerifyResult').className = 'result';
     }
 
-    function clearCallbackResult() {
-      document.getElementById('callbackResult').className = 'result';
-    }
-
     // 切換初始化數據標籤（JSON 和 HTML）
     function switchInitDataTab(tabName) {
       // 隱藏所有標籤頁
@@ -1190,8 +1249,153 @@ export class EcpayTestController {
       }
     }
 
+    /**
+     * 將物件轉換為 form data 格式字符串
+     * 例如: "CustomField1=&MerchantID=3002607&RtnCode=1&TradeAmt=1000"
+     * 包含所有參數（包括空值），按字母順序排序
+     */
+    function objectToFormDataString(obj) {
+      return Object.keys(obj)
+        .sort() // 按字母順序排序，與 ECPay 規格一致
+        .map(key => \`\${key}=\${obj[key]}\`)
+        .join('&');
+    }
+
+    /**
+     * 模擬 ECPay ReturnURL 回調
+     * 支持成功和失敗兩個 case
+     * @param {boolean} simulateSuccess - true 成功, false 失敗
+     */
+    async function simulateECPayReturnURL(simulateSuccess = true) {
+      const initJsonData = document.getElementById('initJsonData').textContent;
+
+      if (!initJsonData) {
+        alert('請先初始化支付');
+        return;
+      }
+
+      let merchantTradeNo;
+      try {
+        const initData = JSON.parse(initJsonData);
+        merchantTradeNo = initData.merchantTradeNo;
+        if (!merchantTradeNo) {
+          alert('無法獲取 merchantTradeNo');
+          return;
+        }
+      } catch (e) {
+        alert('初始化數據格式錯誤');
+        return;
+      }
+
+      // 選擇正確的按鈕
+      const btnId = simulateSuccess ? 'simulateReturnURLBtnText' : 'simulateReturnURLFailBtnText';
+      const btnText = document.getElementById(btnId);
+      const originalText = btnText.textContent;
+      btnText.innerHTML = '<span class="spinner"></span> 模擬中...';
+      btnText.parentElement.disabled = true;
+
+      try {
+        // 提取金額（從初始化結果中）
+        const amount = parseInt(document.getElementById('amount').value) || 1000;
+
+        const response = await fetch('/api/test/ecpay/api/simulate-callback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            merchantTradeNo,
+            amount,
+            simulateSuccess, // 根據參數模擬成功或失敗
+          }),
+        });
+
+        const result = await response.json();
+        console.log('模擬回調 API 返回:', result);
+
+        // 處理 NestJS 全局攔截器包裝的響應
+        let apiData = null;
+        if (result.result && result.result.success && result.result.data) {
+          // 格式: { result: { success: true, data: { result, simulationInfo } } }
+          apiData = result.result.data;
+        } else if (result.success && result.data) {
+          // 格式: { success: true, data: { result, simulationInfo } }
+          apiData = result.data;
+        }
+
+        if (apiData && apiData.result) {
+          // 提取支付結果和模擬信息
+          const paymentResult = apiData.result;
+          const simulationInfo = apiData.simulationInfo;
+
+          // 顯示模擬回調內容
+          const simulateMonitor = document.getElementById('simulateCallbackMonitor');
+          const simulatePlaceholder = document.getElementById('simulateCallbackPlaceholder');
+          const simulateContent = document.getElementById('simulateCallbackContent');
+
+          simulateMonitor.style.display = 'block';
+          simulatePlaceholder.style.display = 'none';
+
+          // 格式化顯示回調數據 - 使用 form data 格式
+          const callbackData = simulationInfo.callbackDataForReference;
+          const formDataString = objectToFormDataString(callbackData);
+          simulateContent.textContent = formDataString;
+
+          // 更新結果提示
+          const alertDiv = document.createElement('div');
+          const isSuccess = paymentResult.status === 'success';
+          const bgColor = isSuccess ? '#d4edda' : '#f8d7da';
+          const textColor = isSuccess ? '#155724' : '#721c24';
+          const borderColor = isSuccess ? '#c3e6cb' : '#f5c6cb';
+          const message = isSuccess
+            ? '✅ 模擬回調成功！後端已調用你的 callbackUrl'
+            : '❌ 模擬回調失敗！後端調用 callbackUrl 時出錯';
+
+          alertDiv.style.cssText = \`margin-top: 15px; padding: 12px; background: \${bgColor}; color: \${textColor}; border: 1px solid \${borderColor}; border-radius: 4px; font-size: 13px;\`;
+          alertDiv.innerHTML = message;
+
+          const buttonGroup = document.querySelector('.card:nth-child(1) .button-group');
+          const existingAlert = buttonGroup.nextElementSibling;
+          if (existingAlert && (existingAlert.style.background.includes('rgb(212, 237, 218)') || existingAlert.style.background.includes('rgb(248, 215, 218)'))) {
+            existingAlert.remove();
+          }
+          buttonGroup.parentNode.insertBefore(alertDiv, buttonGroup.nextSibling);
+
+          // 5 秒後移除提示
+          setTimeout(() => {
+            alertDiv.remove();
+          }, 5000);
+        } else {
+          const errorMsg = result.error || '未知錯誤，API 返回格式可能不正確';
+          const detailMsg = '❌ 模擬回調失敗：' + errorMsg + '\\n\\n實際 API 返回:\\n' + JSON.stringify(result, null, 2);
+          alert(detailMsg);
+          console.error('API 返回結果詳情:', result);
+        }
+      } catch (error) {
+        alert('❌ 請求失敗：' + error.message);
+        console.error('請求錯誤:', error);
+      } finally {
+        btnText.textContent = originalText;
+        btnText.parentElement.disabled = false;
+      }
+    }
+
+    /**
+     * 清除 Callback 監聽結果
+     */
+    function clearCallbackMonitor() {
+      const monitor = document.getElementById('callbackMonitor');
+      const placeholder = document.getElementById('callbackMonitorPlaceholder');
+      const content = document.getElementById('callbackMonitorContent');
+
+      monitor.style.display = 'none';
+      placeholder.style.display = 'block';
+      placeholder.textContent = '暫無 Callback 結果';
+      content.textContent = '';
+    }
+
     // 頁面加載完成後初始化
-    document.addEventListener('DOMContentLoaded', initPage);
+    document.addEventListener('DOMContentLoaded', () => {
+      initPage();
+    });
   </script>
 </body>
 </html>

@@ -73,17 +73,8 @@ export class EcpayController {
   @Post('credit-card/callback')
   async handleCreditCardCallback(@Body() notification: any) {
     try {
-      this.logger.log(
-        `Received credit card callback: MerchantTradeNo=${notification.MerchantTradeNo}`,
-      );
-
       // 處理回調
-      const paymentResult =
-        await this.ecpayService.handlePaymentCallback(notification);
-
-      this.logger.log(
-        `Payment callback processed: orderId=${paymentResult.orderId}, status=${paymentResult.status}`,
-      );
+      await this.ecpayService.handlePaymentCallback(notification);
 
       // TODO: 前端開發人員需要在此處呼叫 TransactionsService 的方法來更新交易狀態
       // await this.transactionsService.updatePaymentStatus(

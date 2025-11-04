@@ -4,6 +4,7 @@
 export interface CreditCardPaymentInitializeRequest {
   orderId: string;
   amount: number;
+  callbackUrl?: string; // 支付完成後的回調 URL
 }
 
 /**

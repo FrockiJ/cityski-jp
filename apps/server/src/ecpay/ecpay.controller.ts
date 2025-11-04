@@ -47,7 +47,6 @@ export class EcpayController {
       // 初始化支付
       const result = await this.ecpayService.initializeCreditCardPayment(
         request,
-        request.orderId,
       );
 
       if (!result.success) {

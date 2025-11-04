@@ -24,27 +24,24 @@ export class EcpayService {
    */
   async initializeCreditCardPayment(
     request: CreditCardPaymentInitializeRequest,
-    transactionId: string,
   ): Promise<CreditCardPaymentInitializeResponse> {
     try {
       // 生成 MerchantTradeNo
       const merchantTradeNo = this.generateMerchantTradeNo(request.orderId);
 
       // 準備支付參數
+      // 注意：所有參數值都必須是字符串類型以確保 CheckMacValue 計算正確
       const paymentParams = {
-        MerchantID: this.ecpayConfig.merchantId,
+        MerchantID: String(this.ecpayConfig.merchantId),
         MerchantTradeNo: merchantTradeNo,
         MerchantTradeDate: this.getCurrentTradeDate(),
         PaymentType: 'aio',
-        TotalAmount: request.amount,
-        TradeDesc: `Order #${request.orderId}`,
-        ItemName: `Course Payment - Order #${request.orderId}`,
+        TotalAmount: String(request.amount),
+        TradeDesc: `Order`,
+        ItemName: `Payment`,
         ReturnURL: this.ecpayConfig.returnUrl,
         ChoosePayment: 'Credit',
-        EncryptType: 1,
-        // 自定義欄位用於追蹤交易
-        CustomField1: transactionId,
-        CustomField2: request.orderId,
+        EncryptType: '1',
       };
 
       // 計算 CheckMacValue
@@ -145,11 +142,17 @@ export class EcpayService {
 
   /**
    * 生成 MerchantTradeNo
-   * 格式: ${orderId}_${Unix時間戳}
+   * 格式: ${shortId}${timestamp}（最大 20 字元）
+   * 使用時間戳後 10 位 + 隨機數確保唯一性
    */
   private generateMerchantTradeNo(orderId: string): string {
-    const timestamp = Math.floor(Date.now() / 1000);
-    return `${orderId}_${timestamp}`;
+    // Unix timestamp 後 10 位 (足以表示到 2286 年)
+    const timestamp = Math.floor(Date.now() / 1000).toString().slice(-10);
+    // 4 位隨機數確保唯一性
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    // 組合: 時間戳(10位) + 隨機數(4位) + orderId 縮短版(最多6位)
+    const shortOrderId = orderId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).padEnd(6, '0');
+    return `${timestamp}${random}${shortOrderId}`.slice(0, 20);
   }
 
   /**

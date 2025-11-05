@@ -9,13 +9,13 @@ import dayjs from 'dayjs';
 
 import { Button } from '@/components/Common/CIBase/CoreDynamicTable/CoreFilter/styles';
 import FormikModalTable from '@/components/Common/CIBase/Formik/FormikModalTable';
-import RoundedArrowTopRight from '@/components/Common/Icon/RoundedArrowTopRight';
 
 type Props = {
 	reservations?: ReservationResponseDto[];
 	loading?: boolean;
 	size?: number;
 	orderId?: string;
+	onOpenReservationModal?: (reservationId?: string, index?: number) => void;
 };
 
 // 輔助函數：獲取狀態文字
@@ -37,7 +37,7 @@ const getTeachingLevelText = (level: number): string => {
 	return SkiAndSnowboardLevel[level as keyof typeof SkiAndSnowboardLevel] || '未知等級';
 };
 
-const CourseReservation = ({ reservations = [], loading = false, size = 4, orderId }: Props) => {
+const CourseReservation = ({ reservations = [], loading = false, size = 4, orderId, onOpenReservationModal }: Props) => {
 	// 格式化參加人員名單
 	const formatMemberNames = (reservationMembers: ReservationMemberResponseDto[]): string => {
 		if (!reservationMembers || reservationMembers.length === 0) return '無';
@@ -80,20 +80,13 @@ const CourseReservation = ({ reservations = [], loading = false, size = 4, order
 				show: true,
 				component: (
 					<Button
-						endIcon={<RoundedArrowTopRight />}
 						onClick={() => {
 							if (orderReservation) {
-								// 已有預約：跳轉至檢視模式
-								window.open(
-									`/reservation-management/indoor-course?reservationId=${orderReservation.reservation.id}`,
-									'_blank',
-								);
+								// 已有預約：開啟檢視模式的 Modal
+								onOpenReservationModal?.(orderReservation.reservation.id, undefined);
 							} else {
-								// 尚未預約：跳轉至新增模式，帶上 orderId 和 index
-								window.open(
-									`/reservation-management/indoor-course?action=add&orderId=${orderId}&index=${index}`,
-									'_blank',
-								);
+								// 尚未預約：開啟新增模式的 Modal，帶上 orderId 和 index
+								onOpenReservationModal?.(undefined, index);
 							}
 						}}
 					>

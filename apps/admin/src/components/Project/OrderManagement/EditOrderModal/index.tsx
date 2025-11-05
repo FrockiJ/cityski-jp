@@ -22,6 +22,7 @@ import JoinedMembersBlock from './JoinedMembersBlock';
 import OrderChangesBlock from './OrderChangesBlock';
 import OrderInfoBlock from './OrderInfoBlock';
 import PaymentInfoBlock from './PaymentInfoBlock';
+import AddEditReservationIndoorModal from '../../ReservationManagement/AddEditReservationIndoorModal';
 import { Typography } from '@mui/material';
 
 const anchorItems = [
@@ -87,8 +88,8 @@ const EditOrderModal = ({
 	const [status, setStatus] = useState('待結清');
 
 	// --- API ---
-	const { orderDetail, loading: orderDetailLoading } = useGetOrderDetail(orderId);
-	const { reservations, loading: reservationsLoading } = useOrderReservations(orderId);
+	const { orderDetail, loading: orderDetailLoading, refetch: refetchOrderDetail } = useGetOrderDetail(orderId);
+	const { reservations, loading: reservationsLoading, refetch: refetchReservations } = useOrderReservations(orderId);
 
 	// --- EFFECTS ---
 
@@ -114,6 +115,44 @@ const EditOrderModal = ({
 	const validationSchema = Yup.object().shape({
 		courseExpiryDate: Yup.date().nullable().required('必填'),
 	});
+
+	// --- 處理開啟預約 Modal ---
+	const handleOpenReservationModal = (reservationId?: string, index?: number) => {
+		const modalType = reservationId ? ModalType.EDIT : ModalType.ADD;
+		const title = reservationId ? '檢視預約' : '立即預約';
+
+		modal.openModal({
+			title: title,
+			width: 1200,
+			height: 800,
+			fullScreen: true,
+			center: true,
+			marginBottom: true,
+			noEscAndBackdrop: true,
+			noAction: true,
+			onClose: (action) => {
+				if (action === DialogAction.CONFIRM) {
+					// 重新取得預約資料
+					refetchReservations();
+					refetchOrderDetail();
+				}
+			},
+			children: (
+				<AddEditReservationIndoorModal
+					modalType={modalType}
+					courseType={CourseType.PRIVATE}
+					courseStatusType={CourseStatusType.PUBLISHED}
+					reservationId={reservationId}
+					orderId={orderId}
+					reservationIndex={index}
+					handleRefresh={() => {
+						refetchReservations();
+						refetchOrderDetail();
+					}}
+				/>
+			),
+		});
+	};
 
 	const handleFormSubmit = async (values: InitialValuesProps) => {
 		console.log({ values });
@@ -177,6 +216,7 @@ const EditOrderModal = ({
 									loading={reservationsLoading}
 									size={orderDetail?.planNumber}
 									orderId={orderId}
+									onOpenReservationModal={handleOpenReservationModal}
 								/>
 								<FormikDatePicker
 									name='courseExpiryDate'

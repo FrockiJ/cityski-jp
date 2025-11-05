@@ -11,7 +11,6 @@ import CoreBlock from '@/CIBase/CoreModal/CoreAnchorModal/CoreBlock';
 import { StyledAbsoluteModalActions } from '@/CIBase/CoreModal/CoreModalActions';
 import FormikDatePicker from '@/components/Common/CIBase/Formik/FormikDatePicker';
 import { FormikScrollToError } from '@/Formik/common/FormikComponents';
-import useModalProvider from '@/hooks/useModalProvider';
 import { useGetOrderDetail } from '@/hooks/useGetOrderDetail';
 import { useOrderReservations } from '@/hooks/useOrderReservations';
 
@@ -22,7 +21,6 @@ import JoinedMembersBlock from './JoinedMembersBlock';
 import OrderChangesBlock from './OrderChangesBlock';
 import OrderInfoBlock from './OrderInfoBlock';
 import PaymentInfoBlock from './PaymentInfoBlock';
-import AddEditReservationIndoorModal from '../../ReservationManagement/AddEditReservationIndoorModal';
 import { Typography } from '@mui/material';
 
 const anchorItems = [
@@ -57,7 +55,6 @@ const EditOrderModal = ({
 	rowData,
 	orderId,
 }: EditOrderModalProps) => {
-	const modal = useModalProvider();
 	const [courseInfo, setMemberInfo] = useState({
 		no: '--',
 		type: {
@@ -115,44 +112,6 @@ const EditOrderModal = ({
 	const validationSchema = Yup.object().shape({
 		courseExpiryDate: Yup.date().nullable().required('必填'),
 	});
-
-	// --- 處理開啟預約 Modal ---
-	const handleOpenReservationModal = (reservationId?: string, index?: number) => {
-		const modalType = reservationId ? ModalType.EDIT : ModalType.ADD;
-		const title = reservationId ? '檢視預約' : '立即預約';
-
-		modal.openModal({
-			title: title,
-			width: 1200,
-			height: 800,
-			fullScreen: true,
-			center: true,
-			marginBottom: true,
-			noEscAndBackdrop: true,
-			noAction: true,
-			onClose: (action) => {
-				if (action === DialogAction.CONFIRM) {
-					// 重新取得預約資料
-					refetchReservations();
-					refetchOrderDetail();
-				}
-			},
-			children: (
-				<AddEditReservationIndoorModal
-					modalType={modalType}
-					courseType={CourseType.PRIVATE}
-					courseStatusType={CourseStatusType.PUBLISHED}
-					reservationId={reservationId}
-					orderId={orderId}
-					reservationIndex={index}
-					handleRefresh={() => {
-						refetchReservations();
-						refetchOrderDetail();
-					}}
-				/>
-			),
-		});
-	};
 
 	const handleFormSubmit = async (values: InitialValuesProps) => {
 		console.log({ values });
@@ -216,7 +175,8 @@ const EditOrderModal = ({
 									loading={reservationsLoading}
 									size={orderDetail?.planNumber}
 									orderId={orderId}
-									onOpenReservationModal={handleOpenReservationModal}
+									refetchReservations={refetchReservations}
+									refetchOrderDetail={refetchOrderDetail}
 								/>
 								<FormikDatePicker
 									name='courseExpiryDate'

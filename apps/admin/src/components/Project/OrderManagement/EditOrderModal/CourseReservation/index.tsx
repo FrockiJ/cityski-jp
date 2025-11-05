@@ -4,18 +4,25 @@ import {
 	SkiAndSnowboardLevel,
 	ReservationResponseDto,
 	ReservationMemberResponseDto,
+	ModalType,
+	CourseType,
+	CourseStatusType,
+	DialogAction,
 } from '@repo/shared';
 import dayjs from 'dayjs';
 
 import { Button } from '@/components/Common/CIBase/CoreDynamicTable/CoreFilter/styles';
 import FormikModalTable from '@/components/Common/CIBase/Formik/FormikModalTable';
+import useModalProvider from '@/hooks/useModalProvider';
+import AddEditReservationIndoorModal from '@/components/Project/ReservationManagement/AddEditReservationIndoorModal';
 
 type Props = {
 	reservations?: ReservationResponseDto[];
 	loading?: boolean;
 	size?: number;
 	orderId?: string;
-	onOpenReservationModal?: (reservationId?: string, index?: number) => void;
+	refetchReservations?: () => void;
+	refetchOrderDetail?: () => void;
 };
 
 // 輔助函數：獲取狀態文字
@@ -37,12 +44,60 @@ const getTeachingLevelText = (level: number): string => {
 	return SkiAndSnowboardLevel[level as keyof typeof SkiAndSnowboardLevel] || '未知等級';
 };
 
-const CourseReservation = ({ reservations = [], loading = false, size = 4, orderId, onOpenReservationModal }: Props) => {
+const CourseReservation = ({
+	reservations = [],
+	loading = false,
+	size = 4,
+	orderId,
+	refetchReservations: parentRefetchReservations,
+	refetchOrderDetail: parentRefetchOrderDetail
+}: Props) => {
+	const modal = useModalProvider();
+
 	// 格式化參加人員名單
 	const formatMemberNames = (reservationMembers: ReservationMemberResponseDto[]): string => {
 		if (!reservationMembers || reservationMembers.length === 0) return '無';
 
 		return reservationMembers.map((m) => m.orderMember?.member?.name || '未知').join('、');
+	};
+
+	// 處理開啟預約 Modal
+	const handleOpenReservationModal = (reservationId?: string, index?: number) => {
+		const modalType = reservationId ? ModalType.EDIT : ModalType.ADD;
+		const title = reservationId ? '檢視預約' : '立即預約';
+
+		modal.openModal({
+			title: title,
+			width: 1200,
+			height: 800,
+			fullScreen: true,
+			center: true,
+			marginBottom: true,
+			noEscAndBackdrop: true,
+			noAction: true,
+			onClose: (action) => {
+				if (action === DialogAction.CONFIRM) {
+					// 重新取得父組件（EditOrderModal）的預約資料
+					parentRefetchReservations?.();
+					parentRefetchOrderDetail?.();
+				}
+			},
+			children: (
+				<AddEditReservationIndoorModal
+					modalType={modalType}
+					courseType={CourseType.PRIVATE}
+					courseStatusType={CourseStatusType.PUBLISHED}
+					reservationId={reservationId}
+					orderId={orderId}
+					reservationIndex={index}
+					handleRefresh={() => {
+						// 重新取得父組件（EditOrderModal）的預約資料
+						parentRefetchReservations?.();
+						parentRefetchOrderDetail?.();
+					}}
+				/>
+			),
+		});
 	};
 
 	// 將預約數據轉換為表格行格式
@@ -83,10 +138,10 @@ const CourseReservation = ({ reservations = [], loading = false, size = 4, order
 						onClick={() => {
 							if (orderReservation) {
 								// 已有預約：開啟檢視模式的 Modal
-								onOpenReservationModal?.(orderReservation.reservation.id, undefined);
+								handleOpenReservationModal(orderReservation.reservation.id, undefined);
 							} else {
 								// 尚未預約：開啟新增模式的 Modal，帶上 orderId 和 index
-								onOpenReservationModal?.(undefined, index);
+								handleOpenReservationModal(undefined, index);
 							}
 						}}
 					>

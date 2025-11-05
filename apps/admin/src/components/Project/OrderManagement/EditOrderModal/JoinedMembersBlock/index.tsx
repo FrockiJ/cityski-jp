@@ -2,7 +2,7 @@ import React from 'react';
 
 import { Button } from '@/components/Common/CIBase/CoreDynamicTable/CoreFilter/styles';
 import FormikModalTable from '@/components/Common/CIBase/Formik/FormikModalTable';
-import { ReservationResponseDto } from '@repo/shared';
+import { OrderReservationResponseDto, ReservationResponseDto } from '@repo/shared';
 
 interface OrderMember {
 	id: string;
@@ -16,7 +16,7 @@ interface OrderMember {
 
 interface Props {
 	members?: OrderMember[];
-	reservations?: ReservationResponseDto[];
+	reservations?: OrderReservationResponseDto[];
 }
 
 const JoinedMembersBlock = ({ members = [], reservations = [] }: Props) => {
@@ -34,11 +34,10 @@ const JoinedMembersBlock = ({ members = [], reservations = [] }: Props) => {
 	};
 	const getUsedReservations = (member: OrderMember): number => {
 		let count = 0;
-		console.log('reservations|||', member.memberName, member.id, reservations.length);
-
+		console.log('memeber|||', member.memberName, member.id, reservations.length);
+		console.log('rrr|||', reservations)
 		reservations.forEach((reservation) => {
-			console.log('reservation|||', reservation.reservationMembers);
-			if (reservation.reservationMembers && reservation.reservationMembers.some((m) => m.orderMemberId === member.id)) {
+			if (reservation?.reservation?.reservationMembers && reservation.reservation.reservationMembers.some((m) => m.orderMemberId === member.id)) {
 				count++;
 			}
 		});

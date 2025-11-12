@@ -107,16 +107,18 @@ export class OrdersService {
       const paginatedOrders = orders.slice(startIndex, endIndex);
 
       const total = orders.length;
-      const resultPaginatedOrders:GetOrdersResponseDTO[] = paginatedOrders.map((order) => ({
-        ...order,
-         courseName: order.coursePlan?.name || '課程名稱',
-         price: order.coursePlan?.price || 0,
-         paymentStatus: order.transaction?.status || 0,
-         number: order.planNumber,
-         people: order.adultCount + order.childCount,
-         process: order.orderReservations?.length || 0
-      }));
-      
+      const resultPaginatedOrders: GetOrdersResponseDTO[] = paginatedOrders.map(
+        (order) => ({
+          ...order,
+          courseName: order.coursePlan?.name || '課程名稱',
+          price: order.coursePlan?.price || 0,
+          paymentStatus: order.transaction?.status || 0,
+          number: order.planNumber,
+          people: order.adultCount + order.childCount,
+          process: order.orderReservations?.length || 0,
+        }),
+      );
+
       const res = {
         data: resultPaginatedOrders,
         total,
@@ -185,6 +187,7 @@ export class OrdersService {
             avatar: om.member?.avatar || '',
             orderNo: order.no,
           })) || [],
+        discountId: order.discountId,
       };
 
       return orderDetail;
@@ -211,7 +214,12 @@ export class OrdersService {
 
       const [orders, total] = await this.ordersRepo.findAndCount({
         where: { orderer: memberId },
-        relations: ['coursePlan', 'department', 'transaction', 'orderReservations'],
+        relations: [
+          'coursePlan',
+          'department',
+          'transaction',
+          'orderReservations',
+        ],
         order: { createdTime: 'DESC' },
         skip,
         take: customLimit,
@@ -397,10 +405,14 @@ export class OrdersService {
       // 查詢該訂單的所有 order-reservations
       const orderReservations = await this.orderReservationsRepo.find({
         where: { orderId },
-        relations: ['reservation', 'reservation.reservationMembers','reservation.reservationMembers.orderMember','reservation.reservationMembers.orderMember.member'],
+        relations: [
+          'reservation',
+          'reservation.reservationMembers',
+          'reservation.reservationMembers.orderMember',
+          'reservation.reservationMembers.orderMember.member',
+        ],
         order: { index: 'ASC' },
       });
-
 
       return orderReservations;
     } catch (err) {

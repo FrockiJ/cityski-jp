@@ -76,7 +76,7 @@ export class Order extends UserDate {
   childCount: number;
 
   @Column({ name: 'discount_id', type: 'uuid', nullable: true })
-  discountId: number;
+  discountId: string;
 
   @CreateDateColumn({
     type: 'timestamp',
@@ -111,10 +111,12 @@ export class Order extends UserDate {
   @OneToMany(() => OrderMember, (orderMember) => orderMember.order)
   orderMembers: OrderMember[];
 
-  @OneToMany(() => OrderReservation, (orderReservation) => orderReservation.order)
+  @OneToMany(
+    () => OrderReservation,
+    (orderReservation) => orderReservation.order,
+  )
   orderReservations: OrderReservation[];
 
   @OneToMany(() => OrderHistory, (orderHistory) => orderHistory.order)
   orderHistories: OrderHistory[];
-
 }

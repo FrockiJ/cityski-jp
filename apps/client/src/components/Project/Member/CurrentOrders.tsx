@@ -4,7 +4,7 @@ import { OrderStatus } from '@repo/shared';
 
 import OrderBase from './OrderBase';
 
-const orderStatusMapper = {
+export const orderStatusMapper = {
 	[OrderStatus.PENDING_DEPOSIT]: {
 		headerStyle: 'border-[#FE7B5D] text-[#FE7B5D]',
 		headerLabel: '待付訂金',

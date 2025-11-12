@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ReservationResponseDto } from '@repo/shared';
+import { OrderReservationResponseDto } from '@repo/shared';
 import { getOrderReservations } from '@/utils/http/api/order';
 
 interface UseOrderReservationsResult {
-	reservations: ReservationResponseDto[];
+	reservations: OrderReservationResponseDto[];
 	loading: boolean;
 	error: any;
 	refetch: () => void;
 }
 
 export const useOrderReservations = (orderId: string | undefined): UseOrderReservationsResult => {
-	const [reservations, setReservations] = useState<ReservationResponseDto[]>([]);
+	const [reservations, setReservations] = useState<OrderReservationResponseDto[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<any>(null);
 	const [refetchTrigger, setRefetchTrigger] = useState(0);

@@ -107,6 +107,9 @@ export class ReservationResponseDto {
   updatedTime: Date;
 
   @Expose()
+  index: number;
+
+  @Expose()
   reservationMembers?: Array<{
     id: string;
     reservationId: string;

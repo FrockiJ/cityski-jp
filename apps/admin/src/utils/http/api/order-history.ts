@@ -1,7 +1,7 @@
-import { ResponseWrapper, OrderHistoryResponseDto, CreateOrderHistoryRequestDto } from '@repo/shared';
+import { ResponseWrapper, OrderHistoryResponseDTO, CreateOrderHistoryRequestDTO } from '@repo/shared';
 import http from '@/utils/http/instance';
 
-export interface OrderHistory extends OrderHistoryResponseDto {}
+export interface OrderHistory extends OrderHistoryResponseDTO {}
 
 export const getOrderHistoryByOrderId = (orderId: string) =>
   http.get<ResponseWrapper<OrderHistory[]>>(`/api/order-history/order/${orderId}`);
@@ -9,5 +9,5 @@ export const getOrderHistoryByOrderId = (orderId: string) =>
 export const getOrderHistory = (id: string) =>
   http.get<ResponseWrapper<OrderHistory>>(`/api/order-history/${id}`);
 
-export const createOrderHistory = (data: CreateOrderHistoryRequestDto) =>
+export const createOrderHistory = (data: CreateOrderHistoryRequestDTO) =>
   http.post<ResponseWrapper<OrderHistory>>('/api/order-history', data);

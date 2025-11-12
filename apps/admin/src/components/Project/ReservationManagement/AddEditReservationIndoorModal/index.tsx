@@ -14,6 +14,7 @@ import {
 	SkiAndSnowboardLevelEnum,
 	ReservationStatusEnum,
 	GetOrderDetailResponseDTO,
+	CourseTeachingType,
 } from '@repo/shared';
 import dayjs, { Dayjs } from 'dayjs';
 import { Form, Formik, FormikProps } from 'formik';
@@ -213,10 +214,10 @@ const AddEditReservationIndoorModal = ({
 			setPendingAddMembers(formattedMembers);
 
 			// 更新課程資訊顯示訂單編號
-			if (orderDetail.orderNo) {
+			if (orderDetail.no) {
 				setMemberInfo((prevState) => ({
 					...prevState,
-					no: orderDetail.orderNo,
+					no: orderDetail.no,
 				}));
 			}
 		}
@@ -242,7 +243,7 @@ const AddEditReservationIndoorModal = ({
 								[CourseType.GROUP]: '團體課',
 								[CourseType.INDIVIDUAL]: '個人練習',
 							}[orderDetail.type] || prevState.type,
-						teachingType: course.teaching ? '教練授課' : '無教練授課',
+						teachingType: course.teachingType === CourseTeachingType.COACH ? '教練授課' : '無教練授課',
 					}));
 
 					console.log('課程詳情:', course);

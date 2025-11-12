@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import {
 	ReservationStatus,
 	SkiAndSnowboardLevel,
-	ReservationResponseDto,
-	ReservationMemberResponseDto,
+	OrderReservationResponseDto,
+	ReservationMemberDto,
 	ModalType,
 	CourseType,
 	CourseStatusType,
 	DialogAction,
+	SkiAndSnowboardLevelEnum,
 } from '@repo/shared';
 import dayjs from 'dayjs';
 
@@ -17,7 +18,7 @@ import useModalProvider from '@/hooks/useModalProvider';
 import AddEditReservationIndoorModal from '@/components/Project/ReservationManagement/AddEditReservationIndoorModal';
 
 type Props = {
-	reservations?: ReservationResponseDto[];
+	reservations?: OrderReservationResponseDto[];
 	loading?: boolean;
 	size?: number;
 	orderId?: string;
@@ -40,7 +41,7 @@ const getStatusText = (status: number): string => {
 };
 
 // 輔助函數：獲取教學等級文字
-const getTeachingLevelText = (level: number): string => {
+const getTeachingLevelText = (level: SkiAndSnowboardLevelEnum): string => {
 	return SkiAndSnowboardLevel[level as keyof typeof SkiAndSnowboardLevel] || '未知等級';
 };
 
@@ -55,7 +56,7 @@ const CourseReservation = ({
 	const modal = useModalProvider();
 
 	// 格式化參加人員名單
-	const formatMemberNames = (reservationMembers: ReservationMemberResponseDto[]): string => {
+	const formatMemberNames = (reservationMembers: ReservationMemberDto[]): string => {
 		if (!reservationMembers || reservationMembers.length === 0) return '無';
 
 		return reservationMembers.map((m) => m.orderMember?.member?.name || '未知').join('、');
@@ -112,22 +113,22 @@ const CourseReservation = ({
 			},
 			{
 				width: '80px',
-				label: orderReservation ? getStatusText(orderReservation.reservation.reservationStatus) : '未預約',
+				label: orderReservation?.reservation ? getStatusText(orderReservation.reservation.reservationStatus) : '未預約',
 				show: true,
 			},
 			{
 				width: '150px',
-				label: orderReservation ? dayjs(orderReservation.reservation.classTime).format('YYYY/MM/DD HH:mm') : '',
+				label: orderReservation?.reservation ? dayjs(orderReservation.reservation.classTime).format('YYYY/MM/DD HH:mm') : '',
 				show: true,
 			},
 			{
 				width: '60px',
-				label: orderReservation ? getTeachingLevelText(orderReservation.reservation.teachingLevel) : '',
+				label: orderReservation?.reservation ? getTeachingLevelText(orderReservation.reservation.teachingLevel) : '',
 				show: true,
 			},
 			{
 				width: '300px',
-				label: orderReservation ? formatMemberNames(orderReservation.reservation.reservationMembers) : '',
+				label: orderReservation?.reservation?.reservationMembers ? formatMemberNames(orderReservation.reservation.reservationMembers) : '',
 				show: true,
 			},
 			{
@@ -138,7 +139,7 @@ const CourseReservation = ({
 						onClick={() => {
 							if (orderReservation) {
 								// 已有預約：開啟檢視模式的 Modal
-								handleOpenReservationModal(orderReservation.reservation.id, undefined);
+								handleOpenReservationModal(orderReservation?.reservation?.id, undefined);
 							} else {
 								// 尚未預約：開啟新增模式的 Modal，帶上 orderId 和 index
 								handleOpenReservationModal(undefined, index);

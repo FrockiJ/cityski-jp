@@ -1,4 +1,4 @@
-import { GetOrderDetailResponseDTO, ResponseWrapper, ReservationResponseDto } from '@repo/shared';
+import { GetOrderDetailResponseDTO, ResponseWrapper, OrderReservationResponseDto } from '@repo/shared';
 import { http } from '@/utils/http/instance';
 
 export const getOrderDetail = (orderId: string) => {
@@ -6,5 +6,5 @@ export const getOrderDetail = (orderId: string) => {
 };
 
 export const getOrderReservations = (orderId: string) => {
-	return http.get<ResponseWrapper<ReservationResponseDto[]>>(`/api/orders/${orderId}/reservations`);
+	return http.get<ResponseWrapper<OrderReservationResponseDto[]>>(`/api/orders/${orderId}/reservations`);
 };

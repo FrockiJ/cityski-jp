@@ -54,7 +54,7 @@ class OrderMemberDto {
   order: OrderInfoDto;
 }
 
-class ReservationMemberDto {
+export class ReservationMemberDto {
   @Expose()
   id: string;
 
@@ -75,7 +75,7 @@ class ReservationMemberDto {
   orderMember?: OrderMemberDto;
 }
 
-class ReservationDto {
+export class ReservationDto {
   @Expose()
   id: string;
 

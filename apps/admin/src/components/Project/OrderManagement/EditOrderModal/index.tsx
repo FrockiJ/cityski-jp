@@ -221,13 +221,17 @@ const EditOrderModal = ({
 						<TransferModal
 							open={transferModalOpen}
 							onClose={() => setTransferModalOpen(false)}
-							onConfirm={(selectedMember, selectedMemberData) => {
-								console.log('Transfer from OrderMember ID:', selectedMember);
-								console.log('Transfer to member data:', selectedMemberData);
+							onConfirm={(fromOrderMemberId, toMemberId) => {
+								console.log('Transfer from OrderMember ID:', fromOrderMemberId);
+								console.log('Transfer to Member ID:', toMemberId);
 								// TODO: Implement transfer logic here
 								setTransferModalOpen(false);
 							}}
-							members={orderDetail?.orderMembers?.map((m) => ({ id: m.id.toString(), name: m.memberName })) || []}
+							members={orderDetail?.orderMembers?.map((m) => ({
+								id: m.id.toString(),
+								name: m.memberName,
+								memberId: m.memberId
+							})) || []}
 						/>
 					</Form>
 				);

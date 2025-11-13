@@ -26,36 +26,54 @@ import useModalProvider from '@/hooks/useModalProvider';
 interface TransferModalProps {
 	open: boolean;
 	onClose: () => void;
-	onConfirm: (selectedMember: string, selectedMemberData?: OrderMemberSearchResponseDto) => void;
-	members?: Array<{ id: string; name: string }>;
+	onConfirm: (fromOrderMemberId: string, toMemberId: string) => void;
+	members?: Array<{ id: string; name: string; memberId?: string }>;
 }
 
-const TransferModal: React.FC<TransferModalProps> = ({ open, onClose, onConfirm, members = [] }) => {
-	const [selectedMember, setSelectedMember] = useState<string>('');
-	const [selectedMemberData, setSelectedMemberData] = useState<OrderMemberSearchResponseDto | undefined>(undefined);
+const TransferModal: React.FC<TransferModalProps> = ({ open, onClose, onConfirm, members: orderMembers = [] }) => {
+	const [selectedFromMember, setSelectedFromMember] = useState<string>('');
+	const [selectedToMemberData, setSelectedToMemberData] = useState<MemberResponseDto | undefined>(undefined);
 	const [receiverName, setReceiverName] = useState<string>('');
 	const modal = useModalProvider();
 
-	const handleMemberChange = (event: SelectChangeEvent<string>) => {
-		setSelectedMember(event.target.value);
-		// Clear the selected member data from AddMemberModal if user selects from dropdown
-		setSelectedMemberData(undefined);
-		setReceiverName('');
+	const handleMemberFromChange = (event: SelectChangeEvent<string>) => {
+		setSelectedFromMember(event.target.value);
 	};
 
 	const handleConfirm = () => {
-		onConfirm(selectedMember, selectedMemberData);
+		if (!selectedFromMember || !selectedToMemberData) {
+			return;
+		}
+
+		// Get the memberId from the selected OrderMember
+		const fromOrderMember = orderMembers.find((om) => om.id === selectedFromMember);
+		if (!fromOrderMember) {
+			return;
+		}
+
+		// Check if trying to transfer to the same member
+		if (fromOrderMember.memberId === selectedToMemberData.id) {
+			alert('不可以選擇相同的會員');
+			return;
+		}
+
+		onConfirm(selectedFromMember, selectedToMemberData.id);
 		handleClose();
 	};
 
 	const handleClose = () => {
-		setSelectedMember('');
-		setSelectedMemberData(undefined);
+		setSelectedFromMember('');
+		setSelectedToMemberData(undefined);
 		setReceiverName('');
 		onClose();
 	};
 
 	const handleAddInvite = () => {
+		// Get all member IDs from orderMembers to exclude them from search
+		const excludeMemberIds = orderMembers
+			.filter((om) => om.memberId)
+			.map((om) => om.memberId as string);
+
 		modal.openModal({
 			title: '搜尋會員',
 			width: 800,
@@ -65,12 +83,13 @@ const TransferModal: React.FC<TransferModalProps> = ({ open, onClose, onConfirm,
 			children: (
 				<AddMemberModal
 					searchType='members'
-					onSelectMember={(member: MemberResponseDto) => {
-						console.log('selected member in transfer modal:', member.name);
-						setSelectedMemberData(member);
-						setReceiverName(member.name);
-						// Clear the dropdown selection
-						// setSelectedMember('');
+					excludeMemberIds={excludeMemberIds}
+					onSelectMember={(member: MemberResponseDto | OrderMemberSearchResponseDto) => {
+						console.log('selected member in transfer modal:', member);
+						// When searchType is 'members', we receive MemberResponseDto
+						const memberData = 'member' in member ? member.member : member;
+						setSelectedToMemberData(memberData as MemberResponseDto);
+						setReceiverName(memberData.name);
 					}}
 				/>
 			),
@@ -123,18 +142,18 @@ const TransferModal: React.FC<TransferModalProps> = ({ open, onClose, onConfirm,
 						<Select
 							labelId='transfer-member-label'
 							id='transfer-member-select'
-							value={selectedMember}
+							value={selectedFromMember}
 							label='選擇轉讓成員'
-							onChange={handleMemberChange}
+							onChange={handleMemberFromChange}
 						>
-							{members.length === 0 ? (
+							{orderMembers.length === 0 ? (
 								<MenuItem value='' disabled>
 									無可選擇成員
 								</MenuItem>
 							) : (
-								members.map((member) => (
-									<MenuItem key={member.id} value={member.id}>
-										{member.name}
+								orderMembers.map((orderMember) => (
+									<MenuItem key={orderMember.id} value={orderMember.id}>
+										{orderMember.name}
 									</MenuItem>
 								))
 							)}
@@ -232,7 +251,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ open, onClose, onConfirm,
 				<Button
 					variant='contained'
 					onClick={handleConfirm}
-					disabled={!selectedMember && !selectedMemberData}
+					disabled={!selectedFromMember || !selectedToMemberData}
 					sx={{
 						px: 2,
 						py: 0.75,

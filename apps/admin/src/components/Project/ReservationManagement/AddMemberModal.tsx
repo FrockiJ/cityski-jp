@@ -22,9 +22,10 @@ type Props = {
 	onSelectMember?: (member: OrderMemberSearchResponseDto | MemberResponseDto) => void;
 	handleCloseModal?: (action: any) => void;
 	searchType: 'members' | 'orderMembers';
+	excludeMemberIds?: string[];
 };
 
-const AddMemberModal = ({ onSelectMember, handleCloseModal, searchType }: Props) => {
+const AddMemberModal = ({ onSelectMember, handleCloseModal, searchType, excludeMemberIds = [] }: Props) => {
 	const [searchValue, setSearchValue] = useState('');
 	const {
 		searchResults: searchOrderResults,
@@ -38,7 +39,16 @@ const AddMemberModal = ({ onSelectMember, handleCloseModal, searchType }: Props)
 	} = useSearchMembers(500);
 
 	const loading = searchType === 'members' ? searchMemberLoading : searchOrderLoading;
-	const searchResults = searchType === 'members' ? searchMemberResults : searchOrderResults;
+	const rawSearchResults = searchType === 'members' ? searchMemberResults : searchOrderResults;
+
+	// Filter out excluded members
+	const searchResults = rawSearchResults.filter((member) => {
+		const memberId = searchType === 'members'
+			? (member as MemberResponseDto).id
+			: (member as OrderMemberSearchResponseDto).member.id;
+		return !excludeMemberIds.includes(memberId);
+	});
+
 	const searchMembersFunc = searchType === 'members' ? searchMembers : searchOrderMembers;
 
 	// 處理搜尋輸入變化

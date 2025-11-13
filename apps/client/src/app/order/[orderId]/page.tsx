@@ -2,12 +2,27 @@
 
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { GetCourseDetailResponseDTO, GetOrderDetailResponseDTO, OrderStatus, ResponseWrapper } from '@repo/shared';
+import {
+	CourseType,
+	GetCourseDetailResponseDTO,
+	GetOrderDetailResponseDTO,
+	OrderStatus,
+	ResponseWrapper,
+} from '@repo/shared';
 import { useParams } from 'next/navigation';
 
+import ProfileIcon from '@/components/Icon/ProfileIcon';
+import SnowBoardIcon from '@/components/Icon/SnowBoardIcon';
 import { orderStatusMapper } from '@/components/Project/Member/CurrentOrders';
+import { showToast } from '@/components/Project/Utils/Toast';
 import api from '@/lib/api';
 import { selectToken } from '@/state/slices/authSlice';
+
+const courseTypeMap = {
+	[CourseType.GROUP]: '團體班教學',
+	[CourseType.PRIVATE]: '私人班教學',
+	[CourseType.INDIVIDUAL]: '個人練習',
+};
 
 export default function OrderDetail() {
 	const { orderId } = useParams<{ orderId: string }>();
@@ -51,7 +66,7 @@ export default function OrderDetail() {
 		if (orderDetail.courseId) getCourseDetail(orderDetail.courseId);
 	}, [orderDetail]);
 
-	if (!orderDetail) return null;
+	if (!orderDetail || !courseDetail) return null;
 
 	const coursePlan = courseDetail?.coursePlans.find((plan) => plan.name === orderDetail.coursePlanName);
 	const price = coursePlan?.price || 0;
@@ -163,7 +178,18 @@ export default function OrderDetail() {
 													<div className="justify-start text-zinc-800 text-xl font-semibold font-['Poppins'] leading-7">
 														77777-25115541-7
 													</div>
-													<div className='rounded-lg flex justify-center items-center gap-1 overflow-hidden'>
+													<button
+														className='rounded-lg flex justify-center items-center gap-1 overflow-hidden cursor-pointer px-2 py-1 transition-colors'
+														onClick={() => {
+															navigator.clipboard
+																.writeText('77777-25115541-7')
+																.then(() => showToast('已複製帳號號碼', 'success'))
+																.catch((err) => {
+																	console.error('複製失敗:', err);
+																	showToast('複製失敗，請重試', 'error');
+																});
+														}}
+													>
 														<div className="text-center justify-start text-blue-600 text-sm font-medium font-['Noto_Sans_TC'] leading-6">
 															複製
 														</div>
@@ -181,7 +207,7 @@ export default function OrderDetail() {
 																/>
 															</svg>
 														</div>
-													</div>
+													</button>
 												</div>
 											</div>
 											<div className='self-stretch flex flex-col justify-start items-start gap-2'>
@@ -216,7 +242,10 @@ export default function OrderDetail() {
 										</div>
 									</div>
 								)}
-								<div className='self-stretch inline-flex justify-start items-center gap-5'>
+								<div
+									className='self-stretch inline-flex justify-start items-center gap-5 cursor-pointer'
+									onClick={() => window.open(`/courses/course-detail?id=${orderDetail.courseId}`, '_blank')}
+								>
 									<div className='w-20 h-20 relative rounded-lg overflow-hidden'>
 										<img src='/image/membership/order.png' alt='order' width='80' height='80' className='xs:hidden' />
 										<img
@@ -229,7 +258,7 @@ export default function OrderDetail() {
 									</div>
 									<div className='inline-flex flex-col justify-start items-start gap-2'>
 										<div className="self-stretch justify-start text-zinc-800 text-xl font-medium font-['Noto_Sans_TC'] leading-7">
-											團體班教學
+											{courseTypeMap[courseDetail.type]}
 										</div>
 										<div className='self-stretch inline-flex justify-start items-center gap-4'>
 											<div className='flex justify-start items-center gap-1'>
@@ -281,7 +310,7 @@ export default function OrderDetail() {
 													</svg>
 												</div>
 												<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
-													5堂團體班
+													{coursePlan.number}堂{courseTypeMap[courseDetail.type]}
 												</div>
 											</div>
 											<div data-svg-wrapper>
@@ -291,22 +320,7 @@ export default function OrderDetail() {
 											</div>
 											<div className='flex justify-start items-center gap-1'>
 												<div data-svg-wrapper className='relative'>
-													<svg
-														width='16'
-														height='16'
-														viewBox='0 0 16 16'
-														fill='none'
-														xmlns='http://www.w3.org/2000/svg'
-													>
-														<path
-															d='M1.88054 5.07208L8.76054 7.58408C8.82454 7.60808 8.88854 7.61608 8.95254 7.61608C9.18454 7.61608 9.39254 7.47208 9.48054 7.24808C9.58454 6.96008 9.44054 6.64008 9.14454 6.52808L6.88054 5.69608C6.94454 5.55208 7.01654 5.40808 7.11254 5.27208C7.45654 4.80808 7.97654 4.48008 8.55254 4.36808C9.13654 4.26408 9.70454 4.38408 10.1525 4.71208L10.6245 5.05608L11.5045 3.74408L11.3365 3.41608C11.3045 3.30408 11.2885 3.19208 11.2885 3.07208C11.2885 2.40008 11.8325 1.85608 12.5045 1.85608C13.1765 1.85608 13.7205 2.40008 13.7205 3.07208C13.7205 3.67208 13.2805 4.18408 12.6885 4.27208C12.3845 4.32008 12.1765 4.60808 12.2165 4.91208C12.2645 5.21608 12.5525 5.42408 12.8565 5.38408C13.9845 5.20808 14.8405 4.21608 14.8405 3.07208C14.8405 1.78408 13.7925 0.736084 12.5045 0.736084C11.2165 0.736084 10.1685 1.78408 10.1685 3.07208C10.1685 3.20808 10.1765 3.33608 10.2005 3.47208C8.84054 2.89608 7.12854 3.33608 6.19254 4.61608C6.03254 4.83208 5.91254 5.07208 5.81654 5.32008L2.24854 4.01608C1.96054 3.91208 1.64054 4.05608 1.52854 4.35208C1.42454 4.64008 1.56854 4.96008 1.86454 5.07208H1.88054Z'
-															fill='#2B2B2B'
-														/>
-														<path
-															d='M13.8725 13.3681L13.4245 13.7361C12.9445 14.1361 12.2725 14.2481 11.6885 14.0241L10.3605 13.5201L12.2085 11.0801C12.7365 10.3841 12.6485 9.41608 12.0085 8.82408L11.2565 8.13608L11.5445 7.68008C11.6165 7.79208 11.6965 7.90408 11.8005 8.00808C12.4805 8.76008 13.5045 9.08008 14.5525 8.86409C14.8565 8.80009 15.0485 8.50408 14.9845 8.20008C14.9205 7.89608 14.6245 7.70408 14.3205 7.76809C13.6805 7.90408 13.0405 7.71208 12.6245 7.25608C12.2485 6.84008 12.2805 6.40808 12.2805 6.40008C12.3125 6.13608 12.1605 5.89608 11.9125 5.80808C11.6645 5.72008 11.3925 5.81608 11.2485 6.04008L10.0565 7.94408C9.91254 8.17608 9.95254 8.47208 10.1525 8.65608L11.2485 9.66408C11.4645 9.86409 11.4885 10.1841 11.3125 10.4161L9.28854 13.0801C9.28854 13.0801 9.28054 13.1041 9.27254 13.1121L8.26454 12.7281L9.77654 10.6161C9.94454 10.3761 9.90454 10.0401 9.67254 9.85608C9.66454 9.84808 8.48854 8.88808 8.12054 8.53608C7.93654 8.36008 7.88054 8.24008 7.86454 8.20008C7.90454 7.94408 7.76854 7.68008 7.51254 7.58408C7.22454 7.47208 6.89654 7.61608 6.79254 7.90408C6.72854 8.05608 6.59254 8.62408 7.34454 9.34408C7.60054 9.59208 8.16854 10.0641 8.56054 10.3921L7.20854 12.2801C7.20854 12.2801 7.20054 12.3041 7.19254 12.3201L1.76054 10.2561C1.47254 10.1441 1.14454 10.2881 1.04054 10.5841C0.928543 10.8721 1.07254 11.2001 1.36854 11.3041L11.3045 15.0801C11.6325 15.2081 11.9765 15.2641 12.3205 15.2641C12.9845 15.2641 13.6325 15.0321 14.1525 14.6001L14.6005 14.2321C14.8405 14.0321 14.8725 13.6801 14.6725 13.4401C14.4725 13.2001 14.1205 13.1681 13.8805 13.3681H13.8725Z'
-															fill='#2B2B2B'
-														/>
-													</svg>
+													<SnowBoardIcon width={16} height={16} />
 												</div>
 												<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 													雙板
@@ -319,22 +333,7 @@ export default function OrderDetail() {
 											</div>
 											<div className='flex justify-start items-center gap-1'>
 												<div data-svg-wrapper className='relative'>
-													<svg
-														width='16'
-														height='16'
-														viewBox='0 0 16 16'
-														fill='none'
-														xmlns='http://www.w3.org/2000/svg'
-													>
-														<path
-															d='M7.99998 8.06C9.83998 8.06 11.336 6.564 11.336 4.724C11.336 2.884 9.83998 1.396 7.99998 1.396C6.15998 1.396 4.66398 2.892 4.66398 4.732C4.66398 6.572 6.15998 8.068 7.99998 8.068V8.06ZM7.99998 2.516C9.22398 2.516 10.216 3.508 10.216 4.732C10.216 5.956 9.22398 6.948 7.99998 6.948C6.77598 6.948 5.78398 5.956 5.78398 4.732C5.78398 3.508 6.77598 2.516 7.99998 2.516Z'
-															fill='#2B2B2B'
-														/>
-														<path
-															d='M7.99998 8.412C4.89598 8.412 2.36798 10.94 2.36798 14.044C2.36798 14.356 2.61598 14.604 2.92798 14.604C3.23998 14.604 3.48798 14.356 3.48798 14.044C3.48798 11.556 5.51198 9.532 7.99998 9.532C10.488 9.532 12.512 11.556 12.512 14.044C12.512 14.356 12.76 14.604 13.072 14.604C13.384 14.604 13.632 14.356 13.632 14.044C13.632 10.94 11.104 8.412 7.99998 8.412Z'
-															fill='#2B2B2B'
-														/>
-													</svg>
+													<ProfileIcon width={16} height={16} />
 												</div>
 												<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 													{orderDetail.adultCount}成人 + {orderDetail.childCount}青少年/兒童

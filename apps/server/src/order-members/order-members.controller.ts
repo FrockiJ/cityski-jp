@@ -12,7 +12,7 @@ import {
 import { OrderMembersService } from './order-members.service';
 import { OrderMember } from './entities/order-member.entity';
 import { AuthGuard } from 'src/guards/auth.guard';
-import { OrderMemberSearchResponseDto, OrderMemberResponseDto } from '@repo/shared';
+import { OrderMemberSearchResponseDto, OrderMemberResponseDto, TransferOrderMemberRequestDto } from '@repo/shared';
 import { plainToInstance } from 'class-transformer';
 
 @Controller('/order-members')
@@ -71,6 +71,18 @@ export class OrderMembersController {
   @Get('/member/:memberId')
   findByMemberId(@Param('memberId') memberId: string): Promise<OrderMember[]> {
     return this.orderMembersService.findByMemberId(memberId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('/transfer')
+  async transfer(
+    @Body() body: TransferOrderMemberRequestDto,
+  ): Promise<OrderMemberResponseDto> {
+    return plainToInstance(
+      OrderMemberResponseDto,
+      await this.orderMembersService.transfer(body),
+      { excludeExtraneousValues: true }
+    );
   }
 
   @UseGuards(AuthGuard)

@@ -23,6 +23,7 @@ export class OrderMembersService {
   async findAll(): Promise<OrderMember[]> {
     try {
       return await this.orderMembersRepo.find({
+        where: { active: true },
         relations: ['order', 'member'],
       });
     } catch (err) {
@@ -56,7 +57,7 @@ export class OrderMembersService {
   async findByOrderId(orderId: string): Promise<OrderMember[]> {
     try {
       return await this.orderMembersRepo.find({
-        where: { orderId },
+        where: { orderId, active: true },
         relations: ['member'],
       });
     } catch (err) {
@@ -67,7 +68,7 @@ export class OrderMembersService {
   async findByMemberId(memberId: string): Promise<OrderMember[]> {
     try {
       return await this.orderMembersRepo.find({
-        where: { memberId },
+        where: { memberId, active: true },
         relations: ['order'],
       });
     } catch (err) {
@@ -107,11 +108,11 @@ export class OrderMembersService {
     try {
       const where = keyword && keyword.trim()
         ? [
-            { member: { name: ILike(`%${keyword}%`) } },
-            { member: { phone: ILike(`%${keyword}%`) } },
-            { member: { email: ILike(`%${keyword}%`) } },
+            { active: true, member: { name: ILike(`%${keyword}%`) } },
+            { active: true, member: { phone: ILike(`%${keyword}%`) } },
+            { active: true, member: { email: ILike(`%${keyword}%`) } },
           ]
-        : {};
+        : { active: true };
 
 
 

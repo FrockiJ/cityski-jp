@@ -21,6 +21,9 @@ export class OrderMember {
   @Column({ name: 'member_id', type: 'uuid' })
   memberId: string;
 
+  @Column({ type: 'boolean', default: true })
+  active: boolean;
+
   @ManyToOne(() => Order, (order) => order.orderMembers)
   @JoinColumn({ name: 'order_id' })
   order: Order;
@@ -31,6 +34,8 @@ export class OrderMember {
   
   @OneToMany(() => ReservationMember, (reservationMember) => reservationMember.orderMember)
   reservationMembers: ReservationMember[];
+
+  
 
   
 

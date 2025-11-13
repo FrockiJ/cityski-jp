@@ -602,6 +602,7 @@ const AddEditReservationIndoorModal = ({
 										noEscAndBackdrop: true,
 										children: (
 											<AddMemberModal
+												searchType="orderMembers"
 												onSelectMember={(member) => handleSelectMember(member, setFieldValue)}
 												// handleCloseModal={(action) => {
 												// 	if (action === 'confirm') {

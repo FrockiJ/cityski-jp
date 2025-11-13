@@ -1,22 +1,22 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { MemberResponseDto, ResponseWrapper, ResWithPaginationDTO } from '@repo/shared';
+import { OrderMemberSearchResponseDto, ResponseWrapper, ResWithPaginationDTO } from '@repo/shared';
 
 import { httpWithToken } from '@/utils/http/instance';
 
-interface useSearchMembersResult {
-	searchResults: MemberResponseDto[];
+interface useSearchOrderMembersResult {
+	searchResults: OrderMemberSearchResponseDto[];
 	loading: boolean;
 	error: string | null;
 	searchMembers: (keyword: string) => void;
 }
 
 /**
- * Hook for searching all members with debounce
+ * Hook for searching order members with debounce
  * @param debounceMs - Debounce delay in milliseconds (default: 500)
  * @returns Search results, loading state, error, and search function
  */
-export const useSearchMembers = (debounceMs: number = 500): useSearchMembersResult => {
-	const [searchResults, setSearchResults] = useState<MemberResponseDto[]>([]);
+export const useSearchOrderMembers = (debounceMs: number = 500): useSearchOrderMembersResult => {
+	const [searchResults, setSearchResults] = useState<OrderMemberSearchResponseDto[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -30,7 +30,7 @@ export const useSearchMembers = (debounceMs: number = 500): useSearchMembersResu
 		};
 	}, []);
 
-	// 搜尋所有會員的函數
+	// 搜尋剩餘課程數量大於 0 的會員的函數
 	const performSearch = useCallback(async (keyword: string) => {
 		if (!keyword.trim()) {
 			setSearchResults([]);
@@ -43,11 +43,10 @@ export const useSearchMembers = (debounceMs: number = 500): useSearchMembersResu
 		setError(null);
 
 		try {
-			const response = await httpWithToken.get<ResponseWrapper<ResWithPaginationDTO<MemberResponseDto[]>>>(
-				`/api/member?keyword=${encodeURIComponent(keyword)}`,
+			const response = await httpWithToken.get<ResponseWrapper<OrderMemberSearchResponseDto[]>>(
+				`/api/order-members/search?keyword=${encodeURIComponent(keyword)}`,
 			);
-
-			setSearchResults(response.result.data || []);
+			setSearchResults(response.result || []);
 		} catch (err) {
 			console.error('搜尋會員失敗:', err);
 			setError('搜尋會員時發生錯誤');

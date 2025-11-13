@@ -10,6 +10,7 @@ export  class OrderMemberDetailDTO {
         skis: number;
         avatar: string;
         orderNo: string;
+        active: boolean;
     }
 export class GetOrderDetailResponseDTO {
   @Expose()

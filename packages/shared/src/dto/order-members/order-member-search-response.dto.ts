@@ -45,6 +45,9 @@ export class OrderMemberSearchResponseDto {
   memberId: string;
 
   @Expose()
+  active: boolean;
+
+  @Expose()
   @Type(() => MemberResponseDto)
   member: MemberResponseDto;
 

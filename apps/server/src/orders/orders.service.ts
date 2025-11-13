@@ -186,6 +186,7 @@ export class OrdersService {
             skis: om.member?.skis || 1,
             avatar: om.member?.avatar || '',
             orderNo: order.no,
+            active: om.active,
           })) || [],
         discountId: order.discountId,
       };

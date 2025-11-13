@@ -21,6 +21,7 @@ import JoinedMembersBlock from './JoinedMembersBlock';
 import OrderChangesBlock from './OrderChangesBlock';
 import OrderInfoBlock from './OrderInfoBlock';
 import PaymentInfoBlock from './PaymentInfoBlock';
+import TransferModal from './TransferModal';
 import { Typography } from '@mui/material';
 
 const anchorItems = [
@@ -83,6 +84,7 @@ const EditOrderModal = ({
 	]);
 
 	const [status, setStatus] = useState('待結清');
+	const [transferModalOpen, setTransferModalOpen] = useState(false);
 
 	// --- API ---
 	const { orderDetail, loading: orderDetailLoading, refetch: refetchOrderDetail } = useGetOrderDetail(orderId);
@@ -193,7 +195,7 @@ const EditOrderModal = ({
 								title='參加人員名單'
 								buttonLabel='轉讓'
 								handleClick={() => {
-									console.log('轉讓');
+									setTransferModalOpen(true);
 								}}
 							>
 								<JoinedMembersBlock members={orderDetail?.orderMembers} reservations={reservations} />
@@ -216,6 +218,17 @@ const EditOrderModal = ({
 							/>
 							<CoreButton color='primary' variant='contained' type='submit' label='確認' />
 						</StyledAbsoluteModalActions>
+						<TransferModal
+							open={transferModalOpen}
+							onClose={() => setTransferModalOpen(false)}
+							onConfirm={(selectedMember, selectedMemberData) => {
+								console.log('Transfer from OrderMember ID:', selectedMember);
+								console.log('Transfer to member data:', selectedMemberData);
+								// TODO: Implement transfer logic here
+								setTransferModalOpen(false);
+							}}
+							members={orderDetail?.orderMembers?.map((m) => ({ id: m.id.toString(), name: m.memberName })) || []}
+						/>
 					</Form>
 				);
 			}}

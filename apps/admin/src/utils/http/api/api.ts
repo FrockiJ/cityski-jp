@@ -8,4 +8,5 @@ export * from './discount';
 export * from './member';
 export * from './course';
 export * from './order';
+export * from './order-member';
 export * from './reservation';

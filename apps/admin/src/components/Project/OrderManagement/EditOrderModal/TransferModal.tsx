@@ -22,15 +22,18 @@ import { MemberResponseDto, OrderMemberSearchResponseDto } from '@repo/shared';
 
 import AddMemberModal from '@/components/Project/ReservationManagement/AddMemberModal';
 import useModalProvider from '@/hooks/useModalProvider';
+import ConfirmTransferModal from './ConfirmTransferModal';
+import { showToast } from '@/utils/ui/general';
 
 interface TransferModalProps {
 	open: boolean;
 	onClose: () => void;
-	onConfirm: (fromOrderMemberId: string, toMemberId: string) => void;
+	onConfirm?: (fromOrderMemberId: string, toMemberId: string) => void;
+	onSuccess?: () => void;
 	members?: Array<{ id: string; name: string; memberId?: string }>;
 }
 
-const TransferModal: React.FC<TransferModalProps> = ({ open, onClose, onConfirm, members: orderMembers = [] }) => {
+const TransferModal: React.FC<TransferModalProps> = ({ open, onClose, onConfirm, onSuccess, members: orderMembers = [] }) => {
 	const [selectedFromMember, setSelectedFromMember] = useState<string>('');
 	const [selectedToMemberData, setSelectedToMemberData] = useState<MemberResponseDto | undefined>(undefined);
 	const [receiverName, setReceiverName] = useState<string>('');
@@ -53,12 +56,31 @@ const TransferModal: React.FC<TransferModalProps> = ({ open, onClose, onConfirm,
 
 		// Check if trying to transfer to the same member
 		if (fromOrderMember.memberId === selectedToMemberData.id) {
-			alert('不可以選擇相同的會員');
+			showToast('不可以選擇相同的會員', 'error');
 			return;
 		}
 
-		onConfirm(selectedFromMember, selectedToMemberData.id);
-		handleClose();
+		// Open confirmation modal
+		modal.openModal({
+			title: '確認轉讓',
+			width: 480,
+			noEscAndBackdrop: true,
+			noAction: true,
+			noTitleBorder: true,
+			children: (
+				<ConfirmTransferModal
+					fromOrderMemberId={selectedFromMember}
+					toMemberId={selectedToMemberData.id}
+					handleRefresh={() => {
+						// Close the transfer modal
+						handleClose();
+						// Call the optional callbacks
+						onConfirm?.(selectedFromMember, selectedToMemberData.id);
+						onSuccess?.();
+					}}
+				/>
+			),
+		});
 	};
 
 	const handleClose = () => {

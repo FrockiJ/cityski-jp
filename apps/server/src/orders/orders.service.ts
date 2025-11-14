@@ -137,7 +137,7 @@ export class OrdersService {
   async getOrderDetail(id: string): Promise<GetOrderDetailResponseDTO> {
     try {
       const order = await this.ordersRepo.findOne({
-        where: { id },
+        where: { id , orderMembers: { active: true } },
         relations: [
           'member',
           'coursePlan',

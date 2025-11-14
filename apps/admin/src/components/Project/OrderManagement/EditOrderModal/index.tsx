@@ -85,6 +85,7 @@ const EditOrderModal = ({
 
 	const [status, setStatus] = useState('待結清');
 	const [transferModalOpen, setTransferModalOpen] = useState(false);
+	const [orderHistoryRefetchTrigger, setOrderHistoryRefetchTrigger] = useState(0);
 
 	// --- API ---
 	const { orderDetail, loading: orderDetailLoading, refetch: refetchOrderDetail } = useGetOrderDetail(orderId);
@@ -201,7 +202,7 @@ const EditOrderModal = ({
 								<JoinedMembersBlock members={orderDetail?.orderMembers} reservations={reservations} />
 							</CoreBlock>
 							<CoreBlock title='訂單異動紀錄'>
-								<OrderChangesBlock orderId={orderId} />
+								<OrderChangesBlock orderId={orderId} refetchTrigger={orderHistoryRefetchTrigger} />
 							</CoreBlock>
 							<CoreBlock title='備註'>
 								<Typography variant='body2' color='text.secondary'>
@@ -221,10 +222,12 @@ const EditOrderModal = ({
 						<TransferModal
 							open={transferModalOpen}
 							onClose={() => setTransferModalOpen(false)}
-							onConfirm={(fromOrderMemberId, toMemberId) => {
-								console.log('Transfer from OrderMember ID:', fromOrderMemberId);
-								console.log('Transfer to Member ID:', toMemberId);
-								// TODO: Implement transfer logic here
+							onSuccess={() => {
+								// Refetch order detail to update the UI
+								refetchOrderDetail();
+								// Refetch order history to show the transfer record
+								setOrderHistoryRefetchTrigger((prev) => prev + 1);
+								// Close the modal
 								setTransferModalOpen(false);
 							}}
 							members={orderDetail?.orderMembers?.map((m) => ({

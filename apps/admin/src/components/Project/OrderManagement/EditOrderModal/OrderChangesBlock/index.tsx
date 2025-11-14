@@ -11,9 +11,10 @@ import InspectChangesModal from './InspectChangesModal';
 
 type Props = {
 	orderId?: string;
+	refetchTrigger?: number;
 };
 
-const OrderChangesBlock = ({ orderId }: Props) => {
+const OrderChangesBlock = ({ orderId, refetchTrigger }: Props) => {
 	const modal = useModalProvider();
 	const { histories, loading, error, fetchOrderHistory } = useOrderHistory();
 
@@ -21,7 +22,7 @@ const OrderChangesBlock = ({ orderId }: Props) => {
 		if (orderId) {
 			fetchOrderHistory(orderId);
 		}
-	}, [orderId, fetchOrderHistory]);
+	}, [orderId, fetchOrderHistory, refetchTrigger]);
 
 	// 將歷史記錄轉換為表格行格式
 	const historyRows = histories.map((history) => [

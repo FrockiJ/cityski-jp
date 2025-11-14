@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { OrderMemberDetailDTO } from '@repo/shared';
 
 interface MemberListProps {
@@ -6,11 +6,42 @@ interface MemberListProps {
 	onAddMember: () => void;
 }
 
-export default function MemberList({ orderMembers, onAddMember }: MemberListProps) {
-	const [newMemberSlots, setNewMemberSlots] = useState<number[]>([]);
+type MemberType = 'adult' | 'youth';
 
-	const handleAddMember = () => {
-		setNewMemberSlots([...newMemberSlots, newMemberSlots.length]);
+interface MemberSlot {
+	id: number;
+	type: MemberType;
+}
+
+export default function MemberList({ orderMembers, onAddMember }: MemberListProps) {
+	const [newMemberSlots, setNewMemberSlots] = useState<MemberSlot[]>([]);
+	const [showTypeSelector, setShowTypeSelector] = useState(false);
+	const selectorRef = useRef<HTMLDivElement>(null);
+
+	// 点击外部关闭选择器
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (selectorRef.current && !selectorRef.current.contains(event.target as Node)) {
+				setShowTypeSelector(false);
+			}
+		};
+
+		if (showTypeSelector) {
+			document.addEventListener('mousedown', handleClickOutside);
+		}
+
+		return () => {
+			document.removeEventListener('mousedown', handleClickOutside);
+		};
+	}, [showTypeSelector]);
+
+	const handleAddMemberClick = () => {
+		setShowTypeSelector(!showTypeSelector);
+	};
+
+	const handleSelectType = (type: MemberType) => {
+		setNewMemberSlots([...newMemberSlots, { id: newMemberSlots.length, type }]);
+		setShowTypeSelector(false);
 		onAddMember();
 	};
 
@@ -25,21 +56,51 @@ export default function MemberList({ orderMembers, onAddMember }: MemberListProp
 				<div className="justify-start text-zinc-800 text-xl font-medium font-['Noto_Sans_TC'] leading-7">
 					參加人員名單
 				</div>
-				{(orderMembers.length + newMemberSlots.length) <= 5 && (
-					<div
-						data-state='Default'
-						data-type='Stroke_Blue+Icon'
-						className='pl-1 pr-3 py-px rounded-[20px] outline outline-1 outline-offset-[-1px] outline-blue-600 inline-flex justify-end items-center overflow-hidden cursor-pointer'
-						onClick={handleAddMember}
-					>
-						<div data-svg-wrapper>
-							<svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
-								<path d='M7 12H17M12 7L12 17' stroke='#0F72ED' strokeWidth='1.4' strokeLinecap='round' />
-							</svg>
+				{orderMembers.length + newMemberSlots.length <= 5 && (
+					<div className='relative'>
+						<div
+							data-state='Default'
+							data-type='Stroke_Blue+Icon'
+							className='pl-1 pr-3 py-px rounded-[20px] outline outline-1 outline-offset-[-1px] outline-blue-600 inline-flex justify-end items-center overflow-hidden cursor-pointer'
+							onClick={handleAddMemberClick}
+						>
+							<div data-svg-wrapper>
+								<svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
+									<path d='M7 12H17M12 7L12 17' stroke='#0F72ED' strokeWidth='1.4' strokeLinecap='round' />
+								</svg>
+							</div>
+							<div className="text-center justify-start text-blue-600 text-xs font-medium font-['Noto_Sans_TC'] leading-5">
+								新增參加人員
+							</div>
 						</div>
-						<div className="text-center justify-start text-blue-600 text-xs font-medium font-['Noto_Sans_TC'] leading-5">
-							新增參加人員
-						</div>
+
+						{showTypeSelector && (
+							<div
+								ref={selectorRef}
+								className='absolute top-full right-0 mt-2 w-auto min-w-[120px] p-2 bg-white rounded-xl shadow-[0px_4px_12px_0px_rgba(0,0,0,0.13)] outline outline-1 outline-offset-[-1px] outline-zinc-300 flex flex-col justify-start items-start overflow-hidden z-10'
+							>
+								<div
+									onClick={() => handleSelectType('adult')}
+									className='self-stretch px-3 py-2 bg-white hover:bg-gray-200 rounded-lg flex flex-col justify-start items-start gap-2.5 cursor-pointer transition-colors'
+								>
+									<div className='self-stretch inline-flex justify-start items-center gap-2'>
+										<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6 whitespace-nowrap">
+											成人
+										</div>
+									</div>
+								</div>
+								<div
+									onClick={() => handleSelectType('youth')}
+									className='self-stretch px-3 py-2 bg-white hover:bg-gray-200 rounded-lg flex flex-col justify-start items-start gap-2.5 cursor-pointer transition-colors'
+								>
+									<div className='self-stretch inline-flex justify-start items-center gap-2'>
+										<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6 whitespace-nowrap">
+											青少年/兒童
+										</div>
+									</div>
+								</div>
+							</div>
+						)}
 					</div>
 				)}
 			</div>
@@ -82,7 +143,9 @@ export default function MemberList({ orderMembers, onAddMember }: MemberListProp
 							<div
 								key={member.id}
 								data-owner-icon={index === 0 ? 'true' : 'false'}
-								data-property-1={member.memberBirthday && calculateAge(member.memberBirthday) >= 18 ? 'Adult Slot' : 'Children Slot'}
+								data-property-1={
+									member.memberBirthday && calculateAge(member.memberBirthday) >= 18 ? 'Adult Slot' : 'Children Slot'
+								}
 								data-remove-button='false'
 								data-reservation='true'
 								className='self-stretch h-20 pl-3 pr-4 py-3 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-zinc-300 inline-flex justify-start items-center gap-3'
@@ -113,22 +176,20 @@ export default function MemberList({ orderMembers, onAddMember }: MemberListProp
 
 						{newMemberSlots.map((slot, index) => (
 							<div
-								key={`new-slot-${slot}`}
+								key={`new-slot-${slot.id}`}
 								data-owner-icon='false'
-								data-property-1='Adult Slot'
+								data-property-1={slot.type === 'adult' ? 'Adult Slot' : 'Children Slot'}
 								data-remove-button='true'
 								data-reservation='false'
 								className='self-stretch h-20 pl-3 pr-4 py-3 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-zinc-300 inline-flex justify-start items-center gap-3'
 							>
 								<div className='w-14 h-14 relative'>
-									<div data-svg-wrapper data-property-1='Adult' className='left-[3px] top-[3px] absolute'>
-										<svg
-											width='54'
-											height='54'
-											viewBox='0 0 54 54'
-											fill='none'
-											xmlns='http://www.w3.org/2000/svg'
-										>
+									<div
+										data-svg-wrapper
+										data-property-1={slot.type === 'adult' ? 'Adult' : 'Children'}
+										className='left-[3px] top-[3px] absolute'
+									>
+										<svg width='54' height='54' viewBox='0 0 54 54' fill='none' xmlns='http://www.w3.org/2000/svg'>
 											<g clipPath='url(#clip0_10617_4184)'>
 												<path
 													d='M0 27C0 12.0883 12.0883 0 27 0C41.9117 0 54 12.0883 54 27C54 41.9117 41.9117 54 27 54C12.0883 54 0 41.9117 0 27Z'
@@ -175,7 +236,7 @@ export default function MemberList({ orderMembers, onAddMember }: MemberListProp
 										</div>
 									</div>
 									<div className="self-stretch h-6 justify-center text-neutral-400 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
-										成人
+										{slot.type === 'adult' ? '成人' : '青少年/兒童'}
 									</div>
 								</div>
 								<div className='flex justify-start items-center gap-2'>

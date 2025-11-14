@@ -1,5 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useSelector } from 'react-redux';
 import { OrderMemberDetailDTO } from '@repo/shared';
+import api from '@/lib/api';
+import { selectToken } from '@/state/slices/authSlice';
 
 interface MemberListProps {
 	orderMembers: OrderMemberDetailDTO[];
@@ -13,10 +16,28 @@ interface MemberSlot {
 	type: MemberType;
 }
 
+interface Member {
+	id: string;
+	no: string;
+	name: string;
+	phone: string | null;
+	avatar: string | null;
+	snowboard: number;
+	skis: number;
+	birthday: Date | null;
+}
+
 export default function MemberList({ orderMembers, onAddMember }: MemberListProps) {
 	const [newMemberSlots, setNewMemberSlots] = useState<MemberSlot[]>([]);
 	const [showTypeSelector, setShowTypeSelector] = useState(false);
+	const [showMemberModal, setShowMemberModal] = useState(false);
+	const [selectedSlotType, setSelectedSlotType] = useState<MemberType | null>(null);
+	const [searchKeyword, setSearchKeyword] = useState('');
+	const [searchResults, setSearchResults] = useState<Member[]>([]);
+	const [isSearching, setIsSearching] = useState(false);
 	const selectorRef = useRef<HTMLDivElement>(null);
+	const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+	const accessToken = useSelector(selectToken);
 
 	// 点击外部关闭选择器
 	useEffect(() => {
@@ -35,6 +56,69 @@ export default function MemberList({ orderMembers, onAddMember }: MemberListProp
 		};
 	}, [showTypeSelector]);
 
+	// 清理搜索超时
+	useEffect(() => {
+		return () => {
+			if (searchTimeoutRef.current) {
+				clearTimeout(searchTimeoutRef.current);
+			}
+		};
+	}, []);
+
+	// 搜索会员
+	const searchMembers = useCallback(
+		async (keyword: string) => {
+			if (!keyword.trim()) {
+				setSearchResults([]);
+				setIsSearching(false);
+				return;
+			}
+
+			if (!accessToken) {
+				console.error('No access token available');
+				setSearchResults([]);
+				setIsSearching(false);
+				return;
+			}
+
+			setIsSearching(true);
+			try {
+				const response = await api.get(`/api/member?keyword=${encodeURIComponent(keyword)}`, {
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+				});
+				setSearchResults(response.data.result.data || []);
+			} catch (error) {
+				console.error('搜索会员失败:', error);
+				setSearchResults([]);
+			} finally {
+				setIsSearching(false);
+			}
+		},
+		[accessToken],
+	);
+
+	// 处理搜索输入（带防抖）
+	const handleSearchChange = (value: string) => {
+		setSearchKeyword(value);
+
+		if (searchTimeoutRef.current) {
+			clearTimeout(searchTimeoutRef.current);
+		}
+
+		if (!value.trim()) {
+			setSearchResults([]);
+			setIsSearching(false);
+			return;
+		}
+
+		setIsSearching(true);
+		searchTimeoutRef.current = setTimeout(() => {
+			searchMembers(value);
+		}, 500);
+	};
+
 	const handleAddMemberClick = () => {
 		setShowTypeSelector(!showTypeSelector);
 	};
@@ -43,6 +127,31 @@ export default function MemberList({ orderMembers, onAddMember }: MemberListProp
 		setNewMemberSlots([...newMemberSlots, { id: newMemberSlots.length, type }]);
 		setShowTypeSelector(false);
 		onAddMember();
+	};
+
+	// 点击"加入"按钮，打开会员选择模态窗口
+	const handleJoinClick = (slotType: MemberType) => {
+		setSelectedSlotType(slotType);
+		setShowMemberModal(true);
+		setSearchKeyword('');
+		setSearchResults([]);
+	};
+
+	// 选择会员
+	const handleSelectMember = (member: Member) => {
+		console.log('选中的会员:', member);
+		// TODO: 调用API将会员添加到订单
+		setShowMemberModal(false);
+		setSearchKeyword('');
+		setSearchResults([]);
+	};
+
+	// 关闭会员选择模态窗口
+	const handleCloseModal = () => {
+		setShowMemberModal(false);
+		setSearchKeyword('');
+		setSearchResults([]);
+		setSelectedSlotType(null);
 	};
 
 	return (
@@ -243,7 +352,8 @@ export default function MemberList({ orderMembers, onAddMember }: MemberListProp
 									<div
 										data-state='Default'
 										data-type='Primary_Rounded'
-										className='px-3 py-2 bg-blue-600 rounded-[20px] flex justify-center items-center gap-2.5 overflow-hidden cursor-pointer'
+										className='px-3 py-2 bg-blue-600 rounded-[20px] flex justify-center items-center gap-2.5 overflow-hidden cursor-pointer hover:bg-blue-700 transition-colors'
+										onClick={() => handleJoinClick(slot.type)}
 									>
 										<div className="text-center justify-start text-white text-xs font-medium font-['Noto_Sans_TC'] leading-5">
 											加入
@@ -252,7 +362,7 @@ export default function MemberList({ orderMembers, onAddMember }: MemberListProp
 									<div
 										data-state='Default'
 										data-type='Stroke_Blue'
-										className='px-3 py-2 rounded-[20px] outline outline-1 outline-offset-[-1px] outline-blue-600 flex justify-center items-center gap-0.5 overflow-hidden cursor-pointer'
+										className='px-3 py-2 rounded-[20px] outline outline-1 outline-offset-[-1px] outline-blue-600 flex justify-center items-center gap-0.5 overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors'
 									>
 										<div className="text-center justify-start text-blue-600 text-xs font-medium font-['Noto_Sans_TC'] leading-5">
 											邀請加入會員
@@ -264,6 +374,204 @@ export default function MemberList({ orderMembers, onAddMember }: MemberListProp
 					</div>
 				</div>
 			</div>
+
+			{/* 会员选择模态窗口 */}
+			{showMemberModal && (
+				<div
+					className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'
+					onClick={handleCloseModal}
+				>
+					<div
+						className='bg-white rounded-2xl w-[600px] max-h-[80vh] flex flex-col shadow-[0px_4px_24px_0px_rgba(0,0,0,0.15)]'
+						onClick={(e) => e.stopPropagation()}
+					>
+						{/* 标题栏 */}
+						<div className='flex justify-between items-center px-8 py-6 border-b border-gray-200'>
+							<div className="text-zinc-800 text-xl font-medium font-['Noto_Sans_TC'] leading-7">
+								選擇會員 ({selectedSlotType === 'adult' ? '成人' : '青少年/兒童'})
+							</div>
+							<div
+								className='cursor-pointer p-1 hover:bg-gray-100 rounded-lg transition-colors'
+								onClick={handleCloseModal}
+							>
+								<svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
+									<path
+										d='M18 6L6 18M6 6L18 18'
+										stroke='#52525B'
+										strokeWidth='2'
+										strokeLinecap='round'
+										strokeLinejoin='round'
+									/>
+								</svg>
+							</div>
+						</div>
+
+						{/* 搜索框 */}
+						<div className='px-8 pt-6 pb-4'>
+							<div className='relative'>
+								<input
+									type='text'
+									value={searchKeyword}
+									onChange={(e) => handleSearchChange(e.target.value)}
+									placeholder='搜尋會員姓名或電話'
+									className="w-full px-4 py-3 pr-10 border border-zinc-300 rounded-lg focus:outline-none focus:border-blue-600 text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6"
+								/>
+								<div className='absolute right-3 top-1/2 -translate-y-1/2'>
+									{isSearching ? (
+										<div className='w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin' />
+									) : (
+										<svg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'>
+											<path
+												d='M9 17C13.4183 17 17 13.4183 17 9C17 4.58172 13.4183 1 9 1C4.58172 1 1 4.58172 1 9C1 13.4183 4.58172 17 9 17Z'
+												stroke='#71717A'
+												strokeWidth='2'
+												strokeLinecap='round'
+												strokeLinejoin='round'
+											/>
+											<path
+												d='M19 19L14.65 14.65'
+												stroke='#71717A'
+												strokeWidth='2'
+												strokeLinecap='round'
+												strokeLinejoin='round'
+											/>
+										</svg>
+									)}
+								</div>
+							</div>
+						</div>
+
+						{/* 搜索结果列表 */}
+						<div className='flex-1 overflow-y-auto px-8 pb-6'>
+							{searchKeyword.trim() === '' ? (
+								<div className='flex flex-col items-center justify-center py-12 text-zinc-500'>
+									<svg
+										width='48'
+										height='48'
+										viewBox='0 0 48 48'
+										fill='none'
+										xmlns='http://www.w3.org/2000/svg'
+										className='mb-3'
+									>
+										<path
+											d='M20 34C27.732 34 34 27.732 34 20C34 12.268 27.732 6 20 6C12.268 6 6 12.268 6 20C6 27.732 12.268 34 20 34Z'
+											stroke='#A1A1AA'
+											strokeWidth='3'
+											strokeLinecap='round'
+											strokeLinejoin='round'
+										/>
+										<path
+											d='M42 42L30.3 30.3'
+											stroke='#A1A1AA'
+											strokeWidth='3'
+											strokeLinecap='round'
+											strokeLinejoin='round'
+										/>
+									</svg>
+									<div className="text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+										請輸入會員姓名或電話進行搜尋
+									</div>
+								</div>
+							) : (
+								(() => {
+									// 过滤掉已经在参加人员名单中的会员
+									const existingMemberIds = new Set(orderMembers.map((m) => m.memberId));
+									const filteredResults = searchResults.filter((member) => !existingMemberIds.has(member.id));
+									console.log('过滤后的搜索结果:', existingMemberIds, searchResults);
+
+									return filteredResults.length === 0 && !isSearching ? (
+										<div className='flex flex-col items-center justify-center py-12 text-zinc-500'>
+											<svg
+												width='48'
+												height='48'
+												viewBox='0 0 48 48'
+												fill='none'
+												xmlns='http://www.w3.org/2000/svg'
+												className='mb-3'
+											>
+												<path
+													d='M24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44Z'
+													stroke='#A1A1AA'
+													strokeWidth='3'
+													strokeLinecap='round'
+													strokeLinejoin='round'
+												/>
+												<path
+													d='M24 16V24'
+													stroke='#A1A1AA'
+													strokeWidth='3'
+													strokeLinecap='round'
+													strokeLinejoin='round'
+												/>
+												<path
+													d='M24 32H24.02'
+													stroke='#A1A1AA'
+													strokeWidth='3'
+													strokeLinecap='round'
+													strokeLinejoin='round'
+												/>
+											</svg>
+											<div className="text-sm font-normal font-['Noto_Sans_TC'] leading-6">查無符合的會員</div>
+										</div>
+									) : (
+										<div className='flex flex-col gap-2'>
+											{filteredResults.map((member) => (
+												<div
+													key={member.id}
+													className='p-4 border border-zinc-300 rounded-xl hover:border-blue-600 hover:bg-blue-50 cursor-pointer transition-all'
+													onClick={() => handleSelectMember(member)}
+												>
+													<div className='flex items-center gap-3'>
+														<div className='w-12 h-12 rounded-full overflow-hidden flex-shrink-0'>
+															<img
+																src={member.avatar || '/image/profile/default-avatar.png'}
+																alt={member.name}
+																className='w-full h-full object-cover'
+															/>
+														</div>
+														<div className='flex-1'>
+															<div className='flex items-center gap-2 mb-1'>
+																<div className="text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
+																	{member.name}
+																</div>
+																<div className='flex items-center gap-1'>
+																	{member.snowboard > 0 && (
+																		<div className='px-2 py-1 bg-rose-50 rounded flex items-center gap-0.5'>
+																			<span className="text-red-400 text-xs font-normal font-['Noto_Sans_TC'] leading-4">
+																				單板{' '}
+																			</span>
+																			<span className="text-red-400 text-xs font-semibold font-['Poppins'] leading-5">
+																				LV.{member.snowboard}
+																			</span>
+																		</div>
+																	)}
+																	{member.skis > 0 && (
+																		<div className='px-2 py-1 bg-sky-100 rounded flex items-center gap-0.5'>
+																			<span className="text-cyan-600 text-xs font-normal font-['Noto_Sans_TC'] leading-4">
+																				雙板{' '}
+																			</span>
+																			<span className="text-cyan-600 text-xs font-semibold font-['Poppins'] leading-5">
+																				LV.{member.skis}
+																			</span>
+																		</div>
+																	)}
+																</div>
+															</div>
+															<div className="text-zinc-500 text-xs font-normal font-['Poppins'] leading-5">
+																{member.phone || '無電話'}
+															</div>
+														</div>
+													</div>
+												</div>
+											))}
+										</div>
+									);
+								})()
+							)}
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

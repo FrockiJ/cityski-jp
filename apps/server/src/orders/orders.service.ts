@@ -6,7 +6,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryRunner, Repository } from 'typeorm';
+import { Not, QueryRunner, Repository } from 'typeorm';
 import {
   CreateOrderRequestDTO,
   GetOrderDetailResponseDTO,
@@ -14,6 +14,7 @@ import {
   GetOrdersResponseDTO,
   ResWithPaginationDTO,
   ReservationResponseDto,
+  OrderStatus,
 } from '@repo/shared';
 import { Order } from './entities/order.entity';
 import { Department } from 'src/departments/entities/department.entity';
@@ -314,7 +315,12 @@ export class OrdersService {
       );
     }
   }
+
+
+
   async createOrder(body: CreateOrderRequestDTO, memberId: string) {
+
+
     console.log('body', body);
     try {
       const department = await this.departmentsRepo.findOne({
@@ -329,7 +335,10 @@ export class OrdersService {
 
       const coursePlan = await this.coursePlansRepo.findOne({
         where: { id: body.coursePlanId },
+        relations: ['course', 'course.coursePeople'],
       });
+
+
       if (!coursePlan) {
         throw new CustomException(
           `coursePlanId: ${body.coursePlanId} is not found`,
@@ -342,6 +351,83 @@ export class OrdersService {
           `The total of adultCount and childCount must be greater than 0`,
           HttpStatus.BAD_REQUEST,
         );
+      }
+
+      // 驗證 #1: 個人練習需檢查是否上過課
+      if (coursePlan.course.type === 'I') {
+        const hasAttendedCourse = await this.reservationMembersRepo.findOne({
+          where: {
+            orderMember: {
+              memberId: memberId,
+            },
+            attended: true,
+          },
+          relations: [
+            'reservation',
+            'orderMember',
+            'orderMember.member',
+          ],
+        });
+
+        if (!hasAttendedCourse) {
+          throw new CustomException(
+            `會員必須先完成至少一堂課程才能預約個人練習 (Member must complete at least one course before booking individual practice)`,
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
+
+      // 驗證 #2: 指定式個人練習檢查是否已被預約
+      if (coursePlan.course.bkgType === 2 && coursePlan.course.type === 'I') {
+        const existingOrder = await this.ordersRepo.findOne({
+          where: {
+            coursePlan: { id: body.coursePlanId },
+            status: Not(OrderStatus.ORDER_CANCELED), // 排除已取消的訂單
+          },
+        });
+
+        if (existingOrder) {
+          throw new CustomException(
+            `此個人練習時段已被預約 (This individual practice session is already booked)`,
+            HttpStatus.CONFLICT,
+          );
+        }
+      }
+
+      // 驗證 #3: 指定式團體課檢查是否額滿
+      if (coursePlan.course.bkgType === 2 && coursePlan.course.type === 'G') {
+        // 查詢該 coursePlan 的所有未取消訂單
+        const existingOrders = await this.ordersRepo.find({
+          where: {
+            coursePlan: { id: body.coursePlanId },
+            status: Not(OrderStatus.ORDER_CANCELED), // 排除已取消的訂單
+          },
+        });
+
+        // 計算現有總人數
+        const currentTotalPeople = existingOrders.reduce(
+          (sum, order) => sum + (order.adultCount || 0) + (order.childCount || 0),
+          0,
+        );
+
+        // 從 coursePeople 取得所有 maxPeople 的最小值
+        const coursePeople = coursePlan.course.coursePeople || [];
+        if (coursePeople.length === 0) {
+          throw new CustomException(
+            `課程人數設定不存在 (Course people configuration not found)`,
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+
+        const minMaxPeople = Math.min(...coursePeople.map(cp => cp.maxPeople));
+        const newTotalPeople = currentTotalPeople + body.adultCount + body.childCount;
+
+        if (newTotalPeople > minMaxPeople) {
+          throw new CustomException(
+            `此團體課程已額滿，目前人數: ${currentTotalPeople}，最大容量: ${minMaxPeople} (This group course is full. Current: ${currentTotalPeople}, Max capacity: ${minMaxPeople})`,
+            HttpStatus.CONFLICT,
+          );
+        }
       }
 
       // coursePlanId: request.coursePlanId,
@@ -375,6 +461,7 @@ export class OrdersService {
           orderId: savedOrder.id,
           memberId: memberId,
         });
+
 
         // todo: 創order同時要創交易資料 尚未完成
         this.transactionsService.createTransaction(savedOrder);

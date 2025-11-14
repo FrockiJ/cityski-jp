@@ -1,9 +1,9 @@
 import { Box, Typography, Avatar, Radio, TextField, Stack, Paper, RadioGroup, FormControlLabel } from '@mui/material';
 import dayjs from 'dayjs';
-import { ReservationMemberDto } from '@repo/shared';
+import { ReservationMemberResponseDto } from '@repo/shared';
 
 interface NoteBoxProps {
-	member: ReservationMemberDto;
+	member: ReservationMemberResponseDto;
 	note: string;
 	attended: boolean;
 	onNoteChange: (memberId: string, note: string) => void;

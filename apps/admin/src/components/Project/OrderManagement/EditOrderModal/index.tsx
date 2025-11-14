@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CourseStatusType, CourseType, DialogAction, GetCoursesResponseDTO, ModalType } from '@repo/shared';
+import { CourseStatusType, CourseType, DialogAction, GetCoursesResponseDTO, GetOrdersResponseDTO, ModalType } from '@repo/shared';
 import { Dayjs } from 'dayjs';
 import { Form, Formik, FormikProps } from 'formik';
 import * as Yup from 'yup';
@@ -41,7 +41,7 @@ interface EditOrderModalProps {
 	handleRefresh?: () => void;
 	formRef?: React.RefObject<FormikProps<InitialValuesProps>>;
 	modalType: ModalType;
-	rowData?: GetCoursesResponseDTO;
+	rowData?: GetCoursesResponseDTO | GetOrdersResponseDTO;
 	courseType: CourseType;
 	courseStatusType: CourseStatusType;
 	orderId?: string;
@@ -173,14 +173,17 @@ const EditOrderModal = ({
 							}
 						 */}
 							<CoreBlock title='課程預約' buttonIsLink>
-								<CourseReservation
-									reservations={reservations}
-									loading={reservationsLoading}
-									size={orderDetail?.planNumber}
-									orderId={orderId}
-									refetchReservations={refetchReservations}
-									refetchOrderDetail={refetchOrderDetail}
-								/>
+								{orderDetail && (
+									<CourseReservation
+										reservations={reservations}
+										loading={reservationsLoading}
+										size={orderDetail.planNumber}
+										orderId={orderId}
+										refetchReservations={refetchReservations}
+										refetchOrderDetail={refetchOrderDetail}
+										orderDetail={orderDetail}
+									/>
+								)}
 								<FormikDatePicker
 									name='courseExpiryDate'
 									title='課程使用期限'

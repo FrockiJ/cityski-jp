@@ -55,23 +55,24 @@ export const useReservationFormatTableData = (options?: Props) => {
           
 				};
 
-				if (isOverseas) {
-					// 海外課程的資料結構
-					const overseasData: ReservationOverseasTableListResult = {
-						...baseData,
-						snowField: reservation.department?.name || '未知雪場',
-						remaining: Math.floor(Math.random() * 10), // 暫時用隨機數，實際應該從API獲取
-					};
-					return overseasData;
-				} else {
+				// if (isOverseas) {
+				// 	// 海外課程的資料結構
+				// 	const overseasData: ReservationOverseasTableListResult = {
+				// 		...baseData,
+				// 		snowField: reservation.department?.name || '未知雪場',
+				// 		remaining: Math.floor(Math.random() * 10), // 暫時用隨機數，實際應該從API獲取
+				// 	};
+				// 	return overseasData;
+				// } else {
 					// 室內課程的資料結構
-					const indoorData: ReservationIndoorTableListResult = {
+					const indoorData: any = {
 						...baseData,
 						number: reservation?.reservationMembers?.length || 0,
-						remaining:  (reservation?.reservationMembers?.[0]?.orderMember?.order?.coursePlan?.course?.coursePeople?.[0]?.maxPeople || 0) - (reservation?.reservationMembers?.length || 0)
+						remaining: 999
+						// remaining:  (reservation?.reservationMembers?.[0]?.orderMember?.order?.- (reservation?.reservationMembers?.length || 0)
 					};
 					return indoorData;
-				}
+				// }
 			});
 
 			setFormatTableData(data);

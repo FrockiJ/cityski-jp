@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 import {
-  ReservationMember,
-  CreateReservationMemberDto,
+  ReservationMemberResponseDto,
+  CreateReservationMemberRequestDto,
+} from '@repo/shared';
+import {
   getReservationMembers,
   createReservationMember,
   deleteReservationMember,
@@ -9,20 +11,20 @@ import {
 } from '@/utils/http/api/reservation-members';
 
 interface UseReservationMembersReturn {
-  members: ReservationMember[];
+  members: ReservationMemberResponseDto[];
   loading: boolean;
   error: string | null;
   fetchMembers: (reservationId: string) => Promise<void>;
-  addMember: (data: CreateReservationMemberDto) => Promise<boolean>;
+  addMember: (data: CreateReservationMemberRequestDto) => Promise<boolean>;
   removeMember: (id: string) => Promise<boolean>;
-  updateMember: (id: string, data: Partial<CreateReservationMemberDto>) => Promise<boolean>;
+  updateMember: (id: string, data: Partial<CreateReservationMemberRequestDto>) => Promise<boolean>;
 }
 
 /**
  * Hook for managing reservation members
  */
 export const useReservationMembers = (): UseReservationMembersReturn => {
-  const [members, setMembers] = useState<ReservationMember[]>([]);
+  const [members, setMembers] = useState<ReservationMemberResponseDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +46,7 @@ export const useReservationMembers = (): UseReservationMembersReturn => {
     }
   }, []);
 
-  const addMember = useCallback(async (data: CreateReservationMemberDto): Promise<boolean> => {
+  const addMember = useCallback(async (data: CreateReservationMemberRequestDto): Promise<boolean> => {
     setLoading(true);
     setError(null);
 
@@ -83,7 +85,7 @@ export const useReservationMembers = (): UseReservationMembersReturn => {
     }
   }, []);
 
-  const updateMember = useCallback(async (id: string, data: Partial<CreateReservationMemberDto>): Promise<boolean> => {
+  const updateMember = useCallback(async (id: string, data: Partial<CreateReservationMemberRequestDto>): Promise<boolean> => {
     setLoading(true);
     setError(null);
 

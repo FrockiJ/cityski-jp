@@ -11,6 +11,7 @@ export  class OrderMemberDetailDTO {
         avatar: string;
         orderNo: string;
         active: boolean;
+        discountId?: string;
     }
 export class GetOrderDetailResponseDTO {
   @Expose()
@@ -76,4 +77,7 @@ export class GetOrderDetailResponseDTO {
   // Order members information
   @Expose()
   orderMembers: Array<OrderMemberDetailDTO>;
+
+  @Expose()
+  discountId: string;
 }

@@ -3,10 +3,13 @@ import {
   Controller,
   Delete,
   Get,
+  HttpException,
+  HttpStatus,
   Param,
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { OrderMembersService } from './order-members.service';
@@ -14,14 +17,46 @@ import { OrderMember } from './entities/order-member.entity';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { OrderMemberSearchResponseDto, OrderMemberResponseDto, TransferOrderMemberRequestDto } from '@repo/shared';
 import { plainToInstance } from 'class-transformer';
+import { AdminOrMemberGuard } from 'src/guards/admin-or-member.guard';
+import { CustomRequest } from 'src/shared/interfaces/custom-request';
 
 @Controller('/order-members')
 export class OrderMembersController {
   constructor(private orderMembersService: OrderMembersService) {}
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AdminOrMemberGuard)
   @Post('/')
-  create(@Body() body: Partial<OrderMember>): Promise<OrderMember> {
+  async create(
+    @Body() body: Partial<OrderMember>,
+    @Req() request: CustomRequest,
+  ): Promise<OrderMember> {
+    const userId = request['user'].sub;
+    const userType = request['userType'];
+
+    // Admin 可以跳过验证
+    if (userType !== 'admin') {
+      // Member 需要验证 orderId 所有权
+      if (!body.orderId) {
+        throw new HttpException(
+          'orderId is required',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // 验证 order 是否属于当前 member
+      const hasAccess = await this.orderMembersService.validateOrderOwnership(
+        body.orderId,
+        userId,
+      );
+
+      if (!hasAccess) {
+        throw new HttpException(
+          'Order not found or access denied',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+    }
+
     return this.orderMembersService.create(body);
   }
 

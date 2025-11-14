@@ -6,6 +6,7 @@ import { selectToken } from '@/state/slices/authSlice';
 
 interface MemberListProps {
 	orderMembers: OrderMemberDetailDTO[];
+	orderId: string;
 	onAddMember: () => void;
 }
 
@@ -27,10 +28,12 @@ interface Member {
 	birthday: Date | null;
 }
 
-export default function MemberList({ orderMembers, onAddMember }: MemberListProps) {
+export default function MemberList({ orderMembers, orderId, onAddMember }: MemberListProps) {
 	const [newMemberSlots, setNewMemberSlots] = useState<MemberSlot[]>([]);
 	const [showTypeSelector, setShowTypeSelector] = useState(false);
 	const [showMemberModal, setShowMemberModal] = useState(false);
+	const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+	const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 	const [selectedSlotType, setSelectedSlotType] = useState<MemberType | null>(null);
 	const [searchKeyword, setSearchKeyword] = useState('');
 	const [searchResults, setSearchResults] = useState<Member[]>([]);
@@ -137,13 +140,50 @@ export default function MemberList({ orderMembers, onAddMember }: MemberListProp
 		setSearchResults([]);
 	};
 
-	// 选择会员
+	// 选择会员（打开确认对话框）
 	const handleSelectMember = (member: Member) => {
-		console.log('选中的会员:', member);
-		// TODO: 调用API将会员添加到订单
-		setShowMemberModal(false);
-		setSearchKeyword('');
-		setSearchResults([]);
+		setSelectedMember(member);
+		setShowConfirmDialog(true);
+	};
+
+	// 确认添加会员
+	const handleConfirmAddMember = async () => {
+		if (!selectedMember || !accessToken) return;
+
+		try {
+			await api.post(
+				'/api/order-members',
+				{
+					orderId: orderId,
+					memberId: selectedMember.id,
+					active: true,
+				},
+				{
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+				}
+			);
+
+			// 成功添加后关闭所有弹窗并刷新
+			setShowConfirmDialog(false);
+			setShowMemberModal(false);
+			setSearchKeyword('');
+			setSearchResults([]);
+			setSelectedMember(null);
+
+			// 调用父组件的回调来刷新订单成员列表
+			onAddMember();
+		} catch (error) {
+			console.error('添加会员失败:', error);
+			// TODO: 显示错误提示
+		}
+	};
+
+	// 取消添加会员
+	const handleCancelAddMember = () => {
+		setShowConfirmDialog(false);
+		setSelectedMember(null);
 	};
 
 	// 关闭会员选择模态窗口
@@ -568,6 +608,64 @@ export default function MemberList({ orderMembers, onAddMember }: MemberListProp
 									);
 								})()
 							)}
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* 确认对话框 */}
+			{showConfirmDialog && selectedMember && (
+				<div className='fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50'>
+					<div className='w-96 bg-white rounded-[20px] shadow-[0px_10px_26px_0px_rgba(0,0,0,0.13)] inline-flex flex-col justify-start items-center overflow-hidden'>
+						<div className='self-stretch h-16 relative bg-white'>
+							<div
+								className='w-10 h-10 absolute right-2 top-2 cursor-pointer hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center'
+								onClick={handleCancelAddMember}
+							>
+								<div className='w-6 h-6 overflow-hidden flex items-center justify-center'>
+									<svg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'>
+										<path
+											d='M9 1L1 9M1 1L9 9'
+											stroke='#52525B'
+											strokeWidth='1.5'
+											strokeLinecap='round'
+											strokeLinejoin='round'
+										/>
+									</svg>
+								</div>
+							</div>
+							<div className="absolute left-8 top-5 justify-start text-zinc-800 text-xl font-medium font-['Noto_Sans_TC'] leading-7">
+								確認參加人員
+							</div>
+						</div>
+						<div className='self-stretch px-8 pt-4 pb-10 flex flex-col justify-start items-center gap-2.5'>
+							<div className='self-stretch justify-start'>
+								<span className="text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
+									一但加入，無法替換已選擇的會員，是否確認要將{' '}
+								</span>
+								<span className="text-zinc-800 text-base font-bold font-['Noto_Sans_TC'] leading-6">{selectedMember.name}</span>
+								<span className="text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6"> 加入參加人員名單？</span>
+							</div>
+						</div>
+						<div className='self-stretch px-8 py-5 bg-white border-t border-zinc-300 inline-flex justify-end items-center gap-2'>
+							<div
+								data-icon='false'
+								data-state='Default'
+								data-type='Secondary'
+								className='px-5 py-2 bg-white rounded-lg outline outline-1 outline-offset-[-1px] outline-zinc-800 flex justify-center items-center gap-2.5 overflow-hidden cursor-pointer hover:bg-gray-100 transition-colors'
+								onClick={handleCancelAddMember}
+							>
+								<div className="text-center justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">取消</div>
+							</div>
+							<div
+								data-icon='false'
+								data-state='Default'
+								data-type='Primary'
+								className='px-5 py-2 bg-zinc-800 rounded-lg flex justify-center items-center gap-2.5 overflow-hidden cursor-pointer hover:bg-zinc-700 transition-colors'
+								onClick={handleConfirmAddMember}
+							>
+								<div className="text-center justify-start text-white text-sm font-medium font-['Noto_Sans_TC'] leading-6">確認</div>
+							</div>
 						</div>
 					</div>
 				</div>

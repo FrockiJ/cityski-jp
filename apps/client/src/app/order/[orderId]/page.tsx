@@ -376,7 +376,23 @@ export default function OrderDetail() {
 								</div>
 							</div>
 						<CourseReservation orderReservations={orderReservations} courseType={courseDetail.type} />
-						<MemberList orderMembers={orderMembers} onAddMember={() => {}} />
+						<MemberList
+							orderMembers={orderMembers}
+							orderId={orderId}
+							onAddMember={async () => {
+								// 重新获取订单详情以更新成员列表
+								try {
+									const response = await api.get<ResponseWrapper<GetOrderDetailResponseDTO>>(`/api/orders/${orderId}`, {
+										headers: {
+											Authorization: `Bearer ${accessToken}`,
+										},
+									});
+									setOrderDetail(response.data.result);
+								} catch (error) {
+									console.error('Failed to refresh order detail:', error);
+								}
+							}}
+						/>
 							<div className='self-stretch px-8 pt-6 pb-8 bg-white rounded-2xl outline outline-1 outline-offset-[-1px] outline-zinc-300 flex flex-col justify-start items-start gap-6'>
 								<div className='self-stretch flex flex-col justify-start items-start gap-9'>
 									<div className='self-stretch flex flex-col justify-start items-end gap-6'>

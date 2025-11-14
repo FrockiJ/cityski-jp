@@ -9,6 +9,8 @@ import {
 	CourseStatusType,
 	DialogAction,
 	SkiAndSnowboardLevelEnum,
+	GetOrderDetailResponseDTO,
+	OrderStatus,
 } from '@repo/shared';
 import dayjs from 'dayjs';
 
@@ -22,6 +24,7 @@ type Props = {
 	loading?: boolean;
 	size?: number;
 	orderId?: string;
+	orderDetail: GetOrderDetailResponseDTO;
 	refetchReservations?: () => void;
 	refetchOrderDetail?: () => void;
 };
@@ -51,7 +54,8 @@ const CourseReservation = ({
 	size = 4,
 	orderId,
 	refetchReservations: parentRefetchReservations,
-	refetchOrderDetail: parentRefetchOrderDetail
+	refetchOrderDetail: parentRefetchOrderDetail,
+	orderDetail,
 }: Props) => {
 	const modal = useModalProvider();
 
@@ -118,7 +122,9 @@ const CourseReservation = ({
 			},
 			{
 				width: '150px',
-				label: orderReservation?.reservation ? dayjs(orderReservation.reservation.classTime).format('YYYY/MM/DD HH:mm') : '',
+				label: orderReservation?.reservation
+					? dayjs(orderReservation.reservation.classTime).format('YYYY/MM/DD HH:mm')
+					: '',
 				show: true,
 			},
 			{
@@ -128,7 +134,9 @@ const CourseReservation = ({
 			},
 			{
 				width: '300px',
-				label: orderReservation?.reservation?.reservationMembers ? formatMemberNames(orderReservation.reservation.reservationMembers) : '',
+				label: orderReservation?.reservation?.reservationMembers
+					? formatMemberNames(orderReservation.reservation.reservationMembers)
+					: '',
 				show: true,
 			},
 			{
@@ -141,12 +149,14 @@ const CourseReservation = ({
 								// 已有預約：開啟檢視模式的 Modal
 								handleOpenReservationModal(orderReservation?.reservation?.id, undefined);
 							} else {
-								// 尚未預約：開啟新增模式的 Modal，帶上 orderId 和 index
-								handleOpenReservationModal(undefined, index);
+								// 訂購成功的時候才可以預約
+								orderDetail.status === OrderStatus.ORDER_SUCCESSFUL &&
+									// 尚未預約：開啟新增模式的 Modal，帶上 orderId 和 index
+									handleOpenReservationModal(undefined, index);
 							}
 						}}
 					>
-						{orderReservation ? '檢視' : '立即預約'}
+						{orderReservation ? '檢視' : orderDetail.status === OrderStatus.ORDER_SUCCESSFUL ? '立即預約' : ''}
 					</Button>
 				),
 			},

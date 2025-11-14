@@ -1,12 +1,12 @@
 import React from 'react';
-import { Box, Divider, Stack, Typography } from '@mui/material';
+import { Box, Chip, Divider, Stack, Typography } from '@mui/material';
 import {
 	GetOrderDetailResponseDTO,
 	CourseType,
 	CourseSkiType,
 	CourseBkgType,
 	OrderChannel,
-	OrderChannelEnum,
+	OrderStatus,
 } from '@repo/shared';
 import dayjs from 'dayjs';
 
@@ -50,12 +50,54 @@ const OrderInfoBlock = ({ orderDetail }: Props) => {
 		// [OrderChannel.PHONE]: '電話',
 		// [OrderChannel.ONSITE]: '現場',
 	};
-	console.log('===orderDetail.type', orderDetail);
+
+	const orderStatusMap = {
+		[OrderStatus.ORDER_CANCELED]: '已取消',
+		[OrderStatus.ORDER_COMPLETED]: '已完成',
+		[OrderStatus.ORDER_SUCCESSFUL]: (
+			<Chip
+				label='訂購成功'
+				sx={{
+					backgroundColor: 'rgba(46, 125, 50, 0.16)', // success color with transparency
+					color: '#1b5e20', // success dark color
+					fontWeight: 'bold',
+					fontSize: '12px',
+					height: 'auto',
+					py: 0.5,
+					px: 2,
+					borderRadius: 1.5,
+					'& .MuiChip-label': {
+						padding: 0,
+						lineHeight: '20px',
+					},
+				}}
+			/>
+		),
+		[OrderStatus.PENDING_DEPOSIT]: (
+			<Chip
+				label='待付訂金'
+				sx={{
+					backgroundColor: 'rgba(237, 108, 2, 0.16)', // warning color with transparency
+					color: '#e65100', // warning dark color
+					fontWeight: 'bold',
+					fontSize: '12px',
+					height: 'auto',
+					py: 0.5,
+					px: 2,
+					borderRadius: 1.5,
+					'& .MuiChip-label': {
+						padding: 0,
+						lineHeight: '20px',
+					},
+				}}
+			/>
+		),
+		[OrderStatus.WAITING_FOR_CONFIRMATION]: '待確認',
+	};
 	const courseType = courseTypeMap[orderDetail.type] || orderDetail.type;
 	const skiType = skiTypeMap[orderDetail.skiType] || orderDetail.skiType;
 	const bkgType = bkgTypeMap[orderDetail.bkgType] || orderDetail.bkgType;
 	const channel = channelMap[orderDetail.channel] || orderDetail.channel;
-
 	const totalPeople = orderDetail.adultCount + orderDetail.childCount;
 	const peopleText =
 		orderDetail.childCount > 0
@@ -66,7 +108,7 @@ const OrderInfoBlock = ({ orderDetail }: Props) => {
 		<BlockArea>
 			<Stack direction='column' spacing={2.5} divider={<Divider flexItem />} width='100%'>
 				<Stack direction='row' justifyContent='space-between' width='100%'>
-					<span>訂購成功??</span>
+					<span>{orderStatusMap[orderDetail.status]}</span>
 					<Typography variant='body2' color={PRIMARY_MAIN}>
 						課程詳情
 					</Typography>

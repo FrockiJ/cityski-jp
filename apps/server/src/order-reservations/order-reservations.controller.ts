@@ -16,6 +16,7 @@ import {
   OrderReservationResponseDto,
 } from '@repo/shared';
 import { OrderReservationsService } from './order-reservations.service';
+import { AdminOrMemberGuard } from 'src/guards/admin-or-member.guard';
 
 @Controller('/order-reservations')
 export class OrderReservationsController {
@@ -23,7 +24,7 @@ export class OrderReservationsController {
     private orderReservationsService: OrderReservationsService,
   ) {}
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AdminOrMemberGuard)
   @Post('/')
   async create(
     @Body() body: CreateOrderReservationRequestDto,

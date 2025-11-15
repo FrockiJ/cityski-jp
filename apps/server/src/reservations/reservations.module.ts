@@ -7,6 +7,10 @@ import { Department } from 'src/departments/entities/department.entity';
 import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
 import { User } from 'src/users/entities/user.entity';
 import { UsersModule } from 'src/users/users.module';
+import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
+import { OrderMember } from 'src/order-members/entities/order-member.entity';
+import { Order } from 'src/orders/entities/order.entity';
+import { Member } from 'src/members/entities/member.entity';
 
 @Module({
   imports: [
@@ -15,6 +19,10 @@ import { UsersModule } from 'src/users/users.module';
       Department,
       OrderReservation,
       User,
+      ReservationMember,
+      OrderMember,
+      Order,
+      Member,
     ]),
     forwardRef(() => UsersModule),
   ],

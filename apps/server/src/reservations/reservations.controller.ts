@@ -24,6 +24,7 @@ import {
 } from '@repo/shared';
 import { CustomRequest } from 'src/shared/interfaces/custom-request';
 import { ReservationStatus } from './entities/reservation.entity';
+import { AdminOrMemberGuard } from 'src/guards/admin-or-member.guard';
 
 @Controller('/reservations')
 export class ReservationsController {
@@ -53,7 +54,7 @@ export class ReservationsController {
     });
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AdminOrMemberGuard)
   @Post('/')
   async createReservation(
     @Body() body: CreateReservationRequestDto,

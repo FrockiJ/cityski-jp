@@ -2,6 +2,7 @@ import { Injectable, HttpException, HttpStatus, Inject, forwardRef } from '@nest
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike, DataSource } from 'typeorm';
 import { OrderMember } from './entities/order-member.entity';
+import { Order } from 'src/orders/entities/order.entity';
 import { OrderMemberSearchResponseDto, TransferOrderMemberRequestDto } from '@repo/shared';
 import { OrderHistoryService } from 'src/order-history/order-history.service';
 import { MembersService } from 'src/members/members.service';
@@ -11,6 +12,8 @@ export class OrderMembersService {
   constructor(
     @InjectRepository(OrderMember)
     private readonly orderMembersRepo: Repository<OrderMember>,
+    @InjectRepository(Order)
+    private readonly ordersRepo: Repository<Order>,
     private readonly dataSource: DataSource,
     @Inject(forwardRef(() => OrderHistoryService))
     private readonly orderHistoryService: OrderHistoryService,
@@ -24,6 +27,20 @@ export class OrderMembersService {
       return await this.orderMembersRepo.save(orderMember);
     } catch (err) {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  async validateOrderOwnership(orderId: string, memberId: string): Promise<boolean> {
+    try {
+      const order = await this.ordersRepo.findOne({
+        where: {
+          id: orderId,
+          orderer: memberId,
+        },
+      });
+      return !!order;
+    } catch (err) {
+      return false;
     }
   }
 

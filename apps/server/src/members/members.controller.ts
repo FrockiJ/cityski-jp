@@ -20,6 +20,7 @@ import {
 } from '@repo/shared';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { AdminOrMemberGuard } from 'src/guards/admin-or-member.guard';
 
 @Controller('member')
 export class MembersController {
@@ -63,7 +64,7 @@ export class MembersController {
   /**
    * Get all members.
    **/
-  @UseGuards(AuthGuard)
+  @UseGuards(AdminOrMemberGuard)
   @Get()
   getMembers(
     @Query() getMembersRequestDto: GetMembersRequestDto,

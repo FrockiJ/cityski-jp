@@ -375,7 +375,33 @@ export default function OrderDetail() {
 									</div>
 								</div>
 							</div>
-						<CourseReservation orderReservations={orderReservations} courseType={courseDetail.type} />
+						<CourseReservation
+							orderReservations={orderReservations}
+							courseType={courseDetail.type}
+							orderMembers={orderMembers}
+							coursePeople={courseDetail.coursePeople}
+							adultCount={orderDetail.adultCount}
+							childCount={orderDetail.childCount}
+							orderId={orderId}
+							departmentId={courseDetail.departmentId}
+							accessToken={accessToken}
+							onReservationCreated={async () => {
+								// 重新獲取訂單預約資訊
+								try {
+									const response = await api.get<ResponseWrapper<OrderReservationResponseDto[]>>(
+										`/api/orders/${orderId}/reservations`,
+										{
+											headers: {
+												Authorization: `Bearer ${accessToken}`,
+											},
+										}
+									);
+									setOrderReservations(response.data.result);
+								} catch (error) {
+									console.error('Failed to refresh order reservations:', error);
+								}
+							}}
+						/>
 						<MemberList
 							orderMembers={orderMembers}
 							orderId={orderId}
@@ -824,7 +850,7 @@ export default function OrderDetail() {
 												訂購人
 											</div>
 											<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
-												李大名
+												{orderDetail.ordererName}
 											</div>
 										</div>
 										<div className='self-stretch inline-flex justify-between items-end'>
@@ -832,7 +858,7 @@ export default function OrderDetail() {
 												訂單編號
 											</div>
 											<div className="justify-start text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
-												G2837739BN
+												{orderDetail.no}
 											</div>
 										</div>
 										<div className='self-stretch inline-flex justify-between items-end'>
@@ -840,7 +866,7 @@ export default function OrderDetail() {
 												訂購日期
 											</div>
 											<div className="justify-start text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
-												2024/9/28
+												{new Date(orderDetail.createdTime).toLocaleDateString('sv-SE')}
 											</div>
 										</div>
 									</div>

@@ -7,6 +7,7 @@ import { Order } from 'src/orders/entities/order.entity';
 import { Reservation } from 'src/reservations/entities/reservation.entity';
 import { UsersModule } from 'src/users/users.module';
 import { User } from 'src/users/entities/user.entity';
+import { Member } from 'src/members/entities/member.entity';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { User } from 'src/users/entities/user.entity';
       Order,
       Reservation,
       User,
+      Member,
     ]),
     forwardRef(() => UsersModule),
   ],

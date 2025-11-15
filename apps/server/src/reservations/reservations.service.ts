@@ -4,11 +4,14 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Or, ILike } from 'typeorm';
+import { Repository, Or, ILike, DataSource, In } from 'typeorm';
 import { SkiAndSnowboardLevelEnum } from '@repo/shared';
 import { Reservation } from './entities/reservation.entity';
 import { Department } from 'src/departments/entities/department.entity';
 import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
+import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
+import { OrderMember } from 'src/order-members/entities/order-member.entity';
+import { Order } from 'src/orders/entities/order.entity';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { ReservationStatus } from './entities/reservation.entity';
 import {
@@ -32,6 +35,13 @@ export class ReservationsService {
     private readonly departmentsRepo: Repository<Department>,
     @InjectRepository(OrderReservation)
     private readonly orderReservationsRepo: Repository<OrderReservation>,
+    @InjectRepository(ReservationMember)
+    private readonly reservationMembersRepo: Repository<ReservationMember>,
+    @InjectRepository(OrderMember)
+    private readonly orderMembersRepo: Repository<OrderMember>,
+    @InjectRepository(Order)
+    private readonly ordersRepo: Repository<Order>,
+    private readonly dataSource: DataSource,
   ) {}
 
   // 獲取預約列表
@@ -182,7 +192,12 @@ export class ReservationsService {
 
   // 創建預約
   async createReservation(body: CreateReservationRequestDto, userId?: string) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
+      // 驗證 department
       const department = await this.departmentsRepo.findOne({
         where: { id: body.departmentId },
       });
@@ -193,8 +208,42 @@ export class ReservationsService {
         );
       }
 
-      const savedReservation = this.reservationsRepo.create({
-        ...new Reservation(),
+      // 驗證 orderId
+      const order = await this.ordersRepo.findOne({
+        where: { id: body.orderId },
+      });
+      if (!order) {
+        throw new CustomException(
+          `orderId: ${body.orderId} is not found`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // 驗證所有 orderMemberIds 存在且屬於該訂單
+      const orderMembers = await this.orderMembersRepo.find({
+        where: { id: In(body.orderMemberIds) },
+      });
+
+      if (orderMembers.length !== body.orderMemberIds.length) {
+        throw new CustomException(
+          'Some orderMemberIds are not found',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // 確認所有 orderMembers 都屬於該訂單
+      const invalidMembers = orderMembers.filter(
+        (om) => om.orderId !== body.orderId,
+      );
+      if (invalidMembers.length > 0) {
+        throw new CustomException(
+          'Some orderMembers do not belong to the specified order',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // 1. 創建 Reservation
+      const newReservation = queryRunner.manager.create(Reservation, {
         reservationStatus: body.reservationStatus || ReservationStatus.SCHEDULED,
         classTime: body.classTime,
         teachingLevel: body.teachingLevel,
@@ -204,12 +253,50 @@ export class ReservationsService {
         department: department,
       });
 
-      return await this.reservationsRepo.save(savedReservation);
+      const savedReservation = await queryRunner.manager.save(newReservation);
+
+      // 2. 創建 ReservationMember 記錄
+      const reservationMembers = body.orderMemberIds.map((orderMemberId) => {
+        return queryRunner.manager.create(ReservationMember, {
+          reservationId: savedReservation.id,
+          orderMemberId,
+        });
+      });
+
+      await queryRunner.manager.save(reservationMembers);
+
+      // 3. 計算 index 並創建 OrderReservation
+      const existingOrderReservations = await queryRunner.manager.find(
+        OrderReservation,
+        {
+          where: { orderId: body.orderId },
+          order: { index: 'DESC' },
+        },
+      );
+
+      const nextIndex = existingOrderReservations.length > 0
+        ? existingOrderReservations[0].index + 1
+        : 1;
+
+      const newOrderReservation = queryRunner.manager.create(OrderReservation, {
+        orderId: body.orderId,
+        reservationId: savedReservation.id,
+        index: nextIndex,
+      });
+
+      await queryRunner.manager.save(newOrderReservation);
+
+      await queryRunner.commitTransaction();
+
+      return savedReservation;
     } catch (err) {
+      await queryRunner.rollbackTransaction();
       if (err instanceof CustomException) {
         throw err;
       }
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    } finally {
+      await queryRunner.release();
     }
   }
 

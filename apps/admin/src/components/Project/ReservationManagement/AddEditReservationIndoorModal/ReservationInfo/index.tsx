@@ -21,7 +21,7 @@ type Props = {
 	courseInfo?: CourseInfo;
 	reservationDetail?: GetReservationDetailResponseDto | null;
 	orderDetail?: GetOrderDetailResponseDTO | null;
-	courseDetail?: GetCourseDetailResponseDTO | null;
+	courseDetail: GetCourseDetailResponseDTO | null;
 };
 
 const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDetail }: Props) => {
@@ -48,7 +48,7 @@ const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDet
 			[CourseType.INDIVIDUAL]: '個人練習',
 		};
 
-		return typeMap[reservationDetail?.courseType] || '--';
+		return typeMap[courseDetail?.type] || '--';
 	};
 
 	// 獲取滑雪類型文字
@@ -59,15 +59,20 @@ const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDet
 			1: '雙板',
 			2: '單板',
 		};
-		return skiTypeMap[reservationDetail?.skiType] || '--';
+		return skiTypeMap[courseDetail?.skiType] || '--';
 	};
 
 	// 計算人數限制
 	const getPersonLimit = () => {
-		return [reservationDetail?.minStudentCount || 0, reservationDetail?.maxStudentCount || 0];
+		if (!courseDetail || !courseDetail.coursePeople || courseDetail.coursePeople.length === 0) {
+			return [];
+		}
+		const min = Math.max(...courseDetail.coursePeople.map((cp) => cp.minPeople));
+		const max = Math.min(...courseDetail.coursePeople.map((cp) => cp.maxPeople));
+
+		return [min, max];
 	};
 	const personLimit = getPersonLimit();
-	console.log('===reservationDetail', reservationDetail);
 	return (
 		<BlockArea>
 			<Stack gap={3} width='100%'>

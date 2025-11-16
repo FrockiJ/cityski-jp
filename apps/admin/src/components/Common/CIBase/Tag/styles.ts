@@ -23,6 +23,10 @@ export const blueTheme = {
 	color: 'primary.main',
 	backgroundColor: (theme: Theme) => alpha(theme.palette.primary.main, 0.16),
 };
+export const whiteTextTheme = {
+	color: 'common.white',
+	backgroundColor: (theme: Theme) => alpha(theme.palette.grey[800], 0.8),
+};
 
 /** Styles ******/
 

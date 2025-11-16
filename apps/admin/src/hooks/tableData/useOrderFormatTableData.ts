@@ -28,26 +28,27 @@ export const useOrderFormatTableData = (options?: Props) => {
 		if (!date || !dayjs(date).isValid()) return '--';
 		return dayjs(date).format('YYYY/MM/DD');
 	};
-
 	useEffect(() => {
 		if (tableData) {
 			const data = tableData.map((data) => {
 				const tableRowData = {
 					id: data.id,
 					no: data.no,
-					name: '課程名稱',
-					amount: '1000',
+					name: data.courseName,
+					amount: data.price,
 					status: {
 						[OrderStatus.PENDING_DEPOSIT]: '待付訂金',
 						[OrderStatus.WAITING_FOR_CONFIRMATION]: '等待確認',
 						[OrderStatus.ORDER_SUCCESSFUL]: '訂購成功',
 						[OrderStatus.ORDER_COMPLETED]: '訂單完成',
+						[OrderStatus.ORDER_CANCELED]: '訂單取消',
 					}[data.status],
 					payStatus: {
 						[OrderStatus.PENDING_DEPOSIT]: '待付訂金',
 						[OrderStatus.WAITING_FOR_CONFIRMATION]: '等待確認',
 						[OrderStatus.ORDER_SUCCESSFUL]: '訂購成功',
 						[OrderStatus.ORDER_COMPLETED]: '訂單完成',
+						[OrderStatus.ORDER_CANCELED]: '訂單取消',
 					}[data.status],
 					lessons: data.number,
 					people: data.people,

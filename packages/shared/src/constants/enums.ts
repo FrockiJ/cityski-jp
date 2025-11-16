@@ -124,6 +124,7 @@ export const MemberType = {
 export type MemberTypeEnum = EnumValues<typeof MemberType>;
 
 export const SkiAndSnowboardLevel = {
+  "-": "-",
   "1": "1",
   "2": "2",
   "3": "3",

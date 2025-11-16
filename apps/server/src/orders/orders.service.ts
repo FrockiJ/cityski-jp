@@ -6,7 +6,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, QueryRunner, Repository } from 'typeorm';
+import { DataSource, Not, QueryRunner, Repository } from 'typeorm';
 import {
   CreateOrderRequestDTO,
   GetOrderDetailResponseDTO,
@@ -52,6 +52,7 @@ export class OrdersService {
     private readonly transactionsService: TransactionsService,
     @Inject(forwardRef(() => OrderMembersService))
     private readonly orderMembersService: OrderMembersService,
+    private readonly dataSource: DataSource,
   ) {}
 
   // get order list of all
@@ -335,7 +336,7 @@ export class OrdersService {
 
       const coursePlan = await this.coursePlansRepo.findOne({
         where: { id: body.coursePlanId },
-        relations: ['course', 'course.coursePeople'],
+        relations: ['course', 'course.coursePeople', 'sessions'],
       });
 
 
@@ -393,11 +394,11 @@ export class OrdersService {
           );
         }
       }
-
+      let existingOrders = [];
       // 驗證 #3: 指定式團體課檢查是否額滿
       if (coursePlan.course.bkgType === 2 && coursePlan.course.type === 'G') {
         // 查詢該 coursePlan 的所有未取消訂單
-        const existingOrders = await this.ordersRepo.find({
+        existingOrders = await this.ordersRepo.find({
           where: {
             coursePlan: { id: body.coursePlanId },
             status: Not(OrderStatus.ORDER_CANCELED), // 排除已取消的訂單
@@ -455,12 +456,62 @@ export class OrdersService {
 
       await this.ordersRepo.save(savedOrder);
 
-      // 創建 order-member 記錄
+      
       if (savedOrder) {
-        await this.orderMembersService.create({
+        // 創建 order-member 記錄
+        const orderMember = await this.orderMembersService.create({
           orderId: savedOrder.id,
           memberId: memberId,
         });
+
+        // 指定式個人練習須建立 reservation 和 order-reservation 關聯
+        if ( coursePlan.course.bkgType === 2 && coursePlan.course.type === 'I') {
+          // 使用 transaction 確保資料一致性
+          const queryRunner = this.dataSource.createQueryRunner();
+          await queryRunner.connect();
+          await queryRunner.startTransaction();
+
+          try {
+            // 根據 coursePlan.sessions 建立對應數量的 reservations
+            if (coursePlan.sessions && coursePlan.sessions.length > 0) {
+              for (const session of coursePlan.sessions) {
+                // 1. 創建 Reservation
+                const newReservation = queryRunner.manager.create(Reservation, {
+                  reservationStatus: 1, // SCHEDULED
+                  classTime: session.startTime,
+                  teachingLevel: '-',
+                  instructor: null,
+                  department: department,
+                  createdUser: memberId,
+                  updatedUser: memberId,
+                });
+                const savedReservation = await queryRunner.manager.save(newReservation);
+
+                // 2. 創建 ReservationMember
+                const newReservationMember = queryRunner.manager.create(ReservationMember, {
+                  reservationId: savedReservation.id,
+                  orderMemberId: orderMember.id,
+                });
+                await queryRunner.manager.save(newReservationMember);
+
+                // 3. 創建 OrderReservation
+                const newOrderReservation = queryRunner.manager.create(OrderReservation, {
+                  orderId: savedOrder.id,
+                  reservationId: savedReservation.id,
+                  index: session.no - 1,
+                });
+                await queryRunner.manager.save(newOrderReservation);
+              }
+            }
+
+            await queryRunner.commitTransaction();
+          } catch (err) {
+            await queryRunner.rollbackTransaction();
+            throw err;
+          } finally {
+            await queryRunner.release();
+          }
+        }
 
 
         // todo: 創order同時要創交易資料 尚未完成

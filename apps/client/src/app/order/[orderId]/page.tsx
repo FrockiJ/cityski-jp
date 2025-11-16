@@ -405,6 +405,8 @@ export default function OrderDetail() {
 						<MemberList
 							orderMembers={orderMembers}
 							orderId={orderId}
+							courseType={courseDetail.type}
+							purchasedQuantity={orderDetail.adultCount + orderDetail.childCount}
 							onAddMember={async () => {
 								// 重新获取订单详情以更新成员列表
 								try {

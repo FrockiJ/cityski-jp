@@ -1,12 +1,13 @@
 import { ColumnType, GetCoursesRequestDTO, OrderTableListResult, TableColumnType, TableConfig } from '@repo/shared';
 
-import { blueTheme, greenTheme, greyTheme, redTheme, yellowTheme } from '@/components/Common/CIBase/Tag/styles';
+import { blueTheme, greenTheme, greyTheme, redTheme, whiteTextTheme, yellowTheme } from '@/components/Common/CIBase/Tag/styles';
 
 const statusTagStyles = {
 	待付訂金: yellowTheme,
 	等待確認: blueTheme,
 	訂購成功: redTheme,
 	訂單完成: greyTheme,
+	訂單取消: whiteTextTheme,
 };
 
 export const getOrdersTableConfigColumn: TableColumnType<any>[] = [

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import { OrderMemberDetailDTO } from '@repo/shared';
+import { OrderMemberDetailDTO, CourseType } from '@repo/shared';
 import api from '@/lib/api';
 import { selectToken } from '@/state/slices/authSlice';
 
@@ -8,6 +8,8 @@ interface MemberListProps {
 	orderMembers: OrderMemberDetailDTO[];
 	orderId: string;
 	onAddMember: () => void;
+	courseType: CourseType;
+	purchasedQuantity: number;
 }
 
 type MemberType = 'adult' | 'youth';
@@ -28,7 +30,7 @@ interface Member {
 	birthday: Date | null;
 }
 
-export default function MemberList({ orderMembers, orderId, onAddMember }: MemberListProps) {
+export default function MemberList({ orderMembers, orderId, onAddMember, courseType, purchasedQuantity }: MemberListProps) {
 	const [newMemberSlots, setNewMemberSlots] = useState<MemberSlot[]>([]);
 	const [showTypeSelector, setShowTypeSelector] = useState(false);
 	const [showMemberModal, setShowMemberModal] = useState(false);
@@ -41,6 +43,12 @@ export default function MemberList({ orderMembers, orderId, onAddMember }: Membe
 	const selectorRef = useRef<HTMLDivElement>(null);
 	const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const accessToken = useSelector(selectToken);
+
+	// 計算當前參加人員總數
+	const currentMemberCount = orderMembers.length + newMemberSlots.length;
+
+	// 判斷是否應該隱藏新增按鈕（團體課且人數已達上限）
+	const shouldHideAddButton = courseType === CourseType.GROUP && currentMemberCount >= purchasedQuantity;
 
 	// 点击外部关闭选择器
 	useEffect(() => {
@@ -162,7 +170,7 @@ export default function MemberList({ orderMembers, orderId, onAddMember }: Membe
 					headers: {
 						Authorization: `Bearer ${accessToken}`,
 					},
-				}
+				},
 			);
 
 			// 成功添加后关闭所有弹窗并刷新
@@ -205,7 +213,7 @@ export default function MemberList({ orderMembers, orderId, onAddMember }: Membe
 				<div className="justify-start text-zinc-800 text-xl font-medium font-['Noto_Sans_TC'] leading-7">
 					參加人員名單
 				</div>
-				{orderMembers.length + newMemberSlots.length <= 5 && (
+				{!shouldHideAddButton && (
 					<div className='relative'>
 						<div
 							data-state='Default'
@@ -290,37 +298,104 @@ export default function MemberList({ orderMembers, orderId, onAddMember }: Membe
 					<div className='self-stretch flex flex-col justify-start items-start gap-2'>
 						{orderMembers.map((member, index) => (
 							<div
-								key={member.id}
-								data-owner-icon={index === 0 ? 'true' : 'false'}
-								data-property-1={
-									member.memberBirthday && calculateAge(member.memberBirthday) >= 18 ? 'Adult Slot' : 'Children Slot'
-								}
+								data-owner-icon='false'
+								data-property-1='Default'
 								data-remove-button='false'
 								data-reservation='true'
 								className='self-stretch h-20 pl-3 pr-4 py-3 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-zinc-300 inline-flex justify-start items-center gap-3'
 							>
-								<div className='w-14 h-14 relative'>
-									<img
-										src={member.avatar || '/image/profile/default-avatar.png'}
-										alt={member.memberName}
-										className='w-14 h-14 rounded-full'
-									/>
+								<div data-property-1='Default' className='w-14 h-14 relative'>
+									<div
+										data-show-hover='false'
+										data-size='36'
+										className='w-14 h-14 left-[3px] top-[3px] absolute rounded-[99px] overflow-hidden'
+									>
+										<img
+											className='w-14 h-14 left-0 top-0 absolute'
+											src={member.avatar || '/image/profile/default-avatar.png'}
+											alt={member.memberName}
+										/>
+									</div>
 								</div>
 								<div className='flex-1 inline-flex flex-col justify-center items-start'>
 									<div className='self-stretch inline-flex justify-start items-center gap-2'>
-										<div className='justify-start'>
-											<span className="text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
-												{member.memberName}
-											</span>
+										<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
+											{member.memberName}
+										</div>
+										<div className='pt-[3px] flex justify-start items-center gap-1.5'>
+											<div
+												data-property-1='單板'
+												className='p-[5px] bg-rose-50 rounded flex justify-center items-end gap-0.5'
+											>
+												<div className="justify-start text-red-400 text-xs font-normal font-['Noto_Sans_TC'] leading-4">
+													單板{' '}
+												</div>
+												<div className="justify-start text-red-400 text-xs font-semibold font-['Poppins'] leading-5">
+													LV.{member.snowboard}
+												</div>
+											</div>
+											<div
+												data-property-1='雙板'
+												className='p-[5px] bg-sky-100 rounded flex justify-center items-end gap-0.5'
+											>
+												<div className="justify-start text-cyan-600 text-xs font-normal font-['Noto_Sans_TC'] leading-4">
+													雙板{' '}
+												</div>
+												<div className="justify-start text-cyan-600 text-xs font-semibold font-['Poppins'] leading-5">
+													LV.{member.skis}
+												</div>
+											</div>
 										</div>
 									</div>
-									<div className='self-stretch h-6 inline-flex justify-start items-center gap-1'>
-										<div className="justify-start text-neutral-400 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
-											單板 LV.{member.snowboard} | 雙板 LV.{member.skis}
-										</div>
+									<div className="self-stretch h-6 justify-center text-zinc-500 text-xs font-normal font-['Poppins'] leading-5">
+										{member.memberPhone || '無電話號碼'}
+									</div>
+								</div>
+								<div className='px-3 flex justify-center items-center gap-0.5'>
+									<div className="text-right justify-start text-zinc-500 text-sm font-medium font-['Noto_Sans_TC'] leading-6">
+										已預約
+									</div>
+									<div className="text-right justify-start text-zinc-500 text-sm font-medium font-['Poppins'] leading-6">
+										?/?
+									</div>
+									<div className="text-right justify-start text-zinc-500 text-sm font-medium font-['Noto_Sans_TC'] leading-6">
+										堂
 									</div>
 								</div>
 							</div>
+
+							// <div
+							// 	key={member.id}
+							// 	data-owner-icon={index === 0 ? 'true' : 'false'}
+							// 	data-property-1={
+							// 		member.memberBirthday && calculateAge(member.memberBirthday) >= 18 ? 'Adult Slot' : 'Children Slot'
+							// 	}
+							// 	data-remove-button='false'
+							// 	data-reservation='true'
+							// 	className='self-stretch h-20 pl-3 pr-4 py-3 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-zinc-300 inline-flex justify-start items-center gap-3'
+							// >
+							// 	<div className='w-14 h-14 relative'>
+							// 		<img
+							// 			src={member.avatar || '/image/profile/default-avatar.png'}
+							// 			alt={member.memberName}
+							// 			className='w-14 h-14 rounded-full'
+							// 		/>
+							// 	</div>
+							// 	<div className='flex-1 inline-flex flex-col justify-center items-start'>
+							// 		<div className='self-stretch inline-flex justify-start items-center gap-2'>
+							// 			<div className='justify-start'>
+							// 				<span className="text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
+							// 					{member.memberName}
+							// 				</span>
+							// 			</div>
+							// 		</div>
+							// 		<div className='self-stretch h-6 inline-flex justify-start items-center gap-1'>
+							// 			<div className="justify-start text-neutral-400 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
+							// 				單板 LV.{member.snowboard} | 雙板 LV.{member.skis}
+							// 			</div>
+							// 		</div>
+							// 	</div>
+							// </div>
 						))}
 
 						{newMemberSlots.map((slot, index) => (
@@ -643,8 +718,13 @@ export default function MemberList({ orderMembers, orderId, onAddMember }: Membe
 								<span className="text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
 									一但加入，無法替換已選擇的會員，是否確認要將{' '}
 								</span>
-								<span className="text-zinc-800 text-base font-bold font-['Noto_Sans_TC'] leading-6">{selectedMember.name}</span>
-								<span className="text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6"> 加入參加人員名單？</span>
+								<span className="text-zinc-800 text-base font-bold font-['Noto_Sans_TC'] leading-6">
+									{selectedMember.name}
+								</span>
+								<span className="text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
+									{' '}
+									加入參加人員名單？
+								</span>
 							</div>
 						</div>
 						<div className='self-stretch px-8 py-5 bg-white border-t border-zinc-300 inline-flex justify-end items-center gap-2'>
@@ -655,7 +735,9 @@ export default function MemberList({ orderMembers, orderId, onAddMember }: Membe
 								className='px-5 py-2 bg-white rounded-lg outline outline-1 outline-offset-[-1px] outline-zinc-800 flex justify-center items-center gap-2.5 overflow-hidden cursor-pointer hover:bg-gray-100 transition-colors'
 								onClick={handleCancelAddMember}
 							>
-								<div className="text-center justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">取消</div>
+								<div className="text-center justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+									取消
+								</div>
 							</div>
 							<div
 								data-icon='false'
@@ -664,7 +746,9 @@ export default function MemberList({ orderMembers, orderId, onAddMember }: Membe
 								className='px-5 py-2 bg-zinc-800 rounded-lg flex justify-center items-center gap-2.5 overflow-hidden cursor-pointer hover:bg-zinc-700 transition-colors'
 								onClick={handleConfirmAddMember}
 							>
-								<div className="text-center justify-start text-white text-sm font-medium font-['Noto_Sans_TC'] leading-6">確認</div>
+								<div className="text-center justify-start text-white text-sm font-medium font-['Noto_Sans_TC'] leading-6">
+									確認
+								</div>
 							</div>
 						</div>
 					</div>

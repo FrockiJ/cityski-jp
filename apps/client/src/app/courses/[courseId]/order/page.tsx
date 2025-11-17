@@ -24,7 +24,8 @@ function OrderConfirmationPage() {
 	const [formData, setFormData] = useState<OrderFormData>();
 	const [plan, setPlan] = useState<CoursePlanResponseDTO>();
 	const [timestamp, setTimestamp] = useState<number>();
-	
+	const [paymentMethod, setPaymentMethod] = useState<'credit' | 'atm'>('credit');
+
 	const authToken = useSelector(selectToken);
 	const discount = useSelector(selectDiscount);
 
@@ -82,6 +83,13 @@ function OrderConfirmationPage() {
 	}, [dispatch]);
 
 	const handleSubmit = async () => {
+		// 驗證認證 token
+		if (!authToken) {
+			console.error('No auth token found');
+			alert('認證失敗，請重新登入');
+			return;
+		}
+
 		const body = {
 			type: courseDetail.type,
 			departmentId: courseDetail.departmentId,
@@ -98,16 +106,29 @@ function OrderConfirmationPage() {
 		};
 
 		try {
+			console.log('Creating order with auth token:', authToken.substring(0, 20) + '...');
+
 			const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders`, {
 				method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						Authorization: `Bearer ${authToken}`,
-					},
-					body: JSON.stringify(body),
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${authToken}`,
+				},
+				body: JSON.stringify(body),
 			});
 
 			if (response.status === 201) {
+				const orderData = await response.json();
+				console.log('Full order response:', JSON.stringify(orderData, null, 2));
+				console.log('Result:', orderData?.result);
+				const orderId = orderData?.result?.id;
+
+				if (!orderId) {
+					console.error('orderId missing. Full response:', orderData);
+					alert('訂單創建成功，但無法獲取訂單ID。檢查控制台日誌。');
+					return;
+				}
+
 				// Save form data to localStorage before navigating
 				localStorage.removeItem('courseOrderData');
 				localStorage.setItem(
@@ -115,18 +136,119 @@ function OrderConfirmationPage() {
 					JSON.stringify({
 						courseDetail: courseDetail,
 						order: body,
+						orderId: orderId,
 						department: department,
 						plan: plan,
 						formData,
+						paymentMethod: paymentMethod,
 						timestamp: formData.date ? new Date(formData.date).getTime() : undefined,
 					}),
 				);
 
-				// Navigate to order page
-				router.push(`/courses/order-success`);
+				// 根據付款方式判斷流程
+				if (paymentMethod === 'credit') {
+					console.log('Credit card payment - orderId:', orderId, 'amount:', plan.price);
+					// 跳轉到 ECPay 支付頁面
+					await initiateCreditCardPayment(orderId, plan.price);
+				} else if (paymentMethod === 'atm') {
+					console.log('使用ATM轉帳付款 - 直接跳轉到成功頁面');
+					// ATM 轉帳直接跳轉到成功頁面
+					router.push(`/courses/order-success`);
+				}
+			} else {
+				console.error('Order failed with status:', response.status);
+				const errorData = await response.json();
+				console.error('Error details:', errorData);
+				alert(`訂單建立失敗 (${response.status}): ${errorData?.message || '請重試'}`);
 			}
 		} catch (error) {
-			console.log('error: ', error);
+			console.error('Order submission error:', error);
+			alert('訂單提交失敗：' + (error as Error).message);
+		}
+	};
+
+	/**
+	 * 初始化信用卡支付
+	 * 調用後端 ECPay 初始化 API，獲取支付表單並跳轉
+	 */
+	const initiateCreditCardPayment = async (orderId: string, amount: number) => {
+		try {
+			// 調用後端初始化 ECPay 支付
+			const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/payments/credit-card/initialize`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${authToken}`,
+				},
+				body: JSON.stringify({
+					orderId: orderId,
+					amount: amount,
+				}),
+			});
+
+			if (response.ok) {
+				const result = await response.json();
+
+				// 根據 NestJS 全局攔截器的響應格式提取 formHtml
+				// 支持多層結構：result.result.formHtml 或 result.data.formHtml 或 result.formHtml
+				let formHtml = null;
+
+				if (result?.result?.formHtml) {
+					// 格式：{ result: { success: true, formHtml: "...", ... } }
+					formHtml = result.result.formHtml;
+				} else if (result?.data?.formHtml) {
+					// 格式：{ data: { formHtml: "...", ... } }
+					formHtml = result.data.formHtml;
+				} else if (result?.formHtml) {
+					// 格式：{ formHtml: "...", ... }
+					formHtml = result.formHtml;
+				}
+
+				if (formHtml) {
+					// 在新視窗中打開支付表單
+					submitFormToECPayWindow(formHtml);
+				} else {
+					console.error('No form HTML returned from ECPay initialization', result);
+					alert('支付初始化失敗，請重試');
+				}
+			} else {
+				console.error('ECPay initialization failed:', response.status);
+				const errorData = await response.json().catch(() => ({}));
+				console.error('Error details:', errorData);
+				alert('無法初始化支付，請重試');
+			}
+		} catch (error) {
+			console.error('ECPay payment initiation error:', error);
+			alert('支付初始化出錯：' + (error as Error).message);
+		}
+	};
+
+	/**
+	 * 在新視窗中提交支付表單到 ECPay
+	 */
+	const submitFormToECPayWindow = (formHtml: string) => {
+		try {
+			const newWindow = window.open('', '_blank');
+			if (!newWindow) {
+				alert('請允許彈出視窗以進行支付');
+				return;
+			}
+
+			// 將 HTML 寫入新視窗
+			newWindow.document.open();
+			newWindow.document.write(formHtml);
+			newWindow.document.close();
+
+			// 自動提交表單
+			setTimeout(() => {
+				const form = newWindow.document.querySelector('form');
+				if (form) {
+					form.submit();
+				}
+			}, 500);
+		} catch (error) {
+			console.error('Error submitting form to ECPay:', error);
+			alert('無法跳轉到支付頁面，請重試');
 		}
 	};
 
@@ -155,7 +277,7 @@ function OrderConfirmationPage() {
 							<div className='xs:hidden mt-8'>
 								<CheckoutSummary isMobile={true} participants={formData?.participants} plan={plan} />
 							</div>
-							<PaymentSection />
+							<PaymentSection onPaymentMethodChange={setPaymentMethod} />
 							<DiscountSection department={department} />
 						</div>
 						<div className='mt-12 w-full text-justify max-xs:mt-10 max-xs:max-w-full'>

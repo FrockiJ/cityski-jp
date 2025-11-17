@@ -139,7 +139,7 @@ export class OrdersService {
   async getOrderDetail(id: string): Promise<GetOrderDetailResponseDTO> {
     try {
       const order = await this.ordersRepo.findOne({
-        where: { id , orderMembers: { active: true } },
+        where: { id },
         relations: [
           'member',
           'coursePlan',
@@ -156,6 +156,10 @@ export class OrdersService {
           HttpStatus.NOT_FOUND,
         );
       }
+
+      // Filter only active order members
+      const activeOrderMembers =
+        order.orderMembers?.filter((om) => om.active) || [];
 
       const orderDetail: GetOrderDetailResponseDTO = {
         id: order.id,
@@ -177,19 +181,18 @@ export class OrdersService {
         coursePlanImage: '',
         coursePlanDescription: order.coursePlan?.course?.description || '',
         departmentName: order.department?.name || '',
-        orderMembers:
-          order.orderMembers?.map((om) => ({
-            id: om.id,
-            memberId: om.memberId,
-            memberName: om.member?.name || '',
-            memberPhone: om.member?.phone || '',
-            memberBirthday: om.member?.birthday,
-            snowboard: om.member?.snowboard || 1,
-            skis: om.member?.skis || 1,
-            avatar: om.member?.avatar || '',
-            orderNo: order.no,
-            active: om.active,
-          })) || [],
+        orderMembers: activeOrderMembers.map((om) => ({
+          id: om.id,
+          memberId: om.memberId,
+          memberName: om.member?.name || '',
+          memberPhone: om.member?.phone || '',
+          memberBirthday: om.member?.birthday,
+          snowboard: om.member?.snowboard || 1,
+          skis: om.member?.skis || 1,
+          avatar: om.member?.avatar || '',
+          orderNo: order.no,
+          active: om.active,
+        })),
         discountId: order.discountId,
       };
 
@@ -317,11 +320,7 @@ export class OrdersService {
     }
   }
 
-
-
   async createOrder(body: CreateOrderRequestDTO, memberId: string) {
-
-
     console.log('body', body);
     try {
       const department = await this.departmentsRepo.findOne({
@@ -338,7 +337,6 @@ export class OrdersService {
         where: { id: body.coursePlanId },
         relations: ['course', 'course.coursePeople', 'sessions'],
       });
-
 
       if (!coursePlan) {
         throw new CustomException(
@@ -363,11 +361,7 @@ export class OrdersService {
             },
             attended: true,
           },
-          relations: [
-            'reservation',
-            'orderMember',
-            'orderMember.member',
-          ],
+          relations: ['reservation', 'orderMember', 'orderMember.member'],
         });
 
         if (!hasAttendedCourse) {
@@ -407,7 +401,8 @@ export class OrdersService {
 
         // 計算現有總人數
         const currentTotalPeople = existingOrders.reduce(
-          (sum, order) => sum + (order.adultCount || 0) + (order.childCount || 0),
+          (sum, order) =>
+            sum + (order.adultCount || 0) + (order.childCount || 0),
           0,
         );
 
@@ -420,8 +415,11 @@ export class OrdersService {
           );
         }
 
-        const minMaxPeople = Math.min(...coursePeople.map(cp => cp.maxPeople));
-        const newTotalPeople = currentTotalPeople + body.adultCount + body.childCount;
+        const minMaxPeople = Math.min(
+          ...coursePeople.map((cp) => cp.maxPeople),
+        );
+        const newTotalPeople =
+          currentTotalPeople + body.adultCount + body.childCount;
 
         if (newTotalPeople > minMaxPeople) {
           throw new CustomException(
@@ -456,16 +454,11 @@ export class OrdersService {
 
       await this.ordersRepo.save(savedOrder);
 
-      
       if (savedOrder) {
         // 創建 order-member 記錄
-        const orderMember = await this.orderMembersService.create({
-          orderId: savedOrder.id,
-          memberId: memberId,
-        });
 
         // 指定式個人練習須建立 reservation 和 order-reservation 關聯
-        if ( coursePlan.course.bkgType === 2 && coursePlan.course.type === 'I') {
+        if (coursePlan.course.bkgType === 2 && coursePlan.course.type === 'I') {
           // 使用 transaction 確保資料一致性
           const queryRunner = this.dataSource.createQueryRunner();
           await queryRunner.connect();
@@ -475,6 +468,13 @@ export class OrdersService {
             // 根據 coursePlan.sessions 建立對應數量的 reservations
             if (coursePlan.sessions && coursePlan.sessions.length > 0) {
               for (const session of coursePlan.sessions) {
+                // 0. 創建 OrderMember
+
+                const orderMember = await this.orderMembersService.create({
+                  orderId: savedOrder.id,
+                  memberId: memberId,
+                });
+
                 // 1. 創建 Reservation
                 const newReservation = queryRunner.manager.create(Reservation, {
                   reservationStatus: 1, // SCHEDULED
@@ -485,21 +485,28 @@ export class OrdersService {
                   createdUser: memberId,
                   updatedUser: memberId,
                 });
-                const savedReservation = await queryRunner.manager.save(newReservation);
+                const savedReservation =
+                  await queryRunner.manager.save(newReservation);
 
                 // 2. 創建 ReservationMember
-                const newReservationMember = queryRunner.manager.create(ReservationMember, {
-                  reservationId: savedReservation.id,
-                  orderMemberId: orderMember.id,
-                });
+                const newReservationMember = queryRunner.manager.create(
+                  ReservationMember,
+                  {
+                    reservationId: savedReservation.id,
+                    orderMemberId: orderMember.id,
+                  },
+                );
                 await queryRunner.manager.save(newReservationMember);
 
                 // 3. 創建 OrderReservation
-                const newOrderReservation = queryRunner.manager.create(OrderReservation, {
-                  orderId: savedOrder.id,
-                  reservationId: savedReservation.id,
-                  index: session.no - 1,
-                });
+                const newOrderReservation = queryRunner.manager.create(
+                  OrderReservation,
+                  {
+                    orderId: savedOrder.id,
+                    reservationId: savedReservation.id,
+                    index: session.no - 1,
+                  },
+                );
                 await queryRunner.manager.save(newOrderReservation);
               }
             }
@@ -515,14 +522,31 @@ export class OrdersService {
 
         // 指定式團體課須建立 reservation 和 order-reservation 關聯
         if (coursePlan.course.bkgType === 2 && coursePlan.course.type === 'G') {
-          // 查詢該訂單是否已有相關的 reservations
-          const existingOrderReservations = await this.orderReservationsRepo.find({
-            where: { orderId: savedOrder.id },
-            relations: ['reservation'],
-            order: { index: 'ASC' },
+          // 查詢是否有相同 coursePlan 的其他訂單
+          const otherOrders = await this.ordersRepo.find({
+            where: {
+              coursePlan: { id: coursePlan.id },
+            },
+            relations: ['orderReservations', 'orderReservations.reservation'],
+            order: { id: 'ASC' },
           });
+          console.log('otherOrders', otherOrders);
+          // 從其他訂單中取得已存在的 reservations（如果有的話）
+          const existingOrderReservations = otherOrders
+            .filter((order) => order.id !== savedOrder.id) // 排除當前訂單
+            .flatMap((order) => order.orderReservations)
+            .filter(
+              (or, index, self) =>
+                index ===
+                self.findIndex((t) => t.reservationId === or.reservationId),
+            ) // 去重
+            .sort((a, b) => a.index - b.index);
 
-          const existingReservations = existingOrderReservations.map(or => or.reservation);
+          const existingReservations = existingOrderReservations.map(
+            (or) => or.reservation,
+          );
+
+          console.log('existingReservations', existingReservations);
           const sessionCount = coursePlan.sessions?.length || 0;
 
           // 驗證 sessions 資料
@@ -555,20 +579,20 @@ export class OrdersService {
                 const session = coursePlan.sessions[i];
                 const existingReservation = existingReservations[i];
 
-                // 檢查是否已存在對應的 OrderReservation
-                const existingOrderReservation = existingOrderReservations.find(
-                  or => or.reservationId === existingReservation.id
-                );
-
-                if (!existingOrderReservation) {
-                  // 如果不存在，創建 OrderReservation
-                  const newOrderReservation = queryRunner.manager.create(OrderReservation, {
+                // 如果不存在，創建 OrderReservation
+                const newOrderReservation = queryRunner.manager.create(
+                  OrderReservation,
+                  {
                     orderId: savedOrder.id,
                     reservationId: existingReservation.id,
                     index: session.no - 1,
-                  });
-                  await queryRunner.manager.save(newOrderReservation);
-                }
+                  },
+                );
+                await queryRunner.manager.save(newOrderReservation);
+                console.log(
+                  'Created new OrderReservation',
+                  newOrderReservation,
+                );
               }
 
               await queryRunner.commitTransaction();
@@ -598,14 +622,18 @@ export class OrdersService {
                   createdUser: memberId,
                   updatedUser: memberId,
                 });
-                const savedReservation = await queryRunner.manager.save(newReservation);
+                const savedReservation =
+                  await queryRunner.manager.save(newReservation);
 
                 // 2. 創建 OrderReservation
-                const newOrderReservation = queryRunner.manager.create(OrderReservation, {
-                  orderId: savedOrder.id,
-                  reservationId: savedReservation.id,
-                  index: session.no - 1,
-                });
+                const newOrderReservation = queryRunner.manager.create(
+                  OrderReservation,
+                  {
+                    orderId: savedOrder.id,
+                    reservationId: savedReservation.id,
+                    index: session.no - 1,
+                  },
+                );
                 await queryRunner.manager.save(newOrderReservation);
 
                 // 注意: 不創建 ReservationMember（與個人練習不同）

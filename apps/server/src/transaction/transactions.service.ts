@@ -21,6 +21,10 @@ export class TransactionsService {
         ...new Transaction(),
 
         // todo: 其他需要的欄位還沒加入
+        totalAmt: 0, // 暫時設為 0，後續需要根據訂單計算
+        discountFee: 0,
+        depositAmt: 0,
+        balanceAmt: 0,
 
         status: TransactionStatus.PENDING_DEPOSIT,
         // 設定cascade可一起儲存關聯資料

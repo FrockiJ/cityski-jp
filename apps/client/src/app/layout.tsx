@@ -13,7 +13,7 @@ const notoSansTC = Noto_Sans_TC({
 	weight: ['400', '500', '700'],
 	variable: '--font-noto-sans-tc',
 	display: 'swap',
-	subsets: ['cyrillic', 'latin', 'latin-ext', 'vietnamese'],
+	subsets: ['latin'],
 });
 
 const poppins = Poppins({

@@ -1,11 +1,22 @@
-import { Injectable, HttpException, HttpStatus, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  HttpException,
+  HttpStatus,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike, DataSource } from 'typeorm';
 import { OrderMember } from './entities/order-member.entity';
 import { Order } from 'src/orders/entities/order.entity';
-import { OrderMemberSearchResponseDto, TransferOrderMemberRequestDto } from '@repo/shared';
+import {
+  OrderMemberSearchResponseDto,
+  TransferOrderMemberRequestDto,
+} from '@repo/shared';
 import { OrderHistoryService } from 'src/order-history/order-history.service';
 import { MembersService } from 'src/members/members.service';
+import { OrderReservationsService } from 'src/order-reservations/order-reservations.service';
+import { ReservationMembersService } from 'src/reservation-members/reservation-members.service';
 
 @Injectable()
 export class OrderMembersService {
@@ -19,18 +30,72 @@ export class OrderMembersService {
     private readonly orderHistoryService: OrderHistoryService,
     @Inject(forwardRef(() => MembersService))
     private readonly membersService: MembersService,
+    @Inject(forwardRef(() => OrderReservationsService))
+    private readonly orderReservationsService: OrderReservationsService,
+    @Inject(forwardRef(() => ReservationMembersService))
+    private readonly reservationMembersService: ReservationMembersService,
   ) {}
 
   async create(orderMemberData: Partial<OrderMember>): Promise<OrderMember> {
     try {
+      // 1. Create and save the orderMember
       const orderMember = this.orderMembersRepo.create(orderMemberData);
-      return await this.orderMembersRepo.save(orderMember);
+      const savedOrderMember = await this.orderMembersRepo.save(orderMember);
+
+      // 2. Fetch the order to check if it's a designated group course
+      const order = await this.ordersRepo.findOne({
+        where: { id: orderMemberData.orderId },
+        select: ['id', 'type', 'bkgType'],
+      });
+
+      if (!order) {
+        throw new HttpException(
+          `Order with id: ${orderMemberData.orderId} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // 3. Check if this is a designated group course (指定式課程的團體班)
+      // type='G' (GROUP) && bkgType=2 (FIXED/designated)
+      if (order.type === 'G' && order.bkgType === 2) {
+        console.log('Designated group course detected, adding to reservations');
+        // 4. Find all reservations for this order
+        const orderReservations =
+          await this.orderReservationsService.findByOrderId(order.id);
+        console.log('orderReservations', orderReservations);
+
+        // 5. Filter out orderReservations that don't have a valid reservationId
+        const validOrderReservations = orderReservations.filter(
+          (or) => or.reservationId !== null,
+        );
+        console.log('validOrderReservations', validOrderReservations);
+
+        // 6. Add the orderMember to each reservation
+        if (validOrderReservations.length > 0) {
+          console.log('Adding orderMember to reservations');
+          for (const orderReservation of validOrderReservations) {
+            await this.reservationMembersService.create({
+              reservationId: orderReservation.reservationId,
+              orderMemberId: savedOrderMember.id,
+              attended: true,
+            });
+          }
+        }
+      }
+
+      return savedOrderMember;
     } catch (err) {
-      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        err.message,
+        err.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
-  async validateOrderOwnership(orderId: string, memberId: string): Promise<boolean> {
+  async validateOrderOwnership(
+    orderId: string,
+    memberId: string,
+  ): Promise<boolean> {
     try {
       const order = await this.ordersRepo.findOne({
         where: {
@@ -128,7 +193,9 @@ export class OrderMembersService {
     }
   }
 
-  async transfer(transferData: TransferOrderMemberRequestDto): Promise<OrderMember> {
+  async transfer(
+    transferData: TransferOrderMemberRequestDto,
+  ): Promise<OrderMember> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -155,7 +222,9 @@ export class OrderMembersService {
       }
 
       // 2. Validate target member exists (toId)
-      const targetMember = await this.membersService.findMemberById(transferData.toId);
+      const targetMember = await this.membersService.findMemberById(
+        transferData.toId,
+      );
       if (!targetMember) {
         throw new HttpException(
           `Member with id: ${transferData.toId} not found`,
@@ -205,17 +274,18 @@ export class OrderMembersService {
     }
   }
 
-  async searchWithCoursesLeft(keyword: string): Promise<OrderMemberSearchResponseDto[]> {
+  async searchWithCoursesLeft(
+    keyword: string,
+  ): Promise<OrderMemberSearchResponseDto[]> {
     try {
-      const where = keyword && keyword.trim()
-        ? [
-            { active: true, member: { name: ILike(`%${keyword}%`) } },
-            { active: true, member: { phone: ILike(`%${keyword}%`) } },
-            { active: true, member: { email: ILike(`%${keyword}%`) } },
-          ]
-        : { active: true };
-
-
+      const where =
+        keyword && keyword.trim()
+          ? [
+              { active: true, member: { name: ILike(`%${keyword}%`) } },
+              { active: true, member: { phone: ILike(`%${keyword}%`) } },
+              { active: true, member: { email: ILike(`%${keyword}%`) } },
+            ]
+          : { active: true };
 
       return await this.orderMembersRepo.find({
         where,

@@ -628,7 +628,7 @@ const AddEditReservationIndoorModal = ({
 									console.log('課程資訊');
 								}}
 							>
-								{modalType === ModalType.EDIT &&
+								{/* {modalType === ModalType.EDIT &&
 									reservationDetail?.linkedOrders &&
 									reservationDetail.linkedOrders.length > 1 && (
 										<Alert severity='warning' icon={<WarningAmberIcon />} sx={{ mb: 2 }}>
@@ -646,7 +646,7 @@ const AddEditReservationIndoorModal = ({
 												</ul>
 											</div>
 										</Alert>
-									)}
+									)} */}
 								<ReservationInfo
 									courseInfo={courseInfo}
 									reservationDetail={reservationDetail}

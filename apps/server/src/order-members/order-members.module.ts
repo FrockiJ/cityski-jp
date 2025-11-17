@@ -9,6 +9,8 @@ import { User } from 'src/users/entities/user.entity';
 import { OrdersModule } from 'src/orders/orders.module';
 import { MembersModule } from 'src/members/members.module';
 import { OrderHistoryModule } from 'src/order-history/order-history.module';
+import { OrderReservationsModule } from 'src/order-reservations/order-reservations.module';
+import { ReservationMembersModule } from 'src/reservation-members/reservation-members.module';
 import { JwtModule } from '@nestjs/jwt';
 
 @Module({
@@ -17,6 +19,8 @@ import { JwtModule } from '@nestjs/jwt';
     forwardRef(() => OrdersModule),
     forwardRef(() => MembersModule),
     forwardRef(() => OrderHistoryModule),
+    forwardRef(() => OrderReservationsModule),
+    forwardRef(() => ReservationMembersModule),
     JwtModule,
   ],
   controllers: [OrderMembersController],

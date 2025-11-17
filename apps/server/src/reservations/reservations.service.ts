@@ -121,7 +121,7 @@ export class ReservationsService {
       // 獲取連結的訂單資訊
       const orderReservations = await this.orderReservationsRepo.find({
         where: { reservationId: id },
-        relations: ['order'],
+        relations: ['order', 'order.coursePlan', 'order.coursePlan.course', 'order.coursePlan.course.coursePeople'],
         order: { index: 'ASC' },
       });
 
@@ -159,9 +159,17 @@ export class ReservationsService {
         } : undefined,
       }));
 
-      const maxStudentCount = reservation.reservationMembers[0].orderMember.order.coursePlan.course.coursePeople[0].maxPeople;
+      // Get course information from orderReservations instead of reservationMembers
+      const firstOrder = orderReservations[0]?.order;
+      const coursePlan = firstOrder?.coursePlan;
+      const course = coursePlan?.course;
+      const coursePeople = course?.coursePeople?.[0];
 
-      const minStudentCount = reservation.reservationMembers[0].orderMember.order.coursePlan.course.coursePeople[0].minPeople;
+      const maxStudentCount = coursePeople?.maxPeople;
+      const minStudentCount = coursePeople?.minPeople;
+      const courseType = firstOrder?.type;
+      const skiType = firstOrder?.skiType;
+
       const reservationDetail: GetReservationDetailResponseDto = {
         id: reservation.id,
         reservationNo: reservation.reservationNo,
@@ -174,11 +182,10 @@ export class ReservationsService {
         updatedTime: reservation.updatedTime,
         linkedOrders: linkedOrders.length > 0 ? linkedOrders : undefined,
         reservationMembers: reservationMembers,
-        minStudentCount ,
+        minStudentCount,
         maxStudentCount,
-        courseType: reservation.reservationMembers[0].orderMember.order.type,
-        skiType: reservation.reservationMembers[0].orderMember.order.skiType,
-
+        courseType,
+        skiType,
       };
 
       return reservationDetail;

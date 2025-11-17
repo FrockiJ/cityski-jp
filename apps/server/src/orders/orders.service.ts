@@ -513,6 +513,113 @@ export class OrdersService {
           }
         }
 
+        // 指定式團體課須建立 reservation 和 order-reservation 關聯
+        if (coursePlan.course.bkgType === 2 && coursePlan.course.type === 'G') {
+          // 查詢該訂單是否已有相關的 reservations
+          const existingOrderReservations = await this.orderReservationsRepo.find({
+            where: { orderId: savedOrder.id },
+            relations: ['reservation'],
+            order: { index: 'ASC' },
+          });
+
+          const existingReservations = existingOrderReservations.map(or => or.reservation);
+          const sessionCount = coursePlan.sessions?.length || 0;
+
+          // 驗證 sessions 資料
+          if (!coursePlan.sessions || sessionCount === 0) {
+            throw new CustomException(
+              'CoursePlan sessions not found or empty for group course',
+              HttpStatus.BAD_REQUEST,
+            );
+          }
+
+          // 情況 A: 已存在 reservations
+          if (existingReservations.length > 0) {
+            // 數量必須完全匹配
+            if (existingReservations.length !== sessionCount) {
+              throw new CustomException(
+                `Existing reservations count (${existingReservations.length}) does not match sessions count (${sessionCount})`,
+                HttpStatus.BAD_REQUEST,
+              );
+            }
+
+            // 為每個現有的 reservation 創建 OrderReservation（如果尚未創建）
+            // 注：此處假設已查詢到的 existingOrderReservations 可能不完整，需補充
+            // 實際上如果邏輯正確，這裡應該已經有了，但為了保險起見，我們還是執行創建邏輯
+            const queryRunner = this.dataSource.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try {
+              for (let i = 0; i < coursePlan.sessions.length; i++) {
+                const session = coursePlan.sessions[i];
+                const existingReservation = existingReservations[i];
+
+                // 檢查是否已存在對應的 OrderReservation
+                const existingOrderReservation = existingOrderReservations.find(
+                  or => or.reservationId === existingReservation.id
+                );
+
+                if (!existingOrderReservation) {
+                  // 如果不存在，創建 OrderReservation
+                  const newOrderReservation = queryRunner.manager.create(OrderReservation, {
+                    orderId: savedOrder.id,
+                    reservationId: existingReservation.id,
+                    index: session.no - 1,
+                  });
+                  await queryRunner.manager.save(newOrderReservation);
+                }
+              }
+
+              await queryRunner.commitTransaction();
+            } catch (err) {
+              await queryRunner.rollbackTransaction();
+              throw err;
+            } finally {
+              await queryRunner.release();
+            }
+          }
+          // 情況 B: 不存在 reservations，需要創建
+          else {
+            const queryRunner = this.dataSource.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try {
+              // 為每個 session 創建 Reservation 和 OrderReservation
+              for (const session of coursePlan.sessions) {
+                // 1. 創建 Reservation
+                const newReservation = queryRunner.manager.create(Reservation, {
+                  reservationStatus: 1, // SCHEDULED
+                  classTime: session.startTime,
+                  teachingLevel: '-',
+                  instructor: null,
+                  department: department,
+                  createdUser: memberId,
+                  updatedUser: memberId,
+                });
+                const savedReservation = await queryRunner.manager.save(newReservation);
+
+                // 2. 創建 OrderReservation
+                const newOrderReservation = queryRunner.manager.create(OrderReservation, {
+                  orderId: savedOrder.id,
+                  reservationId: savedReservation.id,
+                  index: session.no - 1,
+                });
+                await queryRunner.manager.save(newOrderReservation);
+
+                // 注意: 不創建 ReservationMember（與個人練習不同）
+              }
+
+              await queryRunner.commitTransaction();
+            } catch (err) {
+              await queryRunner.rollbackTransaction();
+              throw err;
+            } finally {
+              await queryRunner.release();
+            }
+          }
+        }
 
         // todo: 創order同時要創交易資料 尚未完成
         this.transactionsService.createTransaction(savedOrder);

@@ -5,12 +5,13 @@ import {
   Logger,
   BadRequestException,
   InternalServerErrorException,
+  Response,
 } from '@nestjs/common';
 import { EcpayService } from './ecpay.service';
 import { CreditCardPaymentInitializeRequest } from './interfaces/payment.interface';
 import { OrdersService } from 'src/orders/orders.service';
 
-@Controller('api/payments')
+@Controller('payments')
 export class EcpayController {
   private readonly logger = new Logger(EcpayController.name);
 
@@ -64,37 +65,38 @@ export class EcpayController {
   }
 
   /**
-   * 信用卡支付回調
+   * 信用卡支付回調 (ReturnURL)
    * POST /api/payments/credit-card/callback
    *
    * 注意：此端點由 ECPay 伺服器調用，用於通知支付結果
-   * 前端開發人員需要在 TransactionsService 中新增方法來處理支付狀態更新
+   * ECPay 期望收到 text/plain 格式的 "1|OK" 回應
    */
   @Post('credit-card/callback')
-  async handleCreditCardCallback(@Body() notification: any) {
+  async handleCreditCardCallback(
+    @Body() notification: any,
+    @Response() response: any,
+  ) {
     try {
       // 處理回調
-      await this.ecpayService.handlePaymentCallback(notification);
+      const result = await this.ecpayService.handlePaymentCallback(notification);
 
-      // TODO: 前端開發人員需要在此處呼叫 TransactionsService 的方法來更新交易狀態
-      // await this.transactionsService.updatePaymentStatus(
-      //   paymentResult.transactionId,
-      //   paymentResult.status === 'success' ? 'FULLY_PAID' : 'PENDING_DEPOSIT',
-      //   {
-      //     ecpayTradeNo: paymentResult.ecpayTradeNo,
-      //     paymentDate: paymentResult.paymentDate,
-      //   },
-      // );
+      this.logger.log(
+        `Payment callback processed: ${result.success ? 'success' : 'failed'}`,
+      );
 
-      // 回應 1|OK 給 ECPay
-      return '1|OK';
+      // TODO: 前端開發人員需要在 TransactionsService 中新增方法來更新交易狀態
+      // 根據 result.success 和支付結果更新交易狀態
+      // await this.transactionsService.updatePaymentStatus(...)
+
+      // 回應 1|OK 給 ECPay（ECPay 期望收到 text/plain）
+      response.type('text/plain').send('1|OK');
     } catch (error) {
       this.logger.error(
         `Failed to process payment callback: ${error.message}`,
         error,
       );
       // 即使失敗也要回應 1|OK，避免 ECPay 重複發送通知
-      return '1|OK';
+      response.type('text/plain').send('1|OK');
     }
   }
 }

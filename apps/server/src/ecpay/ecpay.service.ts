@@ -40,6 +40,8 @@ export class EcpayService {
         TradeDesc: `Order`,
         ItemName: `Payment`,
         ReturnURL: this.ecpayConfig.returnUrl,
+        OrderResultURL: this.ecpayConfig.orderResultUrl,
+        ClientBackURL: this.ecpayConfig.clientBackUrl,
         ChoosePayment: 'Credit',
         EncryptType: '1',
       };
@@ -73,48 +75,68 @@ export class EcpayService {
 
   /**
    * 處理 ECPay 回調通知
+   * 返回: { success: boolean, redirectUrl?: string }
    */
   async handlePaymentCallback(
     notification: EcpayCallbackNotification,
-  ): Promise<PaymentResult> {
-    // 驗證 CheckMacValue
-    const receivedCheckMacValue = notification.CheckMacValue;
-    const isCheckMacValid = this.cryptoService.verifyCheckMacValue(notification, receivedCheckMacValue);
+  ): Promise<{ success: boolean; redirectUrl?: string }> {
+    try {
+      // 驗證 CheckMacValue
+      const receivedCheckMacValue = notification.CheckMacValue;
+      const isCheckMacValid = this.cryptoService.verifyCheckMacValue(notification, receivedCheckMacValue);
 
-    if (!isCheckMacValid) {
-      throw new Error('CheckMacValue verification failed');
-    }
-
-    // 驗證 MerchantID
-    if (notification.MerchantID !== this.ecpayConfig.merchantId) {
-      throw new Error('Invalid MerchantID');
-    }
-
-    // 建立支付結果
-    const paymentResult: PaymentResult = {
-      orderId: notification.CustomField2 || notification.MerchantTradeNo,
-      transactionId: notification.CustomField1 || '',
-      ecpayTradeNo: notification.TradeNo,
-      amount: notification.TradeAmt,
-      paymentMethod: 'Credit',
-      paymentDate: notification.PaymentDate,
-      status: notification.RtnCode === 1 ? 'success' : 'failure',
-      merchantTradeNo: notification.MerchantTradeNo,
-    };
-
-    // 調用已註冊的 callbackUrl（如果有）
-    const callbackUrl = this.paymentCallbacks.get(notification.MerchantTradeNo);
-    if (callbackUrl) {
-      try {
-        await this.invokeCallbackUrl(callbackUrl, paymentResult);
-      } catch (error) {
-        // 不拋出錯誤，因為我們已經驗證了通知
+      if (!isCheckMacValid) {
+        this.logger.error('CheckMacValue verification failed');
+        return {
+          success: false,
+          redirectUrl: `${this.ecpayConfig.clientDomain}/courses/order-error`,
+        };
       }
-    }
-    // 移除已使用的 callback
-    this.paymentCallbacks.delete(notification.MerchantTradeNo);
 
-    return paymentResult;
+      // 驗證 MerchantID
+      if (notification.MerchantID !== this.ecpayConfig.merchantId) {
+        this.logger.error('Invalid MerchantID');
+        return {
+          success: false,
+          redirectUrl: `${this.ecpayConfig.clientDomain}/courses/order-error`,
+        };
+      }
+
+      // 建立支付結果
+      const paymentResult: PaymentResult = {
+        orderId: notification.CustomField2 || notification.MerchantTradeNo,
+        transactionId: notification.CustomField1 || '',
+        ecpayTradeNo: notification.TradeNo,
+        amount: notification.TradeAmt,
+        paymentMethod: 'Credit',
+        paymentDate: notification.PaymentDate,
+        status: notification.RtnCode === 1 ? 'success' : 'failure',
+        merchantTradeNo: notification.MerchantTradeNo,
+      };
+
+      // 調用已註冊的 callbackUrl（如果有）
+      const callbackUrl = this.paymentCallbacks.get(notification.MerchantTradeNo);
+      if (callbackUrl) {
+        try {
+          await this.invokeCallbackUrl(callbackUrl, paymentResult);
+        } catch (error) {
+          this.logger.error(`Callback invocation failed: ${error.message}`);
+        }
+      }
+      // 移除已使用的 callback
+      this.paymentCallbacks.delete(notification.MerchantTradeNo);
+
+      return {
+        success: true,
+        redirectUrl: `${this.ecpayConfig.clientDomain}/courses/order-result`,
+      };
+    } catch (error) {
+      this.logger.error(`Payment callback processing error: ${error.message}`);
+      return {
+        success: false,
+        redirectUrl: `${this.ecpayConfig.clientDomain}/courses/order-error`,
+      };
+    }
   }
 
   /**

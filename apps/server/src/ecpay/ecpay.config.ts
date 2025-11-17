@@ -10,6 +10,9 @@ export class EcpayConfig {
   readonly apiUrlProd: string;
   readonly environment: string;
   readonly returnUrl: string;
+  readonly orderResultUrl: string;
+  readonly clientBackUrl: string;
+  readonly clientDomain: string;
 
   constructor(private configService: ConfigService) {
     this.merchantId = this.configService.get<string>('ECPAY_MERCHANT_ID');
@@ -29,9 +32,19 @@ export class EcpayConfig {
     this.returnUrl = this.configService.get<string>(
       'ECPAY_RETURN_URL',
     );
+    this.clientDomain = this.configService.get<string>('CLIENT_DOMAIN');
+    this.orderResultUrl = this.configService.get<string>(
+      'ECPAY_ORDER_RESULT_URL',
+      `${this.clientDomain}/courses/order-result`,
+    );
+    this.clientBackUrl = this.configService.get<string>(
+      'ECPAY_CLIENT_BACK_URL',
+      `${this.clientDomain}/courses/order-success`,
+    );
   }
 
   getApiUrl(): string {
     return this.environment === 'prod' ? this.apiUrlProd : this.apiUrlStage;
   }
 }
+

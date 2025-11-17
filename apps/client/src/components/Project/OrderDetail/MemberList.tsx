@@ -30,16 +30,24 @@ interface Member {
 	birthday: Date | null;
 }
 
-export default function MemberList({ orderMembers, orderId, onAddMember, courseType, purchasedQuantity }: MemberListProps) {
+export default function MemberList({
+	orderMembers,
+	orderId,
+	onAddMember,
+	courseType,
+	purchasedQuantity,
+}: MemberListProps) {
 	const [newMemberSlots, setNewMemberSlots] = useState<MemberSlot[]>([]);
 	const [showTypeSelector, setShowTypeSelector] = useState(false);
 	const [showMemberModal, setShowMemberModal] = useState(false);
 	const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+	const [showInviteModal, setShowInviteModal] = useState(false);
 	const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 	const [selectedSlotType, setSelectedSlotType] = useState<MemberType | null>(null);
 	const [searchKeyword, setSearchKeyword] = useState('');
 	const [searchResults, setSearchResults] = useState<Member[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
+	const [inviteEmail, setInviteEmail] = useState('');
 	const selectorRef = useRef<HTMLDivElement>(null);
 	const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const accessToken = useSelector(selectToken);
@@ -202,6 +210,41 @@ export default function MemberList({ orderMembers, orderId, onAddMember, courseT
 		setSelectedSlotType(null);
 	};
 
+	// 打开邀请会员模态窗口
+	const handleInviteClick = () => {
+		setShowInviteModal(true);
+	};
+
+	// 关闭邀请会员模态窗口
+	const handleCloseInviteModal = () => {
+		setShowInviteModal(false);
+		setInviteEmail('');
+	};
+
+	// 处理LINE邀请
+	const handleLineInvite = () => {
+		// TODO: 实现LINE邀请逻辑
+		console.log('LINE邀请');
+	};
+
+	// 处理邮件邀请
+	const handleEmailInvite = () => {
+		if (!inviteEmail.trim()) {
+			alert('請輸入電子郵件地址');
+			return;
+		}
+		// TODO: 实现邮件邀请逻辑
+		console.log('邮件邀请:', inviteEmail);
+	};
+
+	// 复制邀请链接
+	const handleCopyInviteLink = () => {
+		const inviteLink = 'cityski.com.tw/invite?12345';
+		navigator.clipboard.writeText(inviteLink).then(() => {
+			alert('已複製連結');
+		});
+	};
+
 	return (
 		<div
 			data-property-1='Empty'
@@ -298,6 +341,7 @@ export default function MemberList({ orderMembers, orderId, onAddMember, courseT
 					<div className='self-stretch flex flex-col justify-start items-start gap-2'>
 						{orderMembers.map((member, index) => (
 							<div
+								key={`member-${index}`}
 								data-owner-icon='false'
 								data-property-1='Default'
 								data-remove-button='false'
@@ -478,6 +522,7 @@ export default function MemberList({ orderMembers, orderId, onAddMember, courseT
 										data-state='Default'
 										data-type='Stroke_Blue'
 										className='px-3 py-2 rounded-[20px] outline outline-1 outline-offset-[-1px] outline-blue-600 flex justify-center items-center gap-0.5 overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors'
+										onClick={handleInviteClick}
 									>
 										<div className="text-center justify-start text-blue-600 text-xs font-medium font-['Noto_Sans_TC'] leading-5">
 											邀請加入會員
@@ -748,6 +793,128 @@ export default function MemberList({ orderMembers, orderId, onAddMember, courseT
 							>
 								<div className="text-center justify-start text-white text-sm font-medium font-['Noto_Sans_TC'] leading-6">
 									確認
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* 邀请加入会员模态窗口 */}
+			{showInviteModal && (
+				<div
+					className='fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50'
+					onClick={handleCloseInviteModal}
+				>
+					<div
+						className='w-96 bg-white rounded-[20px] shadow-[0px_10px_26px_0px_rgba(0,0,0,0.13)] inline-flex flex-col justify-start items-center overflow-hidden'
+						onClick={(e) => e.stopPropagation()}
+					>
+						<div className='self-stretch h-16 relative bg-white'>
+							<div
+								className='w-10 h-10 left-[352px] top-[8px] absolute cursor-pointer hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center'
+								onClick={handleCloseInviteModal}
+							>
+								<div className='w-6 h-6 left-[8px] top-[8px] absolute overflow-hidden'>
+									<div className='w-2.5 h-2.5 left-[6.75px] top-[6.75px] absolute bg-neutral-600' />
+								</div>
+							</div>
+							<div className="left-[32px] top-[20px] absolute justify-start text-zinc-800 text-xl font-medium font-['Noto_Sans_TC'] leading-7">
+								邀請加入會員
+							</div>
+						</div>
+						<div className='self-stretch px-8 pt-4 pb-10 flex flex-col justify-start items-start gap-2'>
+							<div className='self-stretch flex flex-col justify-start items-start gap-8'>
+								<div className='self-stretch flex flex-col justify-start items-start gap-2'>
+									<div className="self-stretch justify-start text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+										透過LINE邀請
+									</div>
+									<div
+										data-state='Default'
+										data-type='Line Login'
+										className='self-stretch px-6 py-3 bg-green-500 rounded-lg inline-flex justify-center items-center gap-2 overflow-hidden cursor-pointer hover:bg-green-600 transition-colors'
+										onClick={handleLineInvite}
+									>
+										<div className='w-6 h-6 relative'>
+											<div className='w-5 h-5 left-[2px] top-[2.45px] absolute bg-white' />
+										</div>
+										<div className='flex justify-start items-center gap-2.5'>
+											<div className='flex justify-start items-center gap-0.5'>
+												<div className="text-center justify-start text-white text-base font-bold font-['Poppins'] leading-6">
+													LINE
+												</div>
+												<div className="text-center justify-start text-white text-base font-bold font-['Noto_Sans_TC'] leading-6">
+													邀請
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								<div className='self-stretch flex flex-col justify-start items-start gap-2'>
+									<div className="self-stretch justify-start text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+										透過電子郵件邀請
+									</div>
+									<div className='self-stretch flex flex-col justify-start items-start gap-3'>
+										<div
+											data-help-text='false'
+											data-state='Default'
+											className='self-stretch rounded-lg flex flex-col justify-start items-center gap-1.5 overflow-hidden'
+										>
+											<div className='self-stretch p-4 bg-white rounded-lg border border-zinc-300 inline-flex justify-start items-center gap-4'>
+												<input
+													type='email'
+													value={inviteEmail}
+													onChange={(e) => setInviteEmail(e.target.value)}
+													placeholder='Email'
+													className="flex-1 justify-start text-zinc-800 text-base font-normal font-['Poppins'] leading-6 outline-none bg-transparent placeholder:text-zinc-400"
+												/>
+												<div className='w-6 h-6 relative opacity-0 overflow-hidden'>
+													<div className='w-5 h-4 left-[1.44px] top-[3.25px] absolute bg-neutral-400' />
+												</div>
+											</div>
+										</div>
+										<div
+											data-state='Default'
+											data-type='Primary'
+											className='self-stretch px-6 py-4 bg-zinc-800 rounded-lg inline-flex justify-center items-center gap-2.5 overflow-hidden cursor-pointer hover:bg-zinc-700 transition-colors'
+											onClick={handleEmailInvite}
+										>
+											<div className="text-center justify-start text-white text-base font-bold font-['Noto_Sans_TC'] leading-6">
+												發送邀請
+											</div>
+										</div>
+									</div>
+								</div>
+								<div className='self-stretch flex flex-col justify-start items-start gap-6'>
+									<div className='self-stretch h-6 relative overflow-hidden'>
+										<div className='w-80 h-0 left-[1px] top-[12px] absolute outline outline-1 outline-offset-[-0.50px] outline-zinc-300'></div>
+										<div className='w-10 px-2 left-[148px] top-[4px] absolute bg-white inline-flex flex-col justify-center items-center gap-2.5'>
+											<div className="self-stretch text-center justify-start text-neutral-400 text-xs font-normal font-['Poppins'] leading-4">
+												OR
+											</div>
+										</div>
+									</div>
+									<div className='flex flex-col justify-center items-start gap-0.5'>
+										<div className="justify-start text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+											連結分享
+										</div>
+										<div className='w-80 inline-flex justify-between items-center'>
+											<div className="w-60 justify-start text-zinc-800 text-sm font-normal font-['Poppins'] leading-6">
+												cityski.com.tw/invite?12345
+											</div>
+											<div
+												className='rounded-lg flex justify-center items-center gap-1 overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors px-1 py-1'
+												onClick={handleCopyInviteLink}
+											>
+												<div className="text-center justify-start text-blue-600 text-sm font-medium font-['Noto_Sans_TC'] leading-6">
+													複製連結
+												</div>
+												<div className='w-4 h-4 relative'>
+													<div className='w-3 h-3.5 left-[2px] top-[1.33px] absolute bg-blue-600' />
+												</div>
+											</div>
+										</div>
+									</div>
 								</div>
 							</div>
 						</div>

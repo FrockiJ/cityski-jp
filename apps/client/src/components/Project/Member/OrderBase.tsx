@@ -207,17 +207,17 @@ export default function OrderBase({ orderStatusMapper }: OrderBaseProps) {
 								</div>
 								<div data-svg-wrapper className='left-[215px] top-[24px] absolute'>
 									<svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
-										<circle cx='12' cy='12' r='11.25' stroke='#C5DFEF' stroke-width='1.5' stroke-dasharray='4 1' />
+										<circle cx='12' cy='12' r='11.25' stroke='#C5DFEF' strokeWidth='1.5' stroke-dasharray='4 1' />
 									</svg>
 								</div>
 								<div data-svg-wrapper className='left-[221px] top-[102px] absolute'>
 									<svg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'>
-										<circle cx='8' cy='8' r='7.25' stroke='#C5DFEF' stroke-width='1.5' stroke-dasharray='3 1' />
+										<circle cx='8' cy='8' r='7.25' stroke='#C5DFEF' strokeWidth='1.5' stroke-dasharray='3 1' />
 									</svg>
 								</div>
 								<div data-svg-wrapper className='left-[108px] top-[16px] absolute'>
 									<svg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'>
-										<circle cx='8' cy='8' r='7.25' stroke='#C5DFEF' stroke-width='1.5' stroke-dasharray='1 1' />
+										<circle cx='8' cy='8' r='7.25' stroke='#C5DFEF' strokeWidth='1.5' stroke-dasharray='1 1' />
 									</svg>
 								</div>
 								<div data-svg-wrapper className='left-0 top-[98.78px] absolute'>

@@ -81,7 +81,7 @@ export default function OrderDetail() {
 						headers: {
 							Authorization: `Bearer ${accessToken}`,
 						},
-					}
+					},
 				);
 				setOrderReservations(response.data.result);
 			} catch (error) {
@@ -163,8 +163,8 @@ export default function OrderDetail() {
 																fill='#0F72ED'
 															/>
 															<path
-																fill-rule='evenodd'
-																clip-rule='evenodd'
+																fillRule='evenodd'
+																clipRule='evenodd'
 																d='M8.00038 1.33325C4.31848 1.33325 1.33371 4.31802 1.33371 7.99992C1.33371 11.6818 4.31848 14.6666 8.00038 14.6666C11.6823 14.6666 14.667 11.6818 14.667 7.99992C14.667 6.23181 13.9647 4.53612 12.7144 3.28587C11.4642 2.03563 9.76849 1.33325 8.00038 1.33325ZM2.53371 7.99992C2.53371 4.98076 4.98122 2.53325 8.00038 2.53325C9.45022 2.53325 10.8407 3.1092 11.8659 4.1344C12.8911 5.1596 13.467 6.55007 13.467 7.99992C13.467 11.0191 11.0195 13.4666 8.00038 13.4666C4.98122 13.4666 2.53371 11.0191 2.53371 7.99992Z'
 																fill='#0F72ED'
 															/>
@@ -334,8 +334,8 @@ export default function OrderDetail() {
 														<path d='M4.7667 9.90002V8.76668H5.90004V9.90002H4.7667Z' fill='#2B2B2B' />
 														<path d='M4.7667 11.9V10.7667H5.90004V11.9H4.7667Z' fill='#2B2B2B' />
 														<path
-															fill-rule='evenodd'
-															clip-rule='evenodd'
+															fillRule='evenodd'
+															clipRule='evenodd'
 															d='M4.7667 2.76668V2.43335C4.7667 1.88106 5.21442 1.43335 5.7667 1.43335H10.2334C10.7857 1.43335 11.2334 1.88107 11.2334 2.43335V2.76668H13.3378C13.6483 2.76668 13.9 3.01854 13.9 3.32895V14.0044C13.9 14.3149 13.6482 14.5667 13.3378 14.5667H2.6623C2.35178 14.5667 2.10004 14.3149 2.10004 14.0044V3.32895C2.10004 3.01843 2.35189 2.76668 2.6623 2.76668H4.7667ZM10.1 2.56668H5.90004V4.10002H10.1V2.56668ZM4.7667 3.90002H3.23337V13.4334H12.7667V3.90002H11.2334V5.23335H4.7667V3.90002Z'
 															fill='#2B2B2B'
 														/>
@@ -375,52 +375,55 @@ export default function OrderDetail() {
 									</div>
 								</div>
 							</div>
-						<CourseReservation
-							orderReservations={orderReservations}
-							courseType={courseDetail.type}
-							orderMembers={orderMembers}
-							coursePeople={courseDetail.coursePeople}
-							adultCount={orderDetail.adultCount}
-							childCount={orderDetail.childCount}
-							orderId={orderId}
-							departmentId={courseDetail.departmentId}
-							accessToken={accessToken}
-							onReservationCreated={async () => {
-								// 重新獲取訂單預約資訊
-								try {
-									const response = await api.get<ResponseWrapper<OrderReservationResponseDto[]>>(
-										`/api/orders/${orderId}/reservations`,
-										{
-											headers: {
-												Authorization: `Bearer ${accessToken}`,
+							<CourseReservation
+								orderReservations={orderReservations}
+								courseType={courseDetail.type}
+								orderMembers={orderMembers}
+								coursePeople={courseDetail.coursePeople}
+								adultCount={orderDetail.adultCount}
+								childCount={orderDetail.childCount}
+								orderId={orderId}
+								departmentId={courseDetail.departmentId}
+								accessToken={accessToken}
+								onReservationCreated={async () => {
+									// 重新獲取訂單預約資訊
+									try {
+										const response = await api.get<ResponseWrapper<OrderReservationResponseDto[]>>(
+											`/api/orders/${orderId}/reservations`,
+											{
+												headers: {
+													Authorization: `Bearer ${accessToken}`,
+												},
 											},
-										}
-									);
-									setOrderReservations(response.data.result);
-								} catch (error) {
-									console.error('Failed to refresh order reservations:', error);
-								}
-							}}
-						/>
-						<MemberList
-							orderMembers={orderMembers}
-							orderId={orderId}
-							courseType={courseDetail.type}
-							purchasedQuantity={orderDetail.adultCount + orderDetail.childCount}
-							onAddMember={async () => {
-								// 重新获取订单详情以更新成员列表
-								try {
-									const response = await api.get<ResponseWrapper<GetOrderDetailResponseDTO>>(`/api/orders/${orderId}`, {
-										headers: {
-											Authorization: `Bearer ${accessToken}`,
-										},
-									});
-									setOrderDetail(response.data.result);
-								} catch (error) {
-									console.error('Failed to refresh order detail:', error);
-								}
-							}}
-						/>
+										);
+										setOrderReservations(response.data.result);
+									} catch (error) {
+										console.error('Failed to refresh order reservations:', error);
+									}
+								}}
+							/>
+							<MemberList
+								orderMembers={orderMembers}
+								orderId={orderId}
+								courseType={courseDetail.type}
+								purchasedQuantity={orderDetail.adultCount + orderDetail.childCount}
+								onAddMember={async () => {
+									// 重新获取订单详情以更新成员列表
+									try {
+										const response = await api.get<ResponseWrapper<GetOrderDetailResponseDTO>>(
+											`/api/orders/${orderId}`,
+											{
+												headers: {
+													Authorization: `Bearer ${accessToken}`,
+												},
+											},
+										);
+										setOrderDetail(response.data.result);
+									} catch (error) {
+										console.error('Failed to refresh order detail:', error);
+									}
+								}}
+							/>
 							<div className='self-stretch px-8 pt-6 pb-8 bg-white rounded-2xl outline outline-1 outline-offset-[-1px] outline-zinc-300 flex flex-col justify-start items-start gap-6'>
 								<div className='self-stretch flex flex-col justify-start items-start gap-9'>
 									<div className='self-stretch flex flex-col justify-start items-end gap-6'>
@@ -634,9 +637,9 @@ export default function OrderDetail() {
 																	<path
 																		d='M7 11.6665L10.3333 8.33317L7 4.99984'
 																		stroke='#0F72ED'
-																		stroke-width='1.5'
-																		stroke-linecap='round'
-																		stroke-linejoin='round'
+																		strokeWidth='1.5'
+																		strokeLinecap='round'
+																		strokeLinejoin='round'
 																	/>
 																</svg>
 															</div>

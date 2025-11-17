@@ -14,9 +14,9 @@ export default function NavArrowUpDarkIcon() {
 			<path
 				d='M36.8706 29.6011L31.5336 24.264L26.1965 29.6011'
 				stroke='white'
-				stroke-width='1.60111'
-				stroke-linecap='round'
-				stroke-linejoin='round'
+				strokeWidth='1.60111'
+				strokeLinecap='round'
+				strokeLinejoin='round'
 			/>
 			<defs>
 				<filter

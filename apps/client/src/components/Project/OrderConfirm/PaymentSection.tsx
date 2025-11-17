@@ -1,7 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-function PaymentSection() {
+interface PaymentSectionProps {
+	onPaymentMethodChange?: (method: 'credit' | 'atm') => void;
+}
+
+function PaymentSection({ onPaymentMethodChange }: PaymentSectionProps) {
 	const [selectedPayment, setSelectedPayment] = useState<'credit' | 'atm'>('credit');
+
+	useEffect(() => {
+		onPaymentMethodChange?.(selectedPayment);
+	}, [selectedPayment, onPaymentMethodChange]);
 
 	return (
 		<section className='pb-12 mt-9 w-full text-justify border-b border-solid border-b-[color:var(--neutral-5,#D7D7D7)] text-zinc-800 max-xs:max-w-full'>

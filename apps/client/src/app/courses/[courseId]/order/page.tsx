@@ -83,13 +83,6 @@ function OrderConfirmationPage() {
 	}, [dispatch]);
 
 	const handleSubmit = async () => {
-		// 驗證認證 token
-		if (!authToken) {
-			console.error('No auth token found');
-			alert('認證失敗，請重新登入');
-			return;
-		}
-
 		const body = {
 			type: courseDetail.type,
 			departmentId: courseDetail.departmentId,
@@ -106,8 +99,6 @@ function OrderConfirmationPage() {
 		};
 
 		try {
-			console.log('Creating order with auth token:', authToken.substring(0, 20) + '...');
-
 			const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders`, {
 				method: 'POST',
 				headers: {
@@ -119,15 +110,7 @@ function OrderConfirmationPage() {
 
 			if (response.status === 201) {
 				const orderData = await response.json();
-				console.log('Full order response:', JSON.stringify(orderData, null, 2));
-				console.log('Result:', orderData?.result);
-				const orderId = orderData?.result?.id;
-
-				if (!orderId) {
-					console.error('orderId missing. Full response:', orderData);
-					alert('訂單創建成功，但無法獲取訂單ID。檢查控制台日誌。');
-					return;
-				}
+				const orderId = orderData?.result?.no;
 
 				// Save form data to localStorage before navigating
 				localStorage.removeItem('courseOrderData');
@@ -136,11 +119,9 @@ function OrderConfirmationPage() {
 					JSON.stringify({
 						courseDetail: courseDetail,
 						order: body,
-						orderId: orderId,
 						department: department,
 						plan: plan,
 						formData,
-						paymentMethod: paymentMethod,
 						timestamp: formData.date ? new Date(formData.date).getTime() : undefined,
 					}),
 				);

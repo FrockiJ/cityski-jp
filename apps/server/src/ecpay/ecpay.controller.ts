@@ -33,17 +33,8 @@ export class EcpayController {
         `Initializing credit card payment for orderId: ${request.orderId}`,
       );
 
-      // 驗證訂單
-      try {
-        await this.ordersService.getOrderDetail(request.orderId);
-      } catch {
-        throw new BadRequestException('Order not found');
-      }
-
-      // 驗證金額
-      if (request.amount <= 0) {
-        throw new BadRequestException('Invalid amount');
-      }
+      // TODO:
+      // 驗證訂單? 驗證金額?
 
       // 初始化支付
       const result = await this.ecpayService.initializeCreditCardPayment(

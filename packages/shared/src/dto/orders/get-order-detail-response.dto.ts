@@ -1,5 +1,6 @@
-import { Expose } from "class-transformer";
+import { Expose, Type } from "class-transformer";
 import { OrderStatusEnum, CourseType, CourseSkiType, CourseBkgType, OrderChannelEnum } from "src/constants/enums";
+import { OrderInvitationResponseDto } from "../order-invitations/order-invitation-response.dto";
 export  class OrderMemberDetailDTO {
         id: string;
         memberId: string;
@@ -80,4 +81,9 @@ export class GetOrderDetailResponseDTO {
 
   @Expose()
   discountId: string;
+
+  // Pending invitations
+  @Expose()
+  @Type(() => OrderInvitationResponseDto)
+  pendingInvitations?: OrderInvitationResponseDto[];
 }

@@ -23,6 +23,7 @@ import { CustomException } from 'src/common/exception/custom.exception';
 import { Transaction } from 'src/transaction/entities/transaction.entity';
 import { TransactionsService } from 'src/transaction/transactions.service';
 import { OrderMembersService } from 'src/order-members/order-members.service';
+import { OrderInvitationsService } from 'src/order-invitations/order-invitations.service';
 import { Reservation } from 'src/reservations/entities/reservation.entity';
 import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
@@ -52,6 +53,8 @@ export class OrdersService {
     private readonly transactionsService: TransactionsService,
     @Inject(forwardRef(() => OrderMembersService))
     private readonly orderMembersService: OrderMembersService,
+    @Inject(forwardRef(() => OrderInvitationsService))
+    private readonly orderInvitationsService: OrderInvitationsService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -161,6 +164,10 @@ export class OrdersService {
       const activeOrderMembers =
         order.orderMembers?.filter((om) => om.active) || [];
 
+      // Get pending invitations for this order
+      const pendingInvitations =
+        await this.orderInvitationsService.getPendingInvitationsByOrderId(id);
+
       const orderDetail: GetOrderDetailResponseDTO = {
         id: order.id,
         no: order.no,
@@ -194,6 +201,7 @@ export class OrdersService {
           active: om.active,
         })),
         discountId: order.discountId,
+        pendingInvitations: pendingInvitations || [],
       };
 
       return orderDetail;

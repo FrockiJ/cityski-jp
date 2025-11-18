@@ -1,7 +1,8 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MembersService } from 'src/members/members.service';
 import { AuthService } from './auth.service';
+import { OrderInvitationsService } from 'src/order-invitations/order-invitations.service';
 import { LineProfileRes } from 'src/shared/types/auth';
 import ms from 'ms';
 import { decode } from 'jsonwebtoken';
@@ -26,6 +27,8 @@ export class LineService {
     private readonly authService: AuthService,
     private readonly membersService: MembersService,
     private readonly configService: ConfigService,
+    @Inject(forwardRef(() => OrderInvitationsService))
+    private readonly orderInvitationsService: OrderInvitationsService,
   ) {}
 
   /**
@@ -201,6 +204,7 @@ export class LineService {
       name,
       birthday,
       phone,
+      invitationToken,
     } = lineSignUpRequestDto;
 
     // get token from id token
@@ -255,6 +259,20 @@ export class LineService {
         phone,
         email: lineEmail,
       });
+    }
+
+    // if there's an invitation token, redeem it
+    if (invitationToken) {
+      try {
+        await this.orderInvitationsService.redeemInvitation(
+          invitationToken,
+          newMember.id,
+        );
+      } catch (error) {
+        console.error('Failed to redeem invitation:', error);
+        // Don't fail the registration if invitation redemption fails
+        // The invitation can be manually linked later if needed
+      }
     }
 
     // generate and return access and refresh tokens

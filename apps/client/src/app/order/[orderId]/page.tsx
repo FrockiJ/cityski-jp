@@ -36,6 +36,7 @@ export default function OrderDetail() {
 	const [courseDetail, setCourseDetail] = useState<GetCourseDetailResponseDTO>();
 	const [orderMembers, setOrderMembers] = useState(orderDetail?.orderMembers || []);
 	const [orderReservations, setOrderReservations] = useState<OrderReservationResponseDto[]>([]);
+	const [pendingInvitations, setPendingInvitations] = useState(orderDetail?.pendingInvitations || []);
 
 	useEffect(() => {
 		if (!accessToken) return;
@@ -95,6 +96,7 @@ export default function OrderDetail() {
 	useEffect(() => {
 		if (orderDetail) {
 			setOrderMembers(orderDetail.orderMembers || []);
+			setPendingInvitations(orderDetail.pendingInvitations || []);
 		}
 	}, [orderDetail]);
 
@@ -407,6 +409,7 @@ export default function OrderDetail() {
 								orderId={orderId}
 								courseType={courseDetail.type}
 								purchasedQuantity={orderDetail.adultCount + orderDetail.childCount}
+								pendingInvitations={pendingInvitations}
 								onAddMember={async () => {
 									// 重新获取订单详情以更新成员列表
 									try {
@@ -422,6 +425,10 @@ export default function OrderDetail() {
 									} catch (error) {
 										console.error('Failed to refresh order detail:', error);
 									}
+								}}
+								onInvitationCreated={(newInvitation) => {
+									// 直接將新邀請添加到列表中
+									setPendingInvitations((prev) => [...prev, newInvitation]);
 								}}
 							/>
 							<div className='self-stretch px-8 pt-6 pb-8 bg-white rounded-2xl outline outline-1 outline-offset-[-1px] outline-zinc-300 flex flex-col justify-start items-start gap-6'>

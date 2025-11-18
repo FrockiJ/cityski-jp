@@ -52,7 +52,6 @@ export class OrdersController {
     @Query('limit') limit: number = 10,
     @Req() request: CustomRequest,
   ): Promise<ResWithPaginationDTO<GetOrdersResponseDTO[]>> {
-    console.log(request);
     const memberId = request['user'].sub;
     const result = await this.ordersService.getOrdersByMemberId(memberId, page, limit);
     return {

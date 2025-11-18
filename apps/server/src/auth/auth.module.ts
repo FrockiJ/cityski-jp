@@ -11,6 +11,7 @@ import { UserRolesDepartments } from 'src/users/entities/userRolesDepartments.en
 import { Menu } from 'src/menu/entities/menu.entity';
 import { Member } from 'src/members/entities/member.entity';
 import { MembersModule } from 'src/members/members.module';
+import { OrderInvitationsModule } from 'src/order-invitations/order-invitations.module';
 import { LineService } from './line.service';
 import { SMTPService } from 'src/smtp/smtp.service';
 
@@ -31,6 +32,7 @@ import { SMTPService } from 'src/smtp/smtp.service';
     }),
     forwardRef(() => UsersModule),
     forwardRef(() => MembersModule),
+    forwardRef(() => OrderInvitationsModule),
   ],
   controllers: [AuthController],
   providers: [AuthService, LineService, SMTPService],

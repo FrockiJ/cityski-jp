@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import axios from 'axios';
 import { useFormik } from 'formik';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as Yup from 'yup';
@@ -11,6 +10,8 @@ import Button from '@/components/Project/Shared/Common/Button';
 import InputField from '@/components/Project/Shared/Common/InputField';
 import { FormProvider } from '@/components/Project/Shared/Context/FormContext';
 import { setAuthToken, setUserInfo } from '@/state/slices/authSlice';
+import { useInvitation } from '@/hooks/useInvitation';
+import api from '@/lib/api';
 
 import ErrorInfo from '../Shared/Common/ErrorInfo';
 import ConfirmEmailModal from '../Shared/LoginRegister/ConfirmEmailModal';
@@ -23,7 +24,11 @@ const validationSchema = Yup.object({
 	password: Yup.string().required('必填欄位').min(8, '密碼至少需要8個字元'),
 });
 
-const LoginEmail = () => {
+interface LoginEmailProps {
+	invitationToken?: string;
+}
+
+const LoginEmail = ({ invitationToken }: LoginEmailProps) => {
 	const dispatch = useDispatch();
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -31,6 +36,14 @@ const LoginEmail = () => {
 	const [isConfirmEmailModalOpen, setIsConfirmEmailModalOpen] = useState(false);
 	const [isLineLoginModalOpen, setIsLineLoginModalOpen] = useState(false);
 	const [errorMessage, setErrorMessage] = useState('');
+	const { invitationInfo, validateInvitation, redeemInvitation } = useInvitation();
+
+	// 驗證邀請碼
+	useEffect(() => {
+		if (invitationToken) {
+			validateInvitation(invitationToken);
+		}
+	}, [invitationToken, validateInvitation]);
 
 	const formik = useFormik({
 		// TODO: test data, remove later
@@ -39,8 +52,7 @@ const LoginEmail = () => {
 		validationSchema,
 		onSubmit: async (values, { setSubmitting }) => {
 			try {
-				console.log('ooooooo');
-				const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/auth/member/signin', {
+				const response = await api.post('/api/auth/member/signin', {
 					email: values.email,
 					password: values.password,
 				});
@@ -54,17 +66,29 @@ const LoginEmail = () => {
 				// Store user info
 				dispatch(setUserInfo(userInfo));
 
-				const redirectTo = searchParams.get('redirect') || '/';
-				router.push(redirectTo);
-			} catch (error) {
+				// 如果有 invitationToken，兌換邀請
+				if (invitationToken && invitationInfo) {
+					const orderId = await redeemInvitation(invitationToken, accessToken);
+					if (orderId) {
+						// 跳轉到訂單詳情頁
+						router.push(`/order/${orderId}`);
+						return;
+					}
+					// 兌換失敗，跳轉到首頁
+					router.push('/');
+				} else {
+					const redirectTo = searchParams.get('redirect') || '/';
+					router.push(redirectTo);
+				}
+			} catch (error: any) {
 				console.log('error1:', error);
-				if (error.response.status === 400 && error.response.data.message === '此帳號已註冊但尚未驗證') {
+				if (error.response?.status === 400 && error.response?.data?.message === '此帳號已註冊但尚未驗證') {
 					setIsConfirmEmailModalOpen(true);
 				}
-				if (error.response.status === 400 && error.response.data.message === '此帳號非Email註冊，請使用Line登入') {
+				if (error.response?.status === 400 && error.response?.data?.message === '此帳號非Email註冊，請使用Line登入') {
 					setIsLineLoginModalOpen(true);
 				}
-				setErrorMessage(error.response.data.message);
+				setErrorMessage(error.response?.data?.message || '登入失敗');
 			} finally {
 				setSubmitting(false);
 			}
@@ -76,6 +100,14 @@ const LoginEmail = () => {
 			<FormProvider value={formik}>
 				<section className='flex flex-col mt-6 whitespace-nowrap max-xs:mt-10'>
 					<h1 className='text-4xl font-medium tracking-tighter leading-[58px] text-center text-zinc-800'>登入會員</h1>
+					{invitationInfo && (
+						<div className='mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg'>
+							<p className='text-sm text-blue-800 text-center'>
+								<span className='font-medium'>{invitationInfo.inviterName}</span> 邀請您加入{' '}
+								<span className='font-medium'>{invitationInfo.courseName}</span> 課程
+							</p>
+						</div>
+					)}
 					{errorMessage && <ErrorInfo message={errorMessage} leaveSpace='above' />}
 					<form onSubmit={formik.handleSubmit} className='flex flex-col mt-6 w-full text-base text-zinc-500'>
 						<div className='mb-3'>
@@ -106,7 +138,7 @@ const LoginEmail = () => {
 					<p className='flex gap-2 items-center self-center mt-4 text-base'>
 						<span className='self-stretch my-auto text-zinc-800'>還沒有城市滑雪帳號嗎？</span>
 						<a
-							href='/register'
+							href={invitationToken ? `/register?invitation=${invitationToken}` : '/register'}
 							className='self-stretch my-auto font-medium text-blue-600 hover:text-blue-700 transition-colors duration-200 w-50'
 						>
 							註冊會員

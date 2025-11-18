@@ -13,7 +13,7 @@ export interface InputFieldProps extends React.InputHTMLAttributes<HTMLInputElem
 	showError?: boolean;
 }
 
-function InputField({
+const InputField = React.memo(function InputField({
 	label,
 	type = 'text',
 	id,
@@ -30,7 +30,11 @@ function InputField({
 	const [showPassword, setShowPassword] = React.useState(false);
 	const inputType = type === 'password' ? (showPassword ? 'text' : 'password') : type;
 
-	const handleBirthdayInput = (e: React.FormEvent<HTMLInputElement>) => {
+	// 只取出當前 field 需要的值
+	const fieldValue = formik ? formik.values[id] : value;
+	const fieldError = formik ? (formik.touched[id] && (formik.errors[id] as string)) : error;
+
+	const handleBirthdayInput = React.useCallback((e: React.FormEvent<HTMLInputElement>) => {
 		const input = e.currentTarget;
 		const cursorPosition = input.selectionStart ?? 0;
 		const previousValue = input.value;
@@ -80,30 +84,34 @@ function InputField({
 		setTimeout(() => {
 			input.setSelectionRange(newPosition, newPosition);
 		}, 0);
-	};
+	}, []);
+
+	const handleChange = React.useCallback(
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			if (id === 'birthday') {
+				handleBirthdayInput(e);
+			}
+			if (formik) {
+				formik.handleChange(e);
+			} else if (onChange) {
+				onChange(e);
+			}
+		},
+		[id, formik, onChange, handleBirthdayInput],
+	);
 
 	const validationProps = formik
 		? {
 				name: id,
-				value: formik.values[id],
-				onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-					if (id === 'birthday') {
-						handleBirthdayInput(e);
-					}
-					formik.handleChange(e);
-				},
+				value: fieldValue,
+				onChange: handleChange,
 				onBlur: formik.handleBlur,
-				error: formik.touched[id] && (formik.errors[id] as string),
+				error: fieldError,
 			}
 		: {
 				name,
 				value,
-				onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-					if (id === 'birthday') {
-						handleBirthdayInput(e);
-					}
-					if (onChange) onChange(e);
-				},
+				onChange: handleChange,
 				onBlur,
 				error,
 			};
@@ -157,6 +165,6 @@ function InputField({
 			)}
 		</div>
 	);
-}
+});
 
 export default InputField;

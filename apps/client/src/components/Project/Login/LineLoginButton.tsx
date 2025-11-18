@@ -5,9 +5,10 @@ import { useSearchParams } from 'next/navigation';
 
 type Props = {
 	theme?: 'green' | 'dark';
+	invitationToken?: string;
 };
 
-const LineLoginButton = ({ theme = 'green' }: Props) => {
+const LineLoginButton = ({ theme = 'green', invitationToken }: Props) => {
 	useEffect(() => {
 		console.log('testing redirect uri:', process.env.NEXT_PUBLIC_LINE_REDIRECT_URI);
 	}, []);
@@ -34,6 +35,11 @@ const LineLoginButton = ({ theme = 'green' }: Props) => {
 		// Store the redirect URL before initiating LINE login
 		const redirectTo = searchParams.get('redirect') || '/';
 		localStorage.setItem('line_auth_redirect', redirectTo);
+
+		// Store invitation token if it exists
+		if (invitationToken) {
+			localStorage.setItem('line_auth_invitation', invitationToken);
+		}
 
 		// NOTE:
 		// 1. redirect_uri MUST MATCH that set on the LINE developer console.

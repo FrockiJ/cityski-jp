@@ -4,6 +4,8 @@ import {
   HttpStatus,
   Injectable,
   UnauthorizedException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -45,6 +47,7 @@ import { CheckFor } from 'src/constants/enums';
 import { JwtSignPayload } from 'src/shared/types/auth';
 import { plainToInstance } from 'class-transformer';
 import { SMTPService } from 'src/smtp/smtp.service';
+import { OrderInvitationsService } from 'src/order-invitations/order-invitations.service';
 
 @Injectable()
 export class AuthService {
@@ -63,6 +66,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly smtpService: SMTPService,
+    @Inject(forwardRef(() => OrderInvitationsService))
+    private readonly orderInvitationsService: OrderInvitationsService,
   ) {}
 
   private resetTempTokens = [];
@@ -603,7 +608,7 @@ export class AuthService {
   async memberEmailSignUp(
     memberEmailSignUpDto: CreateMemberRequestDto,
   ): Promise<Member> {
-    const { email } = memberEmailSignUpDto;
+    const { email, invitationToken } = memberEmailSignUpDto;
 
     // confirm user is not already registered
     await this.membersService.checkMemberExistsByEmail(
@@ -614,6 +619,20 @@ export class AuthService {
     // create member and return them
     const newMember =
       await this.membersService.createEmailMember(memberEmailSignUpDto);
+
+    // if there's an invitation token, redeem it
+    if (invitationToken) {
+      try {
+        await this.orderInvitationsService.redeemInvitation(
+          invitationToken,
+          newMember.id,
+        );
+      } catch (error) {
+        console.error('Failed to redeem invitation:', error);
+        // Don't fail the registration if invitation redemption fails
+        // The invitation can be manually linked later if needed
+      }
+    }
 
     return newMember;
   }

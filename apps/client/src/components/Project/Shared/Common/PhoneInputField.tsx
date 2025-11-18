@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 
 import ToastErrorIcon from '@/components/Icon/ToastErrorIcon';
 import ToastSuccessIcon from '@/components/Icon/ToastSuccessIcon';
@@ -12,7 +12,7 @@ interface PhoneInputFieldProps {
 	onVerify?: (code: string, phone: string) => Promise<boolean>;
 }
 
-const PhoneInputField: React.FC<PhoneInputFieldProps> = ({ id, label, onSendCode, onVerify }) => {
+const PhoneInputField: React.FC<PhoneInputFieldProps> = React.memo(({ id, label, onSendCode, onVerify }) => {
 	const [isSent, setIsSent] = useState(false);
 	const [countdown, setCountdown] = useState(0);
 	const formik = useFormContext();
@@ -21,6 +21,12 @@ const PhoneInputField: React.FC<PhoneInputFieldProps> = ({ id, label, onSendCode
 		success?: boolean;
 		isLoading?: boolean;
 	}>({});
+
+	// 只取出需要的欄位值
+	const phoneValue = formik?.values[id] ?? '';
+	const phoneCodeValue = formik?.values[`${id}Code`] ?? '';
+	const phoneError = formik?.touched[id] && formik?.errors[id];
+	const phoneCodeError = formik?.touched[`${id}Code`] && formik?.errors[`${id}Code`];
 
 	useEffect(() => {
 		let timer: NodeJS.Timeout | undefined;
@@ -48,16 +54,16 @@ const PhoneInputField: React.FC<PhoneInputFieldProps> = ({ id, label, onSendCode
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	const formatTime = (seconds: number) => {
+	const formatTime = useCallback((seconds: number) => {
 		const minutes = Math.floor(seconds / 60);
 		const remainingSeconds = seconds % 60;
 		return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-	};
+	}, []);
 
-	const handleSendCode = async () => {
+	const handleSendCode = useCallback(async () => {
 		try {
-			if (onSendCode && formik.values[id]) {
-				const success = await onSendCode(formik.values[id]);
+			if (onSendCode && phoneValue) {
+				const success = await onSendCode(phoneValue);
 				if (success) {
 					setIsSent(true);
 					setCountdown(60);
@@ -73,13 +79,13 @@ const PhoneInputField: React.FC<PhoneInputFieldProps> = ({ id, label, onSendCode
 			setIsSent(false);
 			setCountdown(0);
 		}
-	};
+	}, [onSendCode, phoneValue, id]);
 
-	const handleVerify = async () => {
+	const handleVerify = useCallback(async () => {
 		try {
 			setVerificationStatus({ isLoading: true });
-			if (onVerify && formik.values[`${id}Code`] && formik.values[id]) {
-				const success = await onVerify(formik.values[`${id}Code`], formik.values[id]);
+			if (onVerify && phoneCodeValue && phoneValue) {
+				const success = await onVerify(phoneCodeValue, phoneValue);
 				if (success) {
 					setVerificationStatus({ success: true });
 					setCountdown(0);
@@ -92,13 +98,37 @@ const PhoneInputField: React.FC<PhoneInputFieldProps> = ({ id, label, onSendCode
 		} finally {
 			setVerificationStatus((prev) => ({ ...prev, isLoading: false }));
 		}
-	};
+	}, [onVerify, phoneCodeValue, phoneValue]);
+
+	const handlePhoneChange = useCallback(
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			formik?.handleChange(e);
+		},
+		[formik],
+	);
+
+	const handlePhoneBlur = useCallback(
+		(e: React.FocusEvent<HTMLInputElement>) => {
+			formik?.handleBlur(e);
+		},
+		[formik],
+	);
+
+	const handlePhoneKeyDown = useCallback(
+		(e: React.KeyboardEvent<HTMLInputElement>) => {
+			if (e.key === 'Enter' && phoneValue && !isSent && !verificationStatus.success) {
+				e.preventDefault();
+				handleSendCode();
+			}
+		},
+		[phoneValue, isSent, verificationStatus.success, handleSendCode],
+	);
 
 	return (
 		<div className='relative'>
 			<div
 				className={`relative rounded-lg ${
-					(formik.touched[id] && formik.errors[id]) || (formik.touched[`${id}Code`] && formik.errors[`${id}Code`])
+					phoneError || phoneCodeError
 						? 'border border-red-500'
 						: 'border border-gray-300 focus-within:border-2 focus-within:border-black'
 				}`}
@@ -108,15 +138,10 @@ const PhoneInputField: React.FC<PhoneInputFieldProps> = ({ id, label, onSendCode
 						type='tel'
 						id={id}
 						name={id}
-						value={formik.values[id]}
-						onChange={formik.handleChange}
-						onBlur={formik.handleBlur}
-						onKeyDown={(e) => {
-							if (e.key === 'Enter' && formik.values[id] && !isSent && !verificationStatus.success) {
-								e.preventDefault();
-								handleSendCode();
-							}
-						}}
+						value={phoneValue}
+						onChange={handlePhoneChange}
+						onBlur={handlePhoneBlur}
+						onKeyDown={handlePhoneKeyDown}
 						disabled={verificationStatus.success}
 						className={`peer flex-1 h-14 px-4 pt-3 w-full text-base focus:outline-none rounded-lg
 							${verificationStatus.success ? 'bg-gray-100 text-gray-500' : ''}`}
@@ -133,7 +158,7 @@ const PhoneInputField: React.FC<PhoneInputFieldProps> = ({ id, label, onSendCode
 					<button
 						type='button'
 						onClick={handleSendCode}
-						disabled={!formik.values[id] || (formik.touched[id] && !!formik.errors[id])}
+						disabled={!phoneValue || !!phoneError}
 						className={`absolute right-2 top-1/2 -translate-y-1/2 h-10 px-3 text-xs leading-6
 							${
 								isSent && countdown > 0
@@ -159,11 +184,11 @@ const PhoneInputField: React.FC<PhoneInputFieldProps> = ({ id, label, onSendCode
 								name={`${id}Code`}
 								autoComplete='off'
 								disabled={verificationStatus.success}
-								value={formik.values[`${id}Code`]}
+								value={phoneCodeValue}
 								onChange={(e) => {
 									const value = e.target.value.replace(/\D/g, '');
 									e.target.value = value;
-									formik.handleChange(e);
+									formik?.handleChange(e);
 									setVerificationStatus({});
 								}}
 								onKeyDown={(e) => {
@@ -172,13 +197,13 @@ const PhoneInputField: React.FC<PhoneInputFieldProps> = ({ id, label, onSendCode
 										countdown > 0 &&
 										!verificationStatus.error &&
 										!verificationStatus.isLoading &&
-										formik.values[`${id}Code`]?.length === 6
+										phoneCodeValue?.length === 6
 									) {
 										e.preventDefault();
 										handleVerify();
 									}
 								}}
-								onBlur={formik.handleBlur}
+								onBlur={formik?.handleBlur}
 								className={`peer flex-1 h-14 px-4 pt-3 w-full text-base focus:outline-none rounded-lg
 									${verificationStatus.success ? 'bg-gray-100 text-gray-500' : ''}`}
 								placeholder=' '
@@ -195,11 +220,7 @@ const PhoneInputField: React.FC<PhoneInputFieldProps> = ({ id, label, onSendCode
 								<button
 									type='button'
 									onClick={handleVerify}
-									disabled={
-										verificationStatus.isLoading ||
-										!formik.values[`${id}Code`] ||
-										formik.values[`${id}Code`].length !== 6
-									}
+									disabled={verificationStatus.isLoading || !phoneCodeValue || phoneCodeValue.length !== 6}
 									className='absolute right-2 top-1/2 -translate-y-1/2 h-10 px-3 text-sm leading-6
 										text-zinc-700 cursor-pointer rounded-lg border border-zinc-700 hover:bg-gray-100
 										disabled:text-gray-500 disabled:cursor-not-allowed disabled:border-gray-300 disabled:hover:bg-transparent'
@@ -229,14 +250,10 @@ const PhoneInputField: React.FC<PhoneInputFieldProps> = ({ id, label, onSendCode
 					</>
 				)}
 			</div>
-			{formik.touched[id] && formik.errors[id] && (
-				<p className='mt-1 text-xs text-red-500'>{formik.errors[id] as string}</p>
-			)}
-			{formik.touched[`${id}Code`] && formik.errors[`${id}Code`] && (
-				<p className='mt-1 text-xs text-red-500'>{formik.errors[`${id}Code`] as string}</p>
-			)}
+			{phoneError && <p className='mt-1 text-xs text-red-500'>{phoneError as string}</p>}
+			{phoneCodeError && <p className='mt-1 text-xs text-red-500'>{phoneCodeError as string}</p>}
 		</div>
 	);
-};
+});
 
 export default PhoneInputField;

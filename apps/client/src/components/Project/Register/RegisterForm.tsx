@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 import Button from '@/components/Project/Shared/Common/Button';
 import InputField from '@/components/Project/Shared/Common/InputField';
@@ -66,12 +67,52 @@ const validationSchema = Yup.object({
 });
 
 const RegisterForm = () => {
+	const router = useRouter();
+	const searchParams = useSearchParams();
+	const invitationToken = searchParams.get('invitation');
+
 	const [emailAlreadyExist, setEmailAlreadyExist] = useState(false);
 	const [isConfirmEmailModalOpen, setIsConfirmEmailModalOpen] = useState(false);
 	const [cannotRegisterReason, setCannotRegisterReason] = useState('account occupied');
 	const [errorMessage, setErrorMessage] = useState('');
 	const [resendType, setResendType] = useState<'verify' | 'forgotPassword' | 'completeVerify'>('verify');
 	const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+	const [invitationInfo, setInvitationInfo] = useState<{
+		courseName: string;
+		orderId: string;
+		inviterName: string;
+	} | null>(null);
+
+	// 驗證邀請 token
+	useEffect(() => {
+		if (invitationToken) {
+			const validateInvitation = async () => {
+				try {
+					const response = await axios.get(
+						`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/order-invitations/validate/${invitationToken}`,
+					);
+
+					// 後端可能將數據包在 result 中
+					const data = response.data.result || response.data;
+
+					if (data.valid) {
+						const courseName = data.order?.coursePlan?.course?.name || '課程';
+						setInvitationInfo({
+							courseName,
+							orderId: data.order?.id,
+							inviterName: data.inviter?.name || '',
+						});
+					} else {
+						showToast(data.message || '邀請連結無效', 'error');
+					}
+				} catch (error) {
+					console.error('驗證邀請失敗:', error);
+					showToast('邀請連結無效或已過期', 'error');
+				}
+			};
+			validateInvitation();
+		}
+	}, [invitationToken]);
 
 	const formik = useFormik({
 		initialValues: {
@@ -104,9 +145,18 @@ const RegisterForm = () => {
 					email: values.email,
 					password: values.password,
 					phone: values.phone,
+					invitationToken: invitationToken || undefined,
 				});
 				if (response.data.statusCode === 200) {
-					setIsConfirmEmailModalOpen(true);
+					if (invitationToken && invitationInfo) {
+						// 如果是邀請註冊，註冊成功後導向登入頁面
+						showToast('註冊成功！請登入以繼續', 'success');
+						setTimeout(() => {
+							router.push('/login');
+						}, 1500);
+					} else {
+						setIsConfirmEmailModalOpen(true);
+					}
 				}
 			} catch (error) {
 				setErrorMessage(error.response.data.message);
@@ -128,7 +178,7 @@ const RegisterForm = () => {
 		},
 	});
 
-	const onSendCode = async (phone: string): Promise<boolean> => {
+	const onSendCode = useCallback(async (phone: string): Promise<boolean> => {
 		try {
 			const formattedPhone = `+886${phone.substring(1)}`;
 
@@ -144,28 +194,31 @@ const RegisterForm = () => {
 			}
 			throw new Error('發送驗證碼失敗');
 		}
-	};
+	}, []);
 
-	const onVerify = async (code: string): Promise<boolean> => {
-		try {
-			const formattedPhone = `+886${formik.values.phone.substring(1)}`;
+	const onVerify = useCallback(
+		async (code: string): Promise<boolean> => {
+			try {
+				const formattedPhone = `+886${formik.values.phone.substring(1)}`;
 
-			const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/verification/verify', {
-				phoneNumber: formattedPhone,
-				code: code,
-			});
-			// console.log(response.data);
-			const isVerified = response.data.statusCode === 201;
-			setIsPhoneVerified(isVerified);
-			return isVerified;
-		} catch (error) {
-			if (axios.isAxiosError(error)) {
-				throw new Error(error.response?.data?.message || '驗證碼錯誤');
+				const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/verification/verify', {
+					phoneNumber: formattedPhone,
+					code: code,
+				});
+				// console.log(response.data);
+				const isVerified = response.data.statusCode === 201;
+				setIsPhoneVerified(isVerified);
+				return isVerified;
+			} catch (error) {
+				if (axios.isAxiosError(error)) {
+					throw new Error(error.response?.data?.message || '驗證碼錯誤');
+				}
+				throw new Error('驗證碼錯誤');
 			}
-			throw new Error('驗證碼錯誤');
-		}
-	};
-
+		},
+		[formik.values.phone],
+	);
+	console.log('invitationInfo', invitationInfo);
 	return (
 		<FormProvider value={formik}>
 			<section className='flex flex-col grow mt-6 max-xs:mt-10'>
@@ -175,6 +228,36 @@ const RegisterForm = () => {
 					<p className='self-center mt-2 text-sm leading-6 text-zinc-800'>使用LINE登入，不需註冊</p>
 				</div>
 				<OrDivider />
+				{invitationInfo && (
+					<div className='mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg'>
+						<div className='flex items-start gap-3'>
+							<svg
+								width='24'
+								height='24'
+								viewBox='0 0 24 24'
+								fill='none'
+								xmlns='http://www.w3.org/2000/svg'
+								className='flex-shrink-0 mt-0.5'
+							>
+								<path
+									d='M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z'
+									fill='#0F72ED'
+								/>
+							</svg>
+							<div className='flex-1'>
+								<p className="text-blue-700 font-medium text-sm font-['Noto_Sans_TC']">
+									您已被邀請到 <span className='font-bold'>{invitationInfo.courseName}</span> 課程
+								</p>
+								{invitationInfo.inviterName && (
+									<p className="text-blue-600 text-xs mt-1 font-['Noto_Sans_TC']">
+										邀請人：{invitationInfo.inviterName}
+									</p>
+								)}
+								<p className="text-blue-600 text-xs mt-1 font-['Noto_Sans_TC']">請完成註冊以加入課程</p>
+							</div>
+						</div>
+					</div>
+				)}
 				<form onSubmit={formik.handleSubmit} className='flex flex-col'>
 					{errorMessage && <ErrorInfo message={errorMessage} leaveSpace='below' />}
 					<div className='flex flex-col gap-3'>

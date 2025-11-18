@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import { OrderMemberDetailDTO, CourseType } from '@repo/shared';
+import { OrderMemberDetailDTO, CourseType, OrderInvitationResponseDto } from '@repo/shared';
 import api from '@/lib/api';
 import { selectToken } from '@/state/slices/authSlice';
 
@@ -10,6 +10,8 @@ interface MemberListProps {
 	onAddMember: () => void;
 	courseType: CourseType;
 	purchasedQuantity: number;
+	pendingInvitations?: OrderInvitationResponseDto[];
+	onInvitationCreated?: (invitation: OrderInvitationResponseDto) => void;
 }
 
 type MemberType = 'adult' | 'youth';
@@ -36,6 +38,8 @@ export default function MemberList({
 	onAddMember,
 	courseType,
 	purchasedQuantity,
+	pendingInvitations = [],
+	onInvitationCreated,
 }: MemberListProps) {
 	const [newMemberSlots, setNewMemberSlots] = useState<MemberSlot[]>([]);
 	const [showTypeSelector, setShowTypeSelector] = useState(false);
@@ -52,8 +56,8 @@ export default function MemberList({
 	const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const accessToken = useSelector(selectToken);
 
-	// 計算當前參加人員總數
-	const currentMemberCount = orderMembers.length + newMemberSlots.length;
+	// 計算當前參加人員總數（包含已加入會員、待註冊會員、空白參加人員）
+	const currentMemberCount = orderMembers.length + pendingInvitations.length + newMemberSlots.length;
 
 	// 判斷是否應該隱藏新增按鈕（團體課且人數已達上限）
 	const shouldHideAddButton = courseType === CourseType.GROUP && currentMemberCount >= purchasedQuantity;
@@ -143,6 +147,13 @@ export default function MemberList({
 	};
 
 	const handleSelectType = (type: MemberType) => {
+		// 團體班需檢查是否已達上限
+		if (courseType === CourseType.GROUP && currentMemberCount >= purchasedQuantity) {
+			alert('參加人員已達購買數量上限');
+			setShowTypeSelector(false);
+			return;
+		}
+
 		setNewMemberSlots([...newMemberSlots, { id: newMemberSlots.length, type }]);
 		setShowTypeSelector(false);
 		onAddMember();
@@ -211,7 +222,8 @@ export default function MemberList({
 	};
 
 	// 打开邀请会员模态窗口
-	const handleInviteClick = () => {
+	const handleInviteClick = (slotType: MemberType) => {
+		setSelectedSlotType(slotType);
 		setShowInviteModal(true);
 	};
 
@@ -219,30 +231,124 @@ export default function MemberList({
 	const handleCloseInviteModal = () => {
 		setShowInviteModal(false);
 		setInviteEmail('');
+		setSelectedSlotType(null);
+	};
+
+	// 创建邀请并获取邀请链接
+	const createInvitation = async (
+		inviteeType: 'adult' | 'child',
+	): Promise<{ inviteLink: string; invitation: OrderInvitationResponseDto } | null> => {
+		if (!accessToken) {
+			console.error('No access token available');
+			return null;
+		}
+
+		try {
+			const response = await api.post(
+				'/api/order-invitations',
+				{
+					orderId: orderId,
+					inviteeType: inviteeType,
+				},
+				{
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+				},
+			);
+
+			// 後端返回的數據在 result 中
+			const inviteLink = response.data.result?.inviteLink;
+			const invitation = response.data.result;
+
+			return inviteLink && invitation ? { inviteLink, invitation } : null;
+		} catch (error) {
+			console.error('創建邀請失敗:', error);
+			alert('創建邀請失敗，請稍後再試');
+			return null;
+		}
 	};
 
 	// 处理LINE邀请
-	const handleLineInvite = () => {
-		// TODO: 实现LINE邀请逻辑
-		console.log('LINE邀请');
+	const handleLineInvite = async () => {
+		const inviteeType = selectedSlotType === 'adult' ? 'adult' : 'child';
+		const result = await createInvitation(inviteeType);
+
+		if (result) {
+			// 生成 Line 分享連結
+			const message = `您被邀請參加課程！請點擊註冊：${result.inviteLink}`;
+			const lineShareUrl = `https://line.me/R/share?text=${encodeURIComponent(message)}`;
+
+			// 打開 Line 分享視窗
+			window.open(lineShareUrl, '_blank');
+
+			// 通知父組件新邀請已創建
+			if (onInvitationCreated) {
+				onInvitationCreated(result.invitation);
+			}
+
+			// 移除一個空白參加人員插槽
+			setNewMemberSlots((prev) => prev.slice(0, -1));
+		}
+
+		// 無論成功或失敗都關閉modal
+		handleCloseInviteModal();
 	};
 
-	// 处理邮件邀请
-	const handleEmailInvite = () => {
+	// 处理邮件邀请 (預留功能，可能需要後端發送郵件)
+	const handleEmailInvite = async () => {
 		if (!inviteEmail.trim()) {
 			alert('請輸入電子郵件地址');
 			return;
 		}
-		// TODO: 实现邮件邀请逻辑
-		console.log('邮件邀请:', inviteEmail);
+
+		const inviteeType = selectedSlotType === 'adult' ? 'adult' : 'child';
+		const result = await createInvitation(inviteeType);
+
+		if (result) {
+			// 目前直接複製連結，讓用戶手動發送
+			// 未來可以整合後端郵件服務
+			navigator.clipboard.writeText(result.inviteLink);
+			alert(`邀請連結已複製！\n請透過 Email 發送給: ${inviteEmail}\n\n連結: ${result.inviteLink}`);
+
+			// 通知父組件新邀請已創建
+			if (onInvitationCreated) {
+				onInvitationCreated(result.invitation);
+			}
+
+			// 移除一個空白參加人員插槽
+			setNewMemberSlots((prev) => prev.slice(0, -1));
+		}
+
+		// 無論成功或失敗都關閉modal
+		handleCloseInviteModal();
 	};
 
 	// 复制邀请链接
-	const handleCopyInviteLink = () => {
-		const inviteLink = 'cityski.com.tw/invite?12345';
-		navigator.clipboard.writeText(inviteLink).then(() => {
-			alert('已複製連結');
-		});
+	const handleCopyInviteLink = async () => {
+		const inviteeType = selectedSlotType === 'adult' ? 'adult' : 'child';
+		const result = await createInvitation(inviteeType);
+
+		if (result) {
+			try {
+				await navigator.clipboard.writeText(result.inviteLink);
+				alert('已複製邀請連結');
+
+				// 通知父組件新邀請已創建
+				if (onInvitationCreated) {
+					onInvitationCreated(result.invitation);
+				}
+
+				// 移除一個空白參加人員插槽
+				setNewMemberSlots((prev) => prev.slice(0, -1));
+			} catch (error) {
+				console.error('複製失敗:', error);
+				alert('複製失敗，請手動複製連結');
+			}
+		}
+
+		// 無論成功或失敗都關閉modal
+		handleCloseInviteModal();
 	};
 
 	return (
@@ -442,6 +548,64 @@ export default function MemberList({
 							// </div>
 						))}
 
+						{/* 待註冊會員 */}
+						{pendingInvitations.map((invitation, index) => (
+							<div
+								key={`invitation-${invitation.id}`}
+								data-owner-icon='false'
+								data-property-1='Default'
+								data-remove-button='true'
+								data-reservation='false'
+								className='self-stretch h-20 pl-3 pr-4 py-3 bg-yellow-50 rounded-xl outline outline-1 outline-offset-[-1px] outline-yellow-300 inline-flex justify-start items-center gap-3'
+							>
+								<div className='w-14 h-14 relative flex items-center justify-center'>
+									<svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
+										<path
+											d='M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z'
+											fill='#F59E0B'
+										/>
+									</svg>
+								</div>
+								<div className='flex-1 inline-flex flex-col justify-center items-start'>
+									<div className='self-stretch inline-flex justify-start items-center gap-2'>
+										<div className="justify-start text-yellow-700 text-base font-medium font-['Noto_Sans_TC'] leading-6">
+											待註冊會員
+										</div>
+										<div className='px-2 py-0.5 bg-yellow-200 rounded'>
+											<div className="text-yellow-800 text-xs font-normal font-['Noto_Sans_TC']">
+												{invitation.inviteeType === 'adult' ? '成人' : '青少年/兒童'}
+											</div>
+										</div>
+									</div>
+									<div className="self-stretch h-6 justify-center text-yellow-600 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
+										邀請於 {new Date(invitation.createdTime).toLocaleDateString('zh-TW')}
+									</div>
+								</div>
+								<div
+									className='px-3 py-2 rounded-[20px] outline outline-1 outline-offset-[-1px] outline-red-500 flex justify-center items-center gap-0.5 overflow-hidden cursor-pointer hover:bg-red-50 transition-colors'
+									onClick={async () => {
+										if (confirm('確定要取消此邀請嗎？')) {
+											try {
+												await api.delete(`/api/order-invitations/${invitation.id}`, {
+													headers: {
+														Authorization: `Bearer ${accessToken}`,
+													},
+												});
+												onAddMember(); // 刷新列表
+											} catch (error) {
+												console.error('取消邀請失敗:', error);
+												alert('取消邀請失敗，請稍後再試');
+											}
+										}
+									}}
+								>
+									<div className="text-center justify-start text-red-500 text-xs font-medium font-['Noto_Sans_TC'] leading-5">
+										取消邀請
+									</div>
+								</div>
+							</div>
+						))}
+
 						{newMemberSlots.map((slot, index) => (
 							<div
 								key={`new-slot-${slot.id}`}
@@ -522,7 +686,7 @@ export default function MemberList({
 										data-state='Default'
 										data-type='Stroke_Blue'
 										className='px-3 py-2 rounded-[20px] outline outline-1 outline-offset-[-1px] outline-blue-600 flex justify-center items-center gap-0.5 overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors'
-										onClick={handleInviteClick}
+										onClick={() => handleInviteClick(slot.type)}
 									>
 										<div className="text-center justify-start text-blue-600 text-xs font-medium font-['Noto_Sans_TC'] leading-5">
 											邀請加入會員

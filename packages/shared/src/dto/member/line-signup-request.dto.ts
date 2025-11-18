@@ -22,4 +22,8 @@ export class LineSignupRequestDto {
   @IsDateFormat({ message: "Invalid birthday format. Use YYYY/MM/DD" })
   @IsNotEmpty()
   birthday: string;
+
+  @IsString()
+  @IsOptional()
+  invitationToken?: string;
 }

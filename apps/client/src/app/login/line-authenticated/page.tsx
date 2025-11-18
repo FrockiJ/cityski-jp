@@ -2,12 +2,14 @@
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { CreateLineAccount, MemberSignInResponseDTO, ResponseWrapper } from '@repo/shared';
-import axios, { isAxiosError } from 'axios';
+import { isAxiosError } from 'axios';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import Spinner from '@/components/Project/Shared/Common/Spinner';
 import { showToast } from '@/components/Project/Utils/Toast';
 import { setAuthToken, setUserInfo } from '@/state/slices/authSlice';
+import { useInvitation } from '@/hooks/useInvitation';
+import api from '@/lib/api';
 
 // custom type guard to check if result is MemberSignInResponseDTO
 function isMemberSignInResponseDTO(result: any): result is MemberSignInResponseDTO {
@@ -17,6 +19,7 @@ function isMemberSignInResponseDTO(result: any): result is MemberSignInResponseD
 function LineAuthenticated() {
 	const router = useRouter();
 	const dispatch = useDispatch();
+	const { validateInvitation, redeemInvitation } = useInvitation();
 	/**
 	 * yo michael, just grab the "code" query string here from the url
 	 * (memories Ory) and hit my line signin endpoint at:
@@ -39,6 +42,8 @@ function LineAuthenticated() {
 		const stateLocalStorage = localStorage.getItem('line_auth_state');
 		// Get the redirect URL from localStorage instead of search params
 		const redirectTo = localStorage.getItem('line_auth_redirect') || '/';
+		// Get invitation token from localStorage
+		const invitationToken = localStorage.getItem('line_auth_invitation');
 
 		console.log('After line oauth authenticated, code:', code);
 
@@ -60,14 +65,14 @@ function LineAuthenticated() {
 			};
 
 			try {
-				response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/auth/member/line-signin', {
+				response = await api.post('/api/auth/member/line-signin', {
 					code,
 				});
 			} catch (err) {
 				console.log('Error when attempting to call line sign-in api.');
 				if (isAxiosError(err)) {
 					// console.log('Error:\n', err.response.data);
-					showToast(err.response.data.message, 'error');
+					showToast(err.response?.data?.message || '登入失敗', 'error');
 					router.push('/login');
 				}
 				// handle error flow. Redirect? Popup?
@@ -88,6 +93,23 @@ function LineAuthenticated() {
 				// set refresh token to local storage
 				localStorage.setItem('refresh_token', result.refreshToken);
 				localStorage.removeItem('line_auth_redirect');
+
+				// 如果有 invitationToken，兌換邀請
+				if (invitationToken) {
+					const isValid = await validateInvitation(invitationToken);
+					if (isValid) {
+						const orderId = await redeemInvitation(invitationToken, result.accessToken);
+						localStorage.removeItem('line_auth_invitation');
+
+						if (orderId) {
+							router.push(`/order/${orderId}`);
+							return;
+						}
+					} else {
+						localStorage.removeItem('line_auth_invitation');
+					}
+				}
+
 				router.push(redirectTo);
 			} else {
 				// 3. member already exists
@@ -102,9 +124,14 @@ function LineAuthenticated() {
 				console.log(`line token: ${access_token}`);
 
 				// Pass both token types AND redirect to sign up page
-				router.push(
-					`/login/line-authenticated/sign-up?token=${access_token}&id_token=${id_token}&redirect=${encodeURIComponent(redirectTo)}`,
-				);
+				let signUpUrl = `/login/line-authenticated/sign-up?token=${access_token}&id_token=${id_token}&redirect=${encodeURIComponent(redirectTo)}`;
+
+				// Add invitation token if it exists
+				if (invitationToken) {
+					signUpUrl += `&invitation=${invitationToken}`;
+				}
+
+				router.push(signUpUrl);
 			}
 		}
 

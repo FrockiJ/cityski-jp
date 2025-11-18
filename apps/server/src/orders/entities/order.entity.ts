@@ -14,6 +14,7 @@ import { Transaction } from 'src/transaction/entities/transaction.entity';
 import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
 import { OrderHistory } from 'src/order-history/entities/order-history.entity';
+import { OrderInvitation } from 'src/order-invitations/entities/order-invitation.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -119,4 +120,7 @@ export class Order extends UserDate {
 
   @OneToMany(() => OrderHistory, (orderHistory) => orderHistory.order)
   orderHistories: OrderHistory[];
+
+  @OneToMany(() => OrderInvitation, (orderInvitation) => orderInvitation.order)
+  orderInvitations: OrderInvitation[];
 }

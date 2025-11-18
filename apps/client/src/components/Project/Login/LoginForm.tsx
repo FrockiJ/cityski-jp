@@ -7,9 +7,10 @@ import LineLoginButton from './LineLoginButton';
 
 interface LoginFormProps {
 	onEmailClick: () => void;
+	invitationToken?: string;
 }
 
-const LoginForm = ({ onEmailClick }: LoginFormProps) => {
+const LoginForm = ({ onEmailClick, invitationToken }: LoginFormProps) => {
 	return (
 		<section className='flex flex-col mt-6 max-xs:mt-10'>
 			<div className='flex flex-col w-full'>
@@ -21,7 +22,7 @@ const LoginForm = ({ onEmailClick }: LoginFormProps) => {
 						<span className='self-stretch my-auto'>好友取得折價優惠</span>
 					</div>
 					<p className='mb-8 self-center mt-1 text-sm leading-6 text-zinc-500'>使用LINE登入，不需註冊</p>
-					<LineLoginButton />
+					<LineLoginButton invitationToken={invitationToken} />
 				</div>
 				<OrDivider />
 				<div className='flex flex-col mt-6 w-full text-base'>
@@ -30,7 +31,10 @@ const LoginForm = ({ onEmailClick }: LoginFormProps) => {
 					</Button>
 					<div className='flex gap-2 items-center self-center mt-4 whitespace-nowrap'>
 						<span className='self-stretch my-auto text-zinc-800'>還沒有城市滑雪帳號嗎？</span>
-						<a href='/register' className='self-stretch my-auto font-medium text-blue-600 hover:text-blue-700'>
+						<a
+							href={invitationToken ? `/register?invitation=${invitationToken}` : '/register'}
+							className='self-stretch my-auto font-medium text-blue-600 hover:text-blue-700'
+						>
 							註冊會員
 						</a>
 					</div>

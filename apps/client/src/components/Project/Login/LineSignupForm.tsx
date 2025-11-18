@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import axios from 'axios';
 import dayjs from 'dayjs';
 import { useFormik } from 'formik';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -13,6 +12,7 @@ import InputField from '@/components/Project/Shared/Common/InputField';
 import { FormProvider } from '@/components/Project/Shared/Context/FormContext';
 import AcceptTerms from '@/components/Project/Shared/LoginRegister/AcceptTerms';
 import { setAuthToken, setUserInfo } from '@/state/slices/authSlice';
+import api from '@/lib/api';
 
 import PhoneInputField from '../Shared/Common/PhoneInputField';
 import { showToast } from '../Utils/Toast';
@@ -76,15 +76,17 @@ const LineSignupForm = () => {
 
 			const accessToken = searchParams.get('token');
 			const idToken = searchParams.get('id_token');
+			const invitationToken = searchParams.get('invitation');
 
 			// eslint-disable-next-line unused-imports/no-unused-vars
 			const { termsAccepted, phoneCode, ...dataToSend } = values;
 
 			try {
-				const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/member/line-signup`, {
+				const response = await api.post('/api/auth/member/line-signup', {
 					...dataToSend,
 					access_token: accessToken,
 					id_token: idToken,
+					invitationToken: invitationToken || undefined,
 				});
 
 				const { result } = response.data;
@@ -96,11 +98,15 @@ const LineSignupForm = () => {
 				// Store user info
 				dispatch(setUserInfo(result.userInfo));
 
-				// Redirect to home
-				router.push('/');
-			} catch (error) {
+				// Clear invitation from localStorage
+				localStorage.removeItem('line_auth_invitation');
+
+				// Redirect based on invitation or redirect parameter
+				const redirectTo = searchParams.get('redirect') || '/';
+				router.push(redirectTo);
+			} catch (error: any) {
 				console.error('Error details:', error.response?.data || error.message);
-				// You might want to show an error message to the user here
+				showToast(error.response?.data?.message || '註冊失敗', 'error');
 			}
 		},
 	});
@@ -109,17 +115,14 @@ const LineSignupForm = () => {
 		try {
 			const formattedPhone = `+886${phone.substring(1)}`;
 
-			const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/verification/send', {
+			const response = await api.post('/api/verification/send', {
 				phoneNumber: formattedPhone,
 			});
 			console.log(response.data);
 			return response.data.statusCode === 201;
-		} catch (error) {
-			if (axios.isAxiosError(error)) {
-				showToast('發送驗證碼失敗', 'error');
-				throw new Error(error.response?.data?.message || '發送驗證碼失敗');
-			}
-			throw new Error('發送驗證碼失敗');
+		} catch (error: any) {
+			showToast(error.response?.data?.message || '發送驗證碼失敗', 'error');
+			throw new Error(error.response?.data?.message || '發送驗證碼失敗');
 		}
 	};
 
@@ -127,7 +130,7 @@ const LineSignupForm = () => {
 		try {
 			const formattedPhone = `+886${formik.values.phone.substring(1)}`;
 
-			const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/verification/verify', {
+			const response = await api.post('/api/verification/verify', {
 				phoneNumber: formattedPhone,
 				code: code,
 			});
@@ -135,11 +138,8 @@ const LineSignupForm = () => {
 			const isVerified = response.data.statusCode === 201;
 			setIsPhoneVerified(isVerified);
 			return isVerified;
-		} catch (error) {
-			if (axios.isAxiosError(error)) {
-				throw new Error(error.response?.data?.message || '驗證碼錯誤');
-			}
-			throw new Error('驗證碼錯誤');
+		} catch (error: any) {
+			throw new Error(error.response?.data?.message || '驗證碼錯誤');
 		}
 	};
 

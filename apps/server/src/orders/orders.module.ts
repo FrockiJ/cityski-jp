@@ -12,6 +12,7 @@ import { CoursePlan } from 'src/course-plan/entities/course-plan.entity';
 import { Transaction } from 'src/transaction/entities/transaction.entity';
 import { TransactionsModule } from 'src/transaction/transactions.module';
 import { OrderMembersModule } from 'src/order-members/order-members.module';
+import { OrderInvitationsModule } from 'src/order-invitations/order-invitations.module';
 import { Reservation } from 'src/reservations/entities/reservation.entity';
 import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
@@ -35,6 +36,7 @@ import { OrderReservation } from 'src/order-reservations/entities/order-reservat
     forwardRef(() => MembersModule),
     forwardRef(() => TransactionsModule),
     forwardRef(() => OrderMembersModule),
+    forwardRef(() => OrderInvitationsModule),
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { BlurFade } from '@/components/Effects/BlurFade';
 import LoginEmail from '@/components/Project/Login/LoginEmail';
@@ -12,7 +12,9 @@ import { selectUserInfo } from '@/state/slices/authSlice';
 const LoginPage = () => {
 	const [showEmailLogin, setShowEmailLogin] = useState(false);
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	const userInfo = useSelector(selectUserInfo);
+	const invitationToken = searchParams.get('invitation');
 
 	useEffect(() => {
 		if (userInfo) {
@@ -33,7 +35,11 @@ const LoginPage = () => {
 						/>
 					</BlurFade>
 					<div className='flex flex-col w-[335px] max-xs:ml-0 max-xs:w-[89vw]'>
-						{showEmailLogin ? <LoginEmail /> : <LoginForm onEmailClick={() => setShowEmailLogin(true)} />}
+						{showEmailLogin ? (
+							<LoginEmail invitationToken={invitationToken || undefined} />
+						) : (
+							<LoginForm onEmailClick={() => setShowEmailLogin(true)} invitationToken={invitationToken || undefined} />
+						)}
 					</div>
 				</div>
 			</main>

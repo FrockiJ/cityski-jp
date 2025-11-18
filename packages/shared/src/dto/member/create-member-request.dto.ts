@@ -48,4 +48,8 @@ export class CreateMemberRequestDto {
   @IsDateFormat({ message: "Invalid birthday format. Use YYYY/MM/DD" })
   @IsOptional()
   birthday?: string;
+
+  @IsString()
+  @IsOptional()
+  invitationToken?: string;
 }

@@ -1,3 +1,5 @@
+import React, { useCallback } from 'react';
+
 import { useFormContext } from '../Context/FormContext';
 
 interface AcceptTermsProps {
@@ -5,16 +7,34 @@ interface AcceptTermsProps {
 	name?: string;
 }
 
-const AcceptTerms = ({ id, name = id }: AcceptTermsProps) => {
+const AcceptTerms = React.memo(({ id, name = id }: AcceptTermsProps) => {
 	const formik = useFormContext();
+
+	// 只取出需要的欄位值
+	const fieldValue = formik?.values[id] ?? false;
+	const fieldError = formik?.touched[id] && (formik?.errors[id] as string);
+
+	const handleChange = useCallback(
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			formik?.handleChange(e);
+		},
+		[formik],
+	);
+
+	const handleBlur = useCallback(
+		(e: React.FocusEvent<HTMLInputElement>) => {
+			formik?.handleBlur(e);
+		},
+		[formik],
+	);
 
 	const validationProps = formik
 		? {
 				name: id,
-				checked: formik.values[id],
-				onChange: formik.handleChange,
-				onBlur: formik.handleBlur,
-				error: formik.touched[id] && (formik.errors[id] as string),
+				checked: fieldValue,
+				onChange: handleChange,
+				onBlur: handleBlur,
+				error: fieldError,
 			}
 		: {
 				name,
@@ -73,6 +93,6 @@ const AcceptTerms = ({ id, name = id }: AcceptTermsProps) => {
 			)}
 		</div>
 	);
-};
+});
 
 export default AcceptTerms;

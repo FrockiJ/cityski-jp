@@ -226,18 +226,26 @@ export class OrdersService {
         isNaN(Number(limit)) || limit <= 0 ? 10 : Number(limit);
       const skip = (customPage - 1) * customLimit;
 
-      const [orders, total] = await this.ordersRepo.findAndCount({
-        where: { orderer: memberId },
-        relations: [
-          'coursePlan',
-          'department',
-          'transaction',
-          'orderReservations',
-        ],
-        order: { createdTime: 'DESC' },
-        skip,
-        take: customLimit,
-      });
+      // 使用 QueryBuilder 来获取用户作为 orderer 或 orderMember 的所有订单
+      const queryBuilder = this.ordersRepo
+        .createQueryBuilder('order')
+        .leftJoinAndSelect('order.coursePlan', 'coursePlan')
+        .leftJoinAndSelect('order.department', 'department')
+        .leftJoinAndSelect('order.transaction', 'transaction')
+        .leftJoinAndSelect('order.orderReservations', 'orderReservations')
+        .leftJoin('order.orderMembers', 'orderMember')
+        .where(
+          '(order.orderer = :memberId OR (orderMember.memberId = :memberId AND orderMember.active = :active))',
+          { memberId, active: true },
+        )
+        .orderBy('order.createdTime', 'DESC')
+        .distinct(true); // 确保不会因为多个 orderMembers 而重复
+
+      // 获取总数
+      const total = await queryBuilder.getCount();
+
+      // 获取分页数据
+      const orders = await queryBuilder.skip(skip).take(customLimit).getMany();
 
       const formatData = orders.map((order) => ({
         id: order.id,

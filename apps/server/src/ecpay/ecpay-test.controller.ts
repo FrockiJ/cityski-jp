@@ -262,7 +262,7 @@ export class EcpayTestController {
   }
 
   /**
-   * 計算 CheckMacValue 調試端點
+   * 計算 CheckMacValue 調試端點（含所有步驟詳情）
    * POST /test/ecpay/api/calculate-checkmac
    */
   @Post('api/calculate-checkmac')
@@ -270,15 +270,47 @@ export class EcpayTestController {
     @Body() params: Record<string, any>,
   ) {
     try {
-      const calculatedCheckMacValue = this.cryptoService.calculateCheckMacValue(params);
+      // 獲取所有步驟的詳細信息
+      const steps = this.cryptoService.calculateCheckMacValueWithSteps(params);
 
-      this.logger.log(`[DEBUG] Calculated CheckMacValue: ${calculatedCheckMacValue}`);
+      this.logger.log(`[DEBUG] Calculated CheckMacValue: ${steps.step7_final_checkMacValue}`);
 
       return {
         success: true,
         data: {
-          checkMacValue: calculatedCheckMacValue,
+          checkMacValue: steps.step7_final_checkMacValue,
           params,
+          // 包含所有步驟信息用於前端展示
+          steps: {
+            step1_filtered: {
+              description: '【步驟 1】排除 CheckMacValue 和 CustomField',
+              result: steps.step1_filtered,
+            },
+            step2_sorted_keys: {
+              description: '【步驟 2】按字母順序排序參數',
+              result: steps.step2_sorted_keys,
+            },
+            step3_param_string: {
+              description: '【步驟 3】構建參數字符串',
+              result: steps.step3_param_string,
+            },
+            step4_raw_string: {
+              description: '【步驟 4】組合 HashKey、參數和 HashIV',
+              result: steps.step4_raw_string,
+            },
+            step5_encoded_string: {
+              description: '【步驟 5】URL Encode',
+              result: steps.step5_encoded_string,
+            },
+            step6_hash: {
+              description: '【步驟 6】SHA256 雜湊',
+              result: steps.step6_hash,
+            },
+            step7_final_checkMacValue: {
+              description: '【步驟 7】轉大寫產生最終 CheckMacValue',
+              result: steps.step7_final_checkMacValue,
+            },
+          },
         },
       };
     } catch (error) {
@@ -775,7 +807,32 @@ export class EcpayTestController {
 
     <!-- 主要內容 -->
     <div class="main">
-      <!-- 1. 支付初始化測試 -->
+      <!-- 0. CheckMacValue 步驟詳解 -->
+      <div class="card">
+        <h2>0️⃣ CheckMacValue 步驟詳解</h2>
+        <p style="color: #666; font-size: 13px; margin-bottom: 15px;">
+          輸入支付參數，查看 CheckMacValue 計算的完整步驟
+        </p>
+        <form id="checkMacStepsForm">
+          <div class="form-group">
+            <label>支付參數 (JSON)</label>
+            <textarea id="checkMacParams" style="width: 100%; min-height: 150px; font-family: monospace; font-size: 12px;" placeholder='{"MerchantID":"3002607","MerchantTradeNo":"TEST_001","TotalAmount":"1000"}' required></textarea>
+          </div>
+          <div class="button-group">
+            <button type="submit" class="btn btn-primary">計算並顯示步驟</button>
+            <button type="button" class="btn btn-secondary" onclick="clearCheckMacStepsResult()">清除結果</button>
+          </div>
+          <div id="checkMacStepsResult" class="result"></div>
+
+          <!-- 步驟詳情容器 -->
+          <div id="stepsDetailContainer" style="display: none; margin-top: 20px;">
+            <strong style="display: block; margin-bottom: 15px;">📊 CheckMacValue 計算步驟詳解：</strong>
+            <div id="stepsDetailContent"></div>
+          </div>
+        </form>
+      </div>
+
+      <!-- 1. 支付初始化測試-->
       <div class="card">
         <h2>1️⃣ 支付初始化</h2>
         <form id="initForm">
@@ -943,6 +1000,71 @@ export class EcpayTestController {
   </div>
 
   <script>
+    // CheckMacValue 步驟詳解表單提交
+    document.getElementById('checkMacStepsForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      try {
+        const paramsJson = JSON.parse(document.getElementById('checkMacParams').value);
+
+        const response = await fetch('/api/test/ecpay/api/calculate-checkmac', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(paramsJson),
+        });
+
+        const result = await response.json();
+
+        if (result.result && result.result.success) {
+          const data = result.result.data;
+          const steps = data.steps;
+
+          // 構建步驟詳情 HTML
+          let stepsHtml = '<table style="width: 100%; border-collapse: collapse; font-size: 13px;">';
+          stepsHtml += '<tr style="background: #f0f0f0; border-bottom: 2px solid #ddd;"><th style="padding: 12px; text-align: left; border: 1px solid #ddd;">步驟</th><th style="padding: 12px; text-align: left; border: 1px solid #ddd;">詳細內容</th></tr>';
+
+          // 遍歷所有步驟
+          const stepKeys = ['step1_filtered', 'step2_sorted_keys', 'step3_param_string', 'step4_raw_string', 'step5_encoded_string', 'step6_hash', 'step7_final_checkMacValue'];
+          stepKeys.forEach((key, index) => {
+            const step = steps[key];
+            const bgColor = index % 2 === 0 ? '#fff' : '#f9f9f9';
+            let resultHtml = '';
+
+            if (typeof step.result === 'object') {
+              resultHtml = '<code style="background: white; padding: 8px; display: block; border-radius: 3px; font-size: 11px; white-space: pre-wrap; word-break: break-word;">' + escapeHtml(JSON.stringify(step.result, null, 2)) + '</code>';
+            } else {
+              resultHtml = '<code style="background: white; padding: 8px; display: block; border-radius: 3px; font-size: 11px; white-space: pre-wrap; word-break: break-word;">' + escapeHtml(String(step.result)) + '</code>';
+            }
+
+            stepsHtml += '<tr style="background: ' + bgColor + '; border-bottom: 1px solid #ddd;">';
+            stepsHtml += '<td style="padding: 12px; border: 1px solid #ddd; vertical-align: top; font-weight: 500; width: 20%; white-space: nowrap;">' + escapeHtml(step.description) + '</td>';
+            stepsHtml += '<td style="padding: 12px; border: 1px solid #ddd;">' + resultHtml + '</td>';
+            stepsHtml += '</tr>';
+          });
+
+          stepsHtml += '</table>';
+
+          // 顯示最終結果
+          const finalResult = '<div style="margin-top: 20px; padding: 15px; border-radius: 4px; background: #d4edda; border: 1px solid #c3e6cb;"><strong style="color: #155724;">✅ 最終 CheckMacValue：</strong><br><code style="background: white; padding: 8px; display: block; border-radius: 3px; margin-top: 8px; font-size: 12px; word-break: break-all;">' + escapeHtml(data.checkMacValue) + '</code></div>';
+
+          document.getElementById('stepsDetailContent').innerHTML = stepsHtml + finalResult;
+          document.getElementById('stepsDetailContainer').style.display = 'block';
+
+          showResult('checkMacStepsResult', 'success', '✅ 計算成功', '已顯示所有步驟');
+        } else {
+          showResult('checkMacStepsResult', 'error', '❌ 計算失敗', result.error || JSON.stringify(result));
+        }
+      } catch (error) {
+        showResult('checkMacStepsResult', 'error', '❌ JSON 格式錯誤', error.message);
+      }
+    });
+
+    function clearCheckMacStepsResult() {
+      document.getElementById('checkMacStepsResult').className = 'result';
+      document.getElementById('stepsDetailContainer').style.display = 'none';
+      document.getElementById('stepsDetailContent').innerHTML = '';
+    }
+
     // 初始化頁面
     async function initPage() {
       try {

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Logger,
   Param,
   Post,
   Query,
@@ -26,6 +27,8 @@ import { AdminOrMemberGuard } from 'src/guards/admin-or-member.guard';
 
 @Controller('/orders')
 export class OrdersController {
+  private readonly logger = new Logger(OrdersController.name);
+
   constructor(private ordersService: OrdersService) {}
 
   @UseGuards(AuthGuard)
@@ -99,5 +102,20 @@ export class OrdersController {
     return plainToInstance(CreateOrderResponseDTO, result, {
       excludeExtraneousValues: true,
     });
+  }
+
+  /**
+   * 信用卡支付回調處理
+   * POST /api/orders/credit-card/callback
+   */
+  @Post('credit-card/callback')
+  async handleCreditCardCallback(
+    @Body() paymentResult: any,
+  ) {
+    // TODO: 根據實際的 paymentResult 結構進行處理
+    this.logger.log(
+      `[CREDIT CARD CALLBACK] Received payment result: ${JSON.stringify(paymentResult)}`,
+    );
+    return { success: true };
   }
 }

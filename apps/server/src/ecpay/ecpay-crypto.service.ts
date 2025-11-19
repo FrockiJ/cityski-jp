@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { EcpayConfig } from './ecpay.config';
 
 @Injectable()
 export class EcpayCryptoService {
+  private readonly logger = new Logger(EcpayCryptoService.name);
+
   constructor(private ecpayConfig: EcpayConfig) {}
 
   /**
@@ -53,6 +55,65 @@ export class EcpayCryptoService {
 
     // 7. 轉大寫
     return hash.toUpperCase();
+  }
+
+/**
+   * 計算 CheckMacValue 並返回所有步驟的詳細信息（用於前端展示）
+   */
+  calculateCheckMacValueWithSteps(params: Record<string, any>): {
+    step1_filtered: Record<string, any>;
+    step2_sorted_keys: string[];
+    step3_param_string: string;
+    step4_raw_string: string;
+    step5_encoded_string: string;
+    step6_hash: string;
+    step7_final_checkMacValue: string;
+  } {
+    // 1. 排除 CheckMacValue 本身和不計入檢查碼的欄位
+    const filteredParams = { ...params };
+    delete filteredParams.CheckMacValue;
+    delete filteredParams.CustomField1;
+    delete filteredParams.CustomField2;
+    delete filteredParams.CustomField3;
+    delete filteredParams.CustomField4;
+
+    // 2. 按字母順序排序（case-insensitive）
+    const sortedKeys = Object.keys(filteredParams).sort((a, b) =>
+      a.toLowerCase().localeCompare(b.toLowerCase()),
+    );
+
+    // 3. 構建參數字符串
+    const paramParts = [];
+    for (const key of sortedKeys) {
+      const value = String(filteredParams[key]);
+      paramParts.push(`${key}=${value}`);
+    }
+    const paramString = paramParts.join('&');
+
+    // 4. 組合：HashKey & 參數 & HashIV
+    const rawString = `HashKey=${this.ecpayConfig.hashKeyPayment}&${paramString}&HashIV=${this.ecpayConfig.hashIvPayment}`;
+
+    // 5. 進行 URL encode 轉換（按照 ECPay .NET URLEncode 規則）
+    const encodedString = this.ecpayUrlEncode(rawString);
+
+    // 6. SHA256 雜湊
+    const hash = crypto
+      .createHash('sha256')
+      .update(encodedString)
+      .digest('hex');
+
+    // 7. 轉大寫
+    const finalCheckMacValue = hash.toUpperCase();
+
+    return {
+      step1_filtered: filteredParams,
+      step2_sorted_keys: sortedKeys,
+      step3_param_string: paramString,
+      step4_raw_string: rawString,
+      step5_encoded_string: encodedString,
+      step6_hash: hash,
+      step7_final_checkMacValue: finalCheckMacValue,
+    };
   }
 
   /**

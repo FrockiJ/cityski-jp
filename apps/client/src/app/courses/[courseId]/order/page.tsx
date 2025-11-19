@@ -153,6 +153,7 @@ function OrderConfirmationPage() {
 	 * 調用後端 ECPay 初始化 API，獲取支付表單並跳轉
 	 */
 	const initiateCreditCardPayment = async (orderId: string, amount: number) => {
+		//orderId = 'ABC00000012'; // TODO: 移除測試用 orderId
 		try {
 			// 調用後端初始化 ECPay 支付
 			const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/payments/credit-card/initialize`, {
@@ -164,6 +165,7 @@ function OrderConfirmationPage() {
 				body: JSON.stringify({
 					orderId: orderId,
 					amount: amount,
+					callbackUrl: `${window.location.origin}/api/orders/credit-card/callback`,
 				}),
 			});
 
@@ -216,17 +218,13 @@ function OrderConfirmationPage() {
 			}
 
 			// 將 HTML 寫入新視窗
+			// 注意：HTML 中已經包含 onload="document.paymentForm.submit();" 會自動提交表單
 			newWindow.document.open();
 			newWindow.document.write(formHtml);
 			newWindow.document.close();
 
-			// 自動提交表單
-			setTimeout(() => {
-				const form = newWindow.document.querySelector('form');
-				if (form) {
-					form.submit();
-				}
-			}, 500);
+			// 不需要手動提交！HTML 中的 onload 事件會自動提交表單
+			// 試圖在 setTimeout 中訪問 newWindow.document 會導致跨域錯誤
 		} catch (error) {
 			console.error('Error submitting form to ECPay:', error);
 			alert('無法跳轉到支付頁面，請重試');

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -29,17 +29,14 @@ export class EcpayConfig {
       'ECPAY_API_URL_PROD',
     );
     this.environment = this.configService.get<string>('ECPAY_ENVIRONMENT', 'stage');
+    this.clientDomain = this.configService.get<string>('ECPAY_TEST_DOMAIN');  // TODO: 上線前改用正式域名
     this.returnUrl = this.configService.get<string>(
       'ECPAY_RETURN_URL',
+      `${this.clientDomain}/api/payments/credit-card/callback`,
     );
-    this.clientDomain = this.configService.get<string>('CLIENT_DOMAIN');
     this.orderResultUrl = this.configService.get<string>(
       'ECPAY_ORDER_RESULT_URL',
       `${this.clientDomain}/courses/order-result`,
-    );
-    this.clientBackUrl = this.configService.get<string>(
-      'ECPAY_CLIENT_BACK_URL',
-      `${this.clientDomain}/courses/order-success`,
     );
   }
 

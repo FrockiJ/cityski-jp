@@ -277,7 +277,7 @@ export default function MemberList({
 		if (result) {
 			// 生成 Line 分享連結
 			const message = `您被邀請參加課程！請點擊註冊：${result.inviteLink}`;
-			const lineShareUrl = `https://line.me/R/share?text=${encodeURIComponent(message)}`;
+			const lineShareUrl = `https://social-plugins.line.me/lineit/share?url=${result.inviteLink}&text=${encodeURIComponent(message)}`;
 
 			// 打開 Line 分享視窗
 			window.open(lineShareUrl, '_blank');
@@ -308,8 +308,6 @@ export default function MemberList({
 		if (result) {
 			// 目前直接複製連結，讓用戶手動發送
 			// 未來可以整合後端郵件服務
-			navigator.clipboard.writeText(result.inviteLink);
-			alert(`邀請連結已複製！\n請透過 Email 發送給: ${inviteEmail}\n\n連結: ${result.inviteLink}`);
 
 			// 通知父組件新邀請已創建
 			if (onInvitationCreated) {

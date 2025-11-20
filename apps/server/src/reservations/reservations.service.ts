@@ -1,8 +1,4 @@
-import {
-  HttpException,
-  HttpStatus,
-  Injectable,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Or, ILike, DataSource, In } from 'typeorm';
 import { SkiAndSnowboardLevelEnum } from '@repo/shared';
@@ -25,7 +21,6 @@ import {
   GetLinkedOrdersResponseDto,
   ReservationResponseDto,
   ResWithPaginationDTO,
-
 } from '@repo/shared';
 
 @Injectable()
@@ -56,14 +51,17 @@ export class ReservationsService {
     try {
       // 構建查詢條件
       let where: any = {};
-      
+
       // 根據部門ID篩選
       if (request.departmentId) {
         where.department = { id: request.departmentId };
       }
 
       // 根據課程狀態篩選
-      if (request.reservationStatus !== undefined && request.reservationStatus !== null) {
+      if (
+        request.reservationStatus !== undefined &&
+        request.reservationStatus !== null
+      ) {
         where.reservationStatus = request.reservationStatus;
       }
 
@@ -88,7 +86,15 @@ export class ReservationsService {
       // 使用 find() 方法
       const [reservations, total] = await this.reservationsRepo.findAndCount({
         where,
-        relations: ['reservationMembers', 'reservationMembers.orderMember', 'reservationMembers.orderMember.member', 'reservationMembers.orderMember.order','reservationMembers.orderMember.order.coursePlan','reservationMembers.orderMember.order.coursePlan.course','reservationMembers.orderMember.order.coursePlan.course.coursePeople'],
+        relations: [
+          'reservationMembers',
+          'reservationMembers.orderMember',
+          'reservationMembers.orderMember.member',
+          'reservationMembers.orderMember.order',
+          'reservationMembers.orderMember.order.coursePlan',
+          'reservationMembers.orderMember.order.coursePlan.course',
+          'reservationMembers.orderMember.order.coursePlan.course.coursePeople',
+        ],
         order: {
           createdTime: 'DESC',
         },
@@ -109,11 +115,19 @@ export class ReservationsService {
   }
 
   // 根據ID獲取預約詳情
-  async getReservationDetail(id: string): Promise<GetReservationDetailResponseDto> {
+  async getReservationDetail(
+    id: string,
+  ): Promise<GetReservationDetailResponseDto> {
     try {
       const reservation = await this.reservationsRepo.findOne({
         where: { id },
-        relations: [ 'reservationMembers', 'reservationMembers.orderMember', 'reservationMembers.orderMember.member', 'reservationMembers.orderMember.order','reservationMembers.orderMember.order.coursePlan.course.coursePeople'],
+        relations: [
+          'reservationMembers',
+          'reservationMembers.orderMember',
+          'reservationMembers.orderMember.member',
+          'reservationMembers.orderMember.order',
+          'reservationMembers.orderMember.order.coursePlan.course.coursePeople',
+        ],
       });
 
       if (!reservation) {
@@ -126,11 +140,16 @@ export class ReservationsService {
       // 獲取連結的訂單資訊
       const orderReservations = await this.orderReservationsRepo.find({
         where: { reservationId: id },
-        relations: ['order', 'order.coursePlan', 'order.coursePlan.course', 'order.coursePlan.course.coursePeople'],
+        relations: [
+          'order',
+          'order.coursePlan',
+          'order.coursePlan.course',
+          'order.coursePlan.course.coursePeople',
+        ],
         order: { index: 'ASC' },
       });
 
-      const linkedOrders = orderReservations.map(or => ({
+      const linkedOrders = orderReservations.map((or) => ({
         orderId: or.orderId,
         orderNo: or.order?.no || '',
         index: or.index,
@@ -138,31 +157,34 @@ export class ReservationsService {
       }));
 
       // 格式化 reservationMembers
-      const reservationMembers: GetReservationDetailResponseDto['reservationMembers'] = reservation.reservationMembers?.map(rm => ({
-        id: rm.id,
-        reservationId: rm.reservationId,
-        orderMemberId: rm.orderMemberId,
-        note: rm.note || undefined,
-        orderMember: rm.orderMember ? {
-          id: rm.orderMember.id,
-          orderId: rm.orderMember.orderId,
-          memberId: rm.orderMember.memberId,
-          member: {
-            id: rm.orderMember.member.id,
-            name: rm.orderMember.member.name,
-            phone: rm.orderMember.member.phone,
-            birthday: rm.orderMember.member.birthday,
-            avatar: rm.orderMember.member.avatar,
-            skis: rm.orderMember.member.skis,
-            snowboard: rm.orderMember.member.snowboard,
-          },
-          order: {
-            id: rm.orderMember.order.id,
-            no: rm.orderMember.order.no,
-            status: String(rm.orderMember.order.status),
-          },
-        } : undefined,
-      }));
+      const reservationMembers: GetReservationDetailResponseDto['reservationMembers'] =
+        reservation.reservationMembers?.map((rm) => ({
+          id: rm.id,
+          reservationId: rm.reservationId,
+          orderMemberId: rm.orderMemberId,
+          note: rm.note || undefined,
+          orderMember: rm.orderMember
+            ? {
+                id: rm.orderMember.id,
+                orderId: rm.orderMember.orderId,
+                memberId: rm.orderMember.memberId,
+                member: {
+                  id: rm.orderMember.member.id,
+                  name: rm.orderMember.member.name,
+                  phone: rm.orderMember.member.phone,
+                  birthday: rm.orderMember.member.birthday,
+                  avatar: rm.orderMember.member.avatar,
+                  skis: rm.orderMember.member.skis,
+                  snowboard: rm.orderMember.member.snowboard,
+                },
+                order: {
+                  id: rm.orderMember.order.id,
+                  no: rm.orderMember.order.no,
+                  status: String(rm.orderMember.order.status),
+                },
+              }
+            : undefined,
+        }));
 
       // Get course information from orderReservations instead of reservationMembers
       const firstOrder = orderReservations[0]?.order;
@@ -256,7 +278,8 @@ export class ReservationsService {
 
       // 1. 創建 Reservation
       const newReservation = queryRunner.manager.create(Reservation, {
-        reservationStatus: body.reservationStatus || ReservationStatus.SCHEDULED,
+        reservationStatus:
+          body.reservationStatus || ReservationStatus.SCHEDULED,
         classTime: body.classTime,
         teachingLevel: body.teachingLevel,
         instructor: body.instructor || null,
@@ -286,9 +309,10 @@ export class ReservationsService {
         },
       );
 
-      const nextIndex = existingOrderReservations.length > 0
-        ? existingOrderReservations[0].index + 1
-        : 1;
+      const nextIndex =
+        existingOrderReservations.length > 0
+          ? existingOrderReservations[0].index + 1
+          : 1;
 
       const newOrderReservation = queryRunner.manager.create(OrderReservation, {
         orderId: body.orderId,
@@ -313,7 +337,11 @@ export class ReservationsService {
   }
 
   // 更新預約
-  async updateReservation(id: string, body: UpdateReservationRequestDto, userId?: string) {
+  async updateReservation(
+    id: string,
+    body: UpdateReservationRequestDto,
+    userId?: string,
+  ) {
     try {
       const reservation = await this.reservationsRepo.findOne({
         where: { id },
@@ -345,7 +373,9 @@ export class ReservationsService {
       // 檢測時間是否有變更
       let hasTimeChanged = false;
       if (body.classTime !== undefined) {
-        const oldTime = reservation.classTime ? new Date(reservation.classTime).getTime() : null;
+        const oldTime = reservation.classTime
+          ? new Date(reservation.classTime).getTime()
+          : null;
         const newTime = new Date(body.classTime).getTime();
         hasTimeChanged = oldTime !== newTime;
       }
@@ -361,7 +391,8 @@ export class ReservationsService {
         reservation.instructor = body.instructor;
       }
       if (body.reservationStatus !== undefined) {
-        reservation.reservationStatus = body.reservationStatus as ReservationStatus;
+        reservation.reservationStatus =
+          body.reservationStatus as ReservationStatus;
       }
       reservation.updatedUser = userId;
 
@@ -378,7 +409,7 @@ export class ReservationsService {
 
         await this.reservationHistoryService.create({
           reservationId: id,
-          event: '時間異動',
+          event: '預約改期',
           operator: operatorName,
           reason: body.reason || '',
         });
@@ -394,7 +425,11 @@ export class ReservationsService {
   }
 
   // 更新預約狀態
-  async updateReservationStatus(id: string, status: ReservationStatus, userId?: string) {
+  async updateReservationStatus(
+    id: string,
+    status: ReservationStatus,
+    userId?: string,
+  ) {
     try {
       const reservation = await this.reservationsRepo.findOne({
         where: { id },
@@ -439,7 +474,7 @@ export class ReservationsService {
         order: { index: 'ASC' },
       });
 
-      const linkedOrders = orderReservations.map(or => ({
+      const linkedOrders = orderReservations.map((or) => ({
         orderId: or.orderId,
         orderNo: or.order?.no || '',
         index: or.index,

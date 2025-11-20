@@ -6,12 +6,14 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { OrderMember } from './entities/order-member.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import {
   OrderMemberSearchResponseDto,
   TransferOrderMemberRequestDto,
+  CourseType,
+  CourseSkiType,
 } from '@repo/shared';
 import { OrderHistoryService } from 'src/order-history/order-history.service';
 import { MembersService } from 'src/members/members.service';
@@ -276,19 +278,64 @@ export class OrderMembersService {
 
   async searchWithCoursesLeft(
     keyword: string,
+    orderType?: CourseType,
+    skiType?: CourseSkiType,
+    orderNo?: string,
   ): Promise<OrderMemberSearchResponseDto[]> {
     try {
-      const where =
-        keyword && keyword.trim()
-          ? [
-              { active: true, member: { name: ILike(`%${keyword}%`) } },
-              { active: true, member: { phone: ILike(`%${keyword}%`) } },
-              { active: true, member: { email: ILike(`%${keyword}%`) } },
-            ]
-          : { active: true };
+      // Use QueryBuilder to filter by courses left
+      const queryBuilder = this.orderMembersRepo
+        .createQueryBuilder('om')
+        .leftJoin('om.member', 'member')
+        .leftJoin('om.order', 'order')
+        .leftJoin('order.orderReservations', 'orderReservations')
+        .where('om.active = :active', { active: true });
 
+      // Keyword search (name, phone, or email)
+      if (keyword && keyword.trim()) {
+        queryBuilder.andWhere(
+          '(member.name LIKE :keyword OR member.phone LIKE :keyword OR member.email LIKE :keyword)',
+          { keyword: `%${keyword}%` },
+        );
+      }
+
+      // Order type filter
+      if (orderType) {
+        queryBuilder.andWhere('order.type = :orderType', { orderType });
+      }
+
+      // Ski type filter
+      if (skiType !== undefined && skiType !== null) {
+        queryBuilder.andWhere('order.skiType = :skiType', { skiType });
+      }
+
+      // Order number filter
+      if (orderNo && orderNo.trim()) {
+        queryBuilder.andWhere('order.no LIKE :orderNo', {
+          orderNo: `%${orderNo}%`,
+        });
+      }
+
+      // Group and filter by courses left
+      // Only return order members where used courses < planned courses
+      queryBuilder
+        .groupBy('om.id')
+        .addGroupBy('member.id')
+        .addGroupBy('order.id')
+        .having('COUNT(orderReservations.id) < order.planNumber')
+        .orderBy('member.name', 'ASC');
+
+      // Execute first query to get filtered IDs
+      const filteredResults = await queryBuilder.getMany();
+
+      // If no results, return empty array
+      if (filteredResults.length === 0) {
+        return [];
+      }
+
+      // Reload with full relations for the response DTO
       return await this.orderMembersRepo.find({
-        where,
+        where: { id: In(filteredResults.map((r) => r.id)) },
         relations: {
           member: true,
           order: {

@@ -7,6 +7,7 @@ import {
 	BtnActionType,
 	CourseStatusType,
 	CourseType,
+	CourseBkgType,
 	DialogAction,
 	GetCoursesResponseDTO,
 	ModalType,
@@ -109,8 +110,6 @@ const AddEditReservationIndoorModal = ({
 	);
 
 	const { orderDetail, loading: orderDetailLoading } = useGetOrderDetail(effectiveOrderId);
-
-	console.log('===savedMembers', savedMembers);
 
 	// Debug: 監測 effectiveOrderId 變化
 	useEffect(() => {
@@ -632,8 +631,6 @@ const AddEditReservationIndoorModal = ({
 		// 錯誤處理已經在 hook 中完成
 	};
 
-	console.log('===dis', displayMembers);
-
 	// 檢查是否已達人數上限
 	const isAtCapacity = React.useMemo(() => {
 		console.log('檢查人數上限:', { reservationDetail, displayMembersLength: displayMembers.length });
@@ -678,6 +675,20 @@ const AddEditReservationIndoorModal = ({
 									buttonIconType={BtnActionType.ADD}
 									buttonDisabled={isAtCapacity || isBasicInfoDisabled}
 									handleClick={() => {
+										// 判斷是否為預約式團體課
+
+										const isReservationBasedGroupCourse =
+											orderDetail?.type === CourseType.GROUP && orderDetail?.bkgType === CourseBkgType.FLEXIBLE;
+										console.log(CourseBkgType.FLEXIBLE, '===', orderDetail?.bkgType);
+
+										// 判斷是否為私人課
+										const isPrivateCourse = orderDetail?.type === CourseType.PRIVATE;
+										console.log(orderDetail?.type, orderDetail?.bkgType);
+										console.log({
+											isReservationBasedGroupCourse,
+											isPrivateCourse,
+										});
+
 										modal.openModal({
 											title: `加入成員`,
 											width: 800,
@@ -688,6 +699,9 @@ const AddEditReservationIndoorModal = ({
 												<AddMemberModal
 													searchType='orderMembers'
 													onSelectMember={(member) => handleSelectMember(member, setFieldValue)}
+													orderType={isReservationBasedGroupCourse ? orderDetail.type : undefined}
+													skiType={isReservationBasedGroupCourse ? orderDetail.skiType : undefined}
+													orderNo={isPrivateCourse ? orderDetail.no : undefined}
 													// handleCloseModal={(action) => {
 													// 	if (action === 'confirm') {
 													// 		modal.closeModal();
@@ -700,7 +714,9 @@ const AddEditReservationIndoorModal = ({
 								>
 									<MemberList
 										members={displayMembers}
-										onRemoveMember={isBasicInfoDisabled ? undefined : (memberId) => handleRemoveMember(memberId, setFieldValue)}
+										onRemoveMember={
+											isBasicInfoDisabled ? undefined : (memberId) => handleRemoveMember(memberId, setFieldValue)
+										}
 										loading={membersLoading}
 									/>
 								</CoreBlock>
@@ -736,6 +752,7 @@ const AddEditReservationIndoorModal = ({
 										reservationDetail={reservationDetail}
 										orderDetail={orderDetail}
 										courseDetail={courseDetail}
+										displayMembers={displayMembers}
 									/>
 									<FormikDateTimePicker
 										name='courseStartDate'

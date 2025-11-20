@@ -333,7 +333,7 @@ export class ReservationsService {
       const nextIndex =
         existingOrderReservations.length > 0
           ? existingOrderReservations[0].index + 1
-          : 1;
+          : 0;
 
       const newOrderReservation = queryRunner.manager.create(OrderReservation, {
         orderId: body.orderId,

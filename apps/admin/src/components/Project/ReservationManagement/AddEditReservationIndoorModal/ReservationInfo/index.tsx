@@ -6,6 +6,7 @@ import {
 	GetOrderDetailResponseDTO,
 	GetCourseDetailResponseDTO,
 	CourseSkiType,
+	CourseBkgType,
 } from '@repo/shared';
 
 import BlockArea from '@/components/Project/shared/BlockArea';
@@ -22,9 +23,10 @@ type Props = {
 	reservationDetail?: GetReservationDetailResponseDto | null;
 	orderDetail?: GetOrderDetailResponseDTO | null;
 	courseDetail: GetCourseDetailResponseDTO | null;
+	displayMembers?: any[];
 };
 
-const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDetail }: Props) => {
+const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDetail, displayMembers }: Props) => {
 	// 根據預約狀態顯示中文狀態
 	const getReservationStatusText = (status?: number) => {
 		if (!status) return '--';
@@ -49,8 +51,12 @@ const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDet
 			[CourseType.GROUP]: '團體課',
 			[CourseType.INDIVIDUAL]: '個人練習',
 		};
+		const bkgTypeMap = {
+			[CourseBkgType.FIXED]: '指定',
+			[CourseBkgType.FLEXIBLE]: '預約',
+		};
 
-		return typeMap[courseDetail?.type] || '--';
+		return `${bkgTypeMap[courseDetail?.bkgType] || '--'}${typeMap[courseDetail?.type] || '--'}`;
 	};
 
 	// 獲取滑雪類型文字
@@ -95,7 +101,7 @@ const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDet
 							剩餘名額
 						</Typography>
 						<Typography variant='body1'>
-							{personLimit.length == 0 ? '--' : personLimit[1] - (reservationDetail?.reservationMembers?.length || 0)}
+							{personLimit.length == 0 ? '--' : personLimit[1] - (displayMembers?.length || 0)}
 						</Typography>
 					</Stack>
 				</Stack>

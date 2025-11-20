@@ -62,8 +62,8 @@ export default function CourseReservation({
 	};
 
 	const handleNextStep = () => {
-		// 檢查選擇的人數是否達到最低要求
-		if (selectedMembers.size < minPeople) {
+		// 檢查選擇的人數是否達到最低要求 (僅針對非團體班)
+		if (courseType !== CourseType.GROUP && selectedMembers.size < minPeople) {
 			setShowError(true);
 			return;
 		}
@@ -97,23 +97,25 @@ export default function CourseReservation({
 		try {
 			// 確定 teachingLevel - 使用選中成員的最高技能等級
 			const selectedMemberDetails = orderMembers.filter((m) => selectedMembers.has(m.id));
-			const maxSkillLevel = Math.max(
-				...selectedMemberDetails.map((m) => Math.max(m.skis || 0, m.snowboard || 0)),
-			);
+			const maxSkillLevel = Math.max(...selectedMemberDetails.map((m) => Math.max(m.skis || 0, m.snowboard || 0)));
 			const teachingLevel = maxSkillLevel > 0 ? String(maxSkillLevel) : '1';
 
 			// 調用創建預約 API
-			const response = await api.post('/api/reservations', {
-				departmentId,
-				classTime: new Date(value).toISOString(),
-				teachingLevel,
-				orderId,
-				orderMemberIds: Array.from(selectedMembers),
-			}, {
-				headers: {
-					Authorization: `Bearer ${accessToken}`,
+			const response = await api.post(
+				'/api/reservations',
+				{
+					departmentId,
+					classTime: new Date(value).toISOString(),
+					teachingLevel,
+					orderId,
+					orderMemberIds: Array.from(selectedMembers),
 				},
-			});
+				{
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+				},
+			);
 
 			if (response.status === 201) {
 				showToast('預約課程成功！', 'success');
@@ -434,7 +436,7 @@ export default function CourseReservation({
 																	第
 																</div>
 																<div className="justify-start text-zinc-800 text-4xl font-medium font-['Poppins'] leading-9">
-																	{orderRes.index + 1}
+																	{orderRes.index+1}
 																</div>
 																<div className="justify-start text-zinc-800 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
 																	堂

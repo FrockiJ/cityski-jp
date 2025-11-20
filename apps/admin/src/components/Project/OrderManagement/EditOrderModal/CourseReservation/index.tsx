@@ -109,7 +109,6 @@ const CourseReservation = ({
 
 	// 將預約數據轉換為表格行格式
 	const tableRows = new Array(size).fill(null).map((_, index) => {
-		console.log('reservations===', reservations);
 		const orderReservation = reservations.find((res) => res.index == index);
 		return [
 			{

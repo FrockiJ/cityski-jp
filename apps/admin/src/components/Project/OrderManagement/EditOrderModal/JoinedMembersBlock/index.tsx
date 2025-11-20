@@ -34,14 +34,13 @@ const JoinedMembersBlock = ({ members = [], reservations = [] }: Props) => {
 	};
 	const getUsedReservations = (member: OrderMember): number => {
 		let count = 0;
-		console.log('memeber|||', member.memberName, member.id, reservations.length);
-		console.log('rrr|||', reservations)
+
 		reservations.forEach((reservation) => {
 			if (reservation?.reservation?.reservationMembers && reservation.reservation.reservationMembers.some((m) => m.orderMemberId === member.id)) {
 				count++;
 			}
 		});
-		console.log('count|||', count);
+
 		return count;
 	};
 	// Format board type and level

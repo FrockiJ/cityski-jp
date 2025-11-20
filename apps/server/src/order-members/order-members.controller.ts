@@ -15,7 +15,7 @@ import {
 import { OrderMembersService } from './order-members.service';
 import { OrderMember } from './entities/order-member.entity';
 import { AuthGuard } from 'src/guards/auth.guard';
-import { OrderMemberSearchResponseDto, OrderMemberResponseDto, TransferOrderMemberRequestDto } from '@repo/shared';
+import { OrderMemberSearchResponseDto, OrderMemberResponseDto, TransferOrderMemberRequestDto, CourseType, CourseSkiType } from '@repo/shared';
 import { plainToInstance } from 'class-transformer';
 import { AdminOrMemberGuard } from 'src/guards/admin-or-member.guard';
 import { CustomRequest } from 'src/shared/interfaces/custom-request';
@@ -64,10 +64,19 @@ export class OrderMembersController {
   @Get('/search')
   async searchWithCoursesLeft(
     @Query('keyword') keyword: string,
+    @Query('orderType') orderType?: CourseType,
+    @Query('skiType') skiType?: string,
+    @Query('orderNo') orderNo?: string,
   ): Promise<OrderMemberSearchResponseDto[]> {
+    const skiTypeNum = skiType !== undefined ? parseInt(skiType) : undefined;
     return plainToInstance(
       OrderMemberSearchResponseDto,
-      await this.orderMembersService.searchWithCoursesLeft(keyword || ''),
+      await this.orderMembersService.searchWithCoursesLeft(
+        keyword || '',
+        orderType,
+        skiTypeNum as CourseSkiType,
+        orderNo
+      ),
       { excludeExtraneousValues: true }
     );
   }

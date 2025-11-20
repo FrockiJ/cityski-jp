@@ -13,7 +13,7 @@ import {
 	Avatar,
 	Divider,
 } from '@mui/material';
-import { MemberResponseDto, OrderMemberSearchResponseDto } from '@repo/shared';
+import { MemberResponseDto, OrderMemberSearchResponseDto, CourseType, CourseSkiType } from '@repo/shared';
 import SearchBar from '@/components/Common/CIBase/CoreDynamicTable/SearchBar';
 import { useSearchOrderMembers } from '@/hooks/useSearchOrderMembers';
 import { useSearchMembers } from '@/hooks/useSearchMembers';
@@ -23,9 +23,12 @@ type Props = {
 	handleCloseModal?: (action: any) => void;
 	searchType: 'members' | 'orderMembers';
 	excludeMemberIds?: string[];
+	orderType?: CourseType;
+	skiType?: CourseSkiType;
+	orderNo?: string;
 };
 
-const AddMemberModal = ({ onSelectMember, handleCloseModal, searchType, excludeMemberIds = [] }: Props) => {
+const AddMemberModal = ({ onSelectMember, handleCloseModal, searchType, excludeMemberIds = [], orderType, skiType, orderNo }: Props) => {
 	const [searchValue, setSearchValue] = useState('');
 	const {
 		searchResults: searchOrderResults,
@@ -49,16 +52,23 @@ const AddMemberModal = ({ onSelectMember, handleCloseModal, searchType, excludeM
 		return !excludeMemberIds.includes(memberId);
 	});
 
-	const searchMembersFunc = searchType === 'members' ? searchMembers : searchOrderMembers;
-
 	// 處理搜尋輸入變化
 	const handleSearchChange = useCallback(
 		(_event: React.SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>, value: string | null) => {
 			const searchText = value || '';
 			setSearchValue(searchText);
-			searchMembersFunc(searchText);
+			if (searchType === 'orderMembers') {
+				searchOrderMembers({
+					keyword: searchText,
+					orderType,
+					skiType,
+					orderNo,
+				});
+			} else {
+				searchMembers(searchText);
+			}
 		},
-		[searchMembers, searchType, searchOrderMembers],
+		[searchMembers, searchType, searchOrderMembers, orderType, skiType, orderNo],
 	);
 
 	// 處理選擇會員
@@ -188,7 +198,9 @@ const AddMemberModal = ({ onSelectMember, handleCloseModal, searchType, excludeM
 													訂單類型
 												</Typography>
 												<Typography variant='body2' color='text.primary'>
-													私人預約式????
+													{order?.type === CourseType.PRIVATE ? '私人課' :
+													 order?.type === CourseType.GROUP ? '團體課' :
+													 order?.type === CourseType.INDIVIDUAL ? '個人練習' : '--'}
 												</Typography>
 											</Stack>
 										)}

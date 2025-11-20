@@ -12,8 +12,10 @@ import { OrderReservation } from 'src/order-reservations/entities/order-reservat
 import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
 import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import { Order } from 'src/orders/entities/order.entity';
+import { User } from 'src/users/entities/user.entity';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { ReservationStatus } from './entities/reservation.entity';
+import { ReservationHistoryService } from 'src/reservation-history/reservation-history.service';
 import {
   CreateReservationRequestDto,
   CreateReservationResponseDTO,
@@ -41,7 +43,10 @@ export class ReservationsService {
     private readonly orderMembersRepo: Repository<OrderMember>,
     @InjectRepository(Order)
     private readonly ordersRepo: Repository<Order>,
+    @InjectRepository(User)
+    private readonly usersRepo: Repository<User>,
     private readonly dataSource: DataSource,
+    private readonly reservationHistoryService: ReservationHistoryService,
   ) {}
 
   // 獲取預約列表
@@ -337,6 +342,14 @@ export class ReservationsService {
         reservation.department = department;
       }
 
+      // 檢測時間是否有變更
+      let hasTimeChanged = false;
+      if (body.classTime !== undefined) {
+        const oldTime = reservation.classTime ? new Date(reservation.classTime).getTime() : null;
+        const newTime = new Date(body.classTime).getTime();
+        hasTimeChanged = oldTime !== newTime;
+      }
+
       // 更新預約資料（只更新有提供的欄位）
       if (body.classTime !== undefined) {
         reservation.classTime = body.classTime;
@@ -352,7 +365,26 @@ export class ReservationsService {
       }
       reservation.updatedUser = userId;
 
-      return await this.reservationsRepo.save(reservation);
+      const savedReservation = await this.reservationsRepo.save(reservation);
+
+      // 如果時間有變更，寫入 history
+      if (hasTimeChanged) {
+        // 查詢操作者名稱
+        let operatorName = '';
+        if (userId) {
+          const user = await this.usersRepo.findOne({ where: { id: userId } });
+          operatorName = user?.name || userId;
+        }
+
+        await this.reservationHistoryService.create({
+          reservationId: id,
+          event: '時間異動',
+          operator: operatorName,
+          reason: body.reason || '',
+        });
+      }
+
+      return savedReservation;
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;

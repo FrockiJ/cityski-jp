@@ -642,6 +642,22 @@ const AddEditReservationIndoorModal = ({
 	}, [reservationDetail?.maxStudentCount, displayMembers.length]);
 
 	const isLoading = detailLoading || createLoading || updateLoading || orderDetailLoading || courseDetailLoading;
+
+	// 檢查是否應該禁用基本資訊欄位（待紀錄或已完成狀態）
+	const isBasicInfoDisabled = React.useMemo(() => {
+		if (modalType !== ModalType.EDIT) return false;
+		return (
+			reservationDetail?.reservationStatus === ReservationStatus.PENDING_REVIEW ||
+			reservationDetail?.reservationStatus === ReservationStatus.COMPLETED
+		);
+	}, [modalType, reservationDetail?.reservationStatus]);
+
+	// 檢查是否應該禁用所有欄位（已完成狀態）
+	const isAllFieldsDisabled = React.useMemo(() => {
+		if (modalType !== ModalType.EDIT) return false;
+		return reservationDetail?.reservationStatus === ReservationStatus.COMPLETED;
+	}, [modalType, reservationDetail?.reservationStatus]);
+
 	return (
 		<>
 			<Formik
@@ -660,7 +676,7 @@ const AddEditReservationIndoorModal = ({
 									title='參加成員'
 									buttonLabel='加入成員'
 									buttonIconType={BtnActionType.ADD}
-									buttonDisabled={isAtCapacity}
+									buttonDisabled={isAtCapacity || isBasicInfoDisabled}
 									handleClick={() => {
 										modal.openModal({
 											title: `加入成員`,
@@ -684,7 +700,7 @@ const AddEditReservationIndoorModal = ({
 								>
 									<MemberList
 										members={displayMembers}
-										onRemoveMember={(memberId) => handleRemoveMember(memberId, setFieldValue)}
+										onRemoveMember={isBasicInfoDisabled ? undefined : (memberId) => handleRemoveMember(memberId, setFieldValue)}
 										loading={membersLoading}
 									/>
 								</CoreBlock>
@@ -729,10 +745,17 @@ const AddEditReservationIndoorModal = ({
 										width='220px'
 										format='YYYY/MM/DD hh:mm'
 										margin='0 10px 10px 0'
-										// disabled={isReadonly}
+										disabled={isBasicInfoDisabled}
 										disablePast
 									/>
-									<FormikInput name='courseLevel' title='授課等級' width='192px' isRequired placeholder='1-20' />
+									<FormikInput
+										name='courseLevel'
+										title='授課等級'
+										width='192px'
+										isRequired
+										placeholder='1-20'
+										disabled={isBasicInfoDisabled}
+									/>
 									<Stack mt={3}>
 										<FormikRadio
 											name='pickTrainer'
@@ -743,6 +766,7 @@ const AddEditReservationIndoorModal = ({
 												{ label: '指定', value: 'Y' },
 												{ label: '不指定', value: 'N' },
 											]}
+											disabled={isBasicInfoDisabled}
 										/>
 										<BlockArea>
 											<FormikInput
@@ -751,6 +775,7 @@ const AddEditReservationIndoorModal = ({
 												width='320px'
 												isRequired={values.pickTrainer === 'Y'}
 												placeholder='請輸入教練名字'
+												disabled={isBasicInfoDisabled}
 											/>
 										</BlockArea>
 									</Stack>
@@ -766,6 +791,7 @@ const AddEditReservationIndoorModal = ({
 												attended={memberNotes[member.id]?.attended ?? true}
 												onNoteChange={handleNoteChange}
 												onAttendedChange={handleAttendedChange}
+												disabledAttended={isAllFieldsDisabled}
 											/>
 										))}
 								</CoreBlock>

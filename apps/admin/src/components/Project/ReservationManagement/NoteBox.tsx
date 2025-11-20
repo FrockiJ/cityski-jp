@@ -8,9 +8,10 @@ interface NoteBoxProps {
 	attended: boolean;
 	onNoteChange: (memberId: string, note: string) => void;
 	onAttendedChange: (memberId: string, attended: boolean) => void;
+	disabledAttended?: boolean;
 }
 
-export default function NoteBox({ member, note, attended, onNoteChange, onAttendedChange }: NoteBoxProps) {
+export default function NoteBox({ member, note, attended, onNoteChange, onAttendedChange, disabledAttended = false }: NoteBoxProps) {
 	// 計算年齡
 	const calculateAge = (birthday: Date | null) => {
 		if (!birthday) return null;
@@ -59,11 +60,11 @@ export default function NoteBox({ member, note, attended, onNoteChange, onAttend
 					value={attended ? 'attended' : 'absent'}
 					onChange={(e) => onAttendedChange(member.id, e.target.value === 'attended')}
 				>
-					<FormControlLabel value='attended' control={<Radio size='small' />} label='到' />
-					<FormControlLabel value='absent' control={<Radio size='small' />} label='未到' />
+					<FormControlLabel value='attended' control={<Radio size='small' disabled={disabledAttended} />} label='到' />
+					<FormControlLabel value='absent' control={<Radio size='small' disabled={disabledAttended} />} label='未到' />
 				</RadioGroup>
 
-				{/* 上課情形輸入框 */}
+				{/* 上課情形輸入框 - 備註永遠可以編輯 */}
 				<TextField
 					fullWidth
 					multiline

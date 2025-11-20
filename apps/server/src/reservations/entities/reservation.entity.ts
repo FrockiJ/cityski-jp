@@ -17,7 +17,7 @@ import {
 // 課程狀態 enum
 export enum ReservationStatus {
   SCHEDULED = 1, // 已排定
-  PENDING_REVIEW = 2, // 待評價
+  PENDING_REVIEW = 2, // 待紀錄
   COMPLETED = 3, // 已完成
   CANCELED = 9, // 已取消
 }

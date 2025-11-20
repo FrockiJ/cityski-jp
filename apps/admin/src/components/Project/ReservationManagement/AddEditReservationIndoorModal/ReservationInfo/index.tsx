@@ -31,7 +31,9 @@ const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDet
 		switch (status) {
 			case 1: // SCHEDULED
 				return '已排定';
-			case 2: // COMPLETED
+			case 2: // PENDING_REVIEW
+				return '待紀錄';
+			case 3: // COMPLETED
 				return '已完成';
 			case 9: // CANCELLED
 				return '已取消';

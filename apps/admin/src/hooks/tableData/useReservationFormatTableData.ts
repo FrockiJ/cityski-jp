@@ -7,10 +7,10 @@ import {
 	ReservationStatusEnum,
 	OrderByType,
 	SortType,
-  ReservationStatus,
-  SkiAndSnowboardLevelEnum,
-  SkiAndSnowboardLevel,
-  CourseSkiType,
+	ReservationStatus,
+	SkiAndSnowboardLevelEnum,
+	SkiAndSnowboardLevel,
+	CourseSkiType,
 } from '@repo/shared';
 import dayjs from 'dayjs';
 import { configReservationsIndoorTable } from 'src/tableConfigs/reservations-indoor';
@@ -57,7 +57,6 @@ export const useReservationFormatTableData = (options?: Props) => {
 					level: `LV.${getTeachingLevelText(reservation.teachingLevel)}`,
 					instructor: reservation.instructor || '未指定',
 					beginTime: dayjs(reservation.classTime).format('YYYY/MM/DD HH:mm'),
-
 				};
 
 				// if (isOverseas) {
@@ -69,13 +68,13 @@ export const useReservationFormatTableData = (options?: Props) => {
 				// 	};
 				// 	return overseasData;
 				// } else {
-					// 室內課程的資料結構
-					const indoorData: any = {
-						...baseData,
-						number: currentNumber,
-						remaining: remaining,
-					};
-					return indoorData;
+				// 室內課程的資料結構
+				const indoorData: any = {
+					...baseData,
+					number: currentNumber,
+					remaining: remaining,
+				};
+				return indoorData;
 				// }
 			});
 
@@ -88,16 +87,18 @@ export const useReservationFormatTableData = (options?: Props) => {
 
 // 輔助函數：獲取狀態文字
 function getStatusText(status: number): string {
-  switch (status) {    
-    case ReservationStatus.SCHEDULED:
-      return '已排定';
-    case ReservationStatus.COMPLETED:
-      return '已完成';
-    case ReservationStatus.CANCELED:
-      return '已取消';
-    default:
-      return '未知狀態';
-  }
+	switch (status) {
+		case ReservationStatus.SCHEDULED:
+			return '已排定';
+		case ReservationStatus.PENDING_REVIEW:
+			return '待紀錄';
+		case ReservationStatus.COMPLETED:
+			return '已完成';
+		case ReservationStatus.CANCELED:
+			return '已取消';
+		default:
+			return '未知狀態';
+	}
 }
 
 // 輔助函數：獲取教學等級文字

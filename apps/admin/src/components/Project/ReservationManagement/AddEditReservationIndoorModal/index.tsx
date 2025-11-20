@@ -13,6 +13,7 @@ import {
 	CreateReservationRequestDto,
 	SkiAndSnowboardLevelEnum,
 	ReservationStatusEnum,
+	ReservationStatus,
 	GetOrderDetailResponseDTO,
 	CourseTeachingType,
 } from '@repo/shared';
@@ -48,6 +49,7 @@ import ReservationInfo from './ReservationInfo';
 import MemberList from './MemberList';
 import NoteBox from '../NoteBox';
 import RescheduleReasonModal from './RescheduleReasonModal';
+import SubmitAttendanceConfirmModal from '../SubmitAttendanceConfirmModal';
 
 const anchorItems = [
 	{ id: 'basic', label: '參加成員', requireFields: [] },
@@ -129,6 +131,9 @@ const AddEditReservationIndoorModal = ({
 	// 改期原因 Modal 狀態
 	const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
 	const [pendingFormValues, setPendingFormValues] = useState<InitialValuesProps | null>(null);
+
+	// 送出上課紀錄確認 Modal 狀態
+	const [submitAttendanceModalOpen, setSubmitAttendanceModalOpen] = useState(false);
 
 	// 合併已儲存和待新增的成員，排除待刪除的成員
 	const displayMembers = React.useMemo(() => {
@@ -487,6 +492,14 @@ const AddEditReservationIndoorModal = ({
 	};
 
 	const handleFormSubmit = async (values: InitialValuesProps) => {
+		// 編輯模式下檢查預約狀態是否為待評價(2)
+		if (modalType === ModalType.EDIT && reservationDetail?.reservationStatus === ReservationStatus.PENDING_REVIEW) {
+			// 狀態為待評價，需要顯示送出上課紀錄確認 Modal
+			setPendingFormValues(values);
+			setSubmitAttendanceModalOpen(true);
+			return;
+		}
+
 		// 編輯模式下檢測上課時間是否有變更
 		if (modalType === ModalType.EDIT && reservationId && reservationDetail?.classTime) {
 			const originalClassTime = dayjs(reservationDetail.classTime);
@@ -505,6 +518,15 @@ const AddEditReservationIndoorModal = ({
 
 		// 直接執行更新（無時間變更或新增模式）
 		await executeSubmit(values);
+	};
+
+	// 處理送出上課紀錄確認
+	const handleSubmitAttendanceConfirm = async () => {
+		setSubmitAttendanceModalOpen(false);
+		if (pendingFormValues) {
+			await executeSubmit(pendingFormValues);
+			setPendingFormValues(null);
+		}
 	};
 
 	// 處理改期原因提交
@@ -785,6 +807,14 @@ const AddEditReservationIndoorModal = ({
 					setPendingFormValues(null);
 				}}
 				onSubmit={handleRescheduleReasonSubmit}
+			/>
+			<SubmitAttendanceConfirmModal
+				open={submitAttendanceModalOpen}
+				onClose={() => {
+					setSubmitAttendanceModalOpen(false);
+					setPendingFormValues(null);
+				}}
+				onConfirm={handleSubmitAttendanceConfirm}
 			/>
 		</>
 	);

@@ -2,12 +2,15 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReservationMember } from './entities/reservation-member.entity';
+import { Reservation, ReservationStatus } from '../reservations/entities/reservation.entity';
 
 @Injectable()
 export class ReservationMembersService {
   constructor(
     @InjectRepository(ReservationMember)
     private readonly reservationMembersRepo: Repository<ReservationMember>,
+    @InjectRepository(Reservation)
+    private readonly reservationsRepo: Repository<Reservation>,
   ) {}
 
   async create(
@@ -83,8 +86,30 @@ export class ReservationMembersService {
   ): Promise<ReservationMember> {
     try {
       const reservationMember = await this.findOne(id);
+
+      // Check if note or attended is being updated
+      const isNoteOrAttendedUpdate =
+        updateData.note !== undefined ||
+        updateData.attended !== undefined;
+
       Object.assign(reservationMember, updateData);
-      return await this.reservationMembersRepo.save(reservationMember);
+      const savedMember = await this.reservationMembersRepo.save(reservationMember);
+
+      // If note or attendance updated, check if reservation should auto-complete
+      if (isNoteOrAttendedUpdate && reservationMember.reservation) {
+        const reservation = await this.reservationsRepo.findOne({
+          where: { id: reservationMember.reservationId },
+        });
+
+        // Only auto-update if status is PENDING_REVIEW (2)
+        if (reservation && reservation.reservationStatus === ReservationStatus.PENDING_REVIEW) {
+          // Update to COMPLETED (3)
+          reservation.reservationStatus = ReservationStatus.COMPLETED;
+          await this.reservationsRepo.save(reservation);
+        }
+      }
+
+      return savedMember;
     } catch (err) {
       throw new HttpException(
         err.message,

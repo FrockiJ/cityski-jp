@@ -34,6 +34,8 @@ const getStatusText = (status: number): string => {
 	switch (status) {
 		case ReservationStatus.SCHEDULED:
 			return '已排定';
+		case ReservationStatus.PENDING_REVIEW:
+			return '待紀錄';
 		case ReservationStatus.COMPLETED:
 			return '已完成';
 		case ReservationStatus.CANCELED:

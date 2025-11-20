@@ -9,6 +9,7 @@ type CoreBlockHeaderProps = {
 	title: string;
 	buttonLabel?: string;
 	buttonIsLink?: boolean;
+	buttonDisabled?: boolean;
 	buttonIconType?: BtnActionTypeEnum;
 	handleClick?: () => void;
 };
@@ -18,6 +19,7 @@ const CoreBlockHeader = ({
 	buttonLabel = '',
 	handleClick,
 	buttonIsLink = false,
+	buttonDisabled = false,
 	buttonIconType = 'manage',
 }: CoreBlockHeaderProps) => {
 	return (
@@ -29,6 +31,7 @@ const CoreBlockHeader = ({
 					label={buttonLabel}
 					onClick={handleClick}
 					variant='outlined'
+					disabled={buttonDisabled}
 				/>
 			)}
 		</StyledBlockHeader>

@@ -110,6 +110,15 @@ export class ReservationResponseDto {
   index: number;
 
   @Expose()
+  courseName?: string;
+
+  @Expose()
+  skiType?: CourseSkiType;
+
+  @Expose()
+  maxStudentCount?: number;
+
+  @Expose()
   reservationMembers?: Array<{
     id: string;
     reservationId: string;

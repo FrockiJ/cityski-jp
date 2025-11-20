@@ -64,13 +64,10 @@ const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDet
 
 	// 計算人數限制
 	const getPersonLimit = () => {
-		if (!courseDetail || !courseDetail.coursePeople || courseDetail.coursePeople.length === 0) {
+		if (!reservationDetail?.minStudentCount || !reservationDetail?.maxStudentCount) {
 			return [];
 		}
-		const min = Math.max(...courseDetail.coursePeople.map((cp) => cp.minPeople));
-		const max = Math.min(...courseDetail.coursePeople.map((cp) => cp.maxPeople));
-
-		return [min, max];
+		return [reservationDetail.minStudentCount, reservationDetail.maxStudentCount];
 	};
 	const personLimit = getPersonLimit();
 	return (
@@ -103,7 +100,7 @@ const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDet
 				<Stack direction='row' gap={3}>
 					<Stack gap={0.5} width='33%'>
 						<Typography variant='body2' color='text.secondary'>
-							人數限制 (還沒完成,需要考慮平日或假日)
+							人數限制
 						</Typography>
 						<Typography variant='body1'>{personLimit.join(' - ')}</Typography>
 					</Stack>

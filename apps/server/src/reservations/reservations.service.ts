@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Or, ILike, DataSource, In } from 'typeorm';
+import { Repository, Or, ILike, DataSource, In, LessThanOrEqual } from 'typeorm';
+import { Cron } from '@nestjs/schedule';
 import { SkiAndSnowboardLevelEnum } from '@repo/shared';
 import { Reservation } from './entities/reservation.entity';
 import { Department } from 'src/departments/entities/department.entity';
@@ -47,7 +48,7 @@ export class ReservationsService {
   // 獲取預約列表
   async getReservations(
     request: GetReservationsRequestDto,
-  ): Promise<ResWithPaginationDTO<Reservation[]>> {
+  ): Promise<ResWithPaginationDTO<any[]>> {
     try {
       // 構建查詢條件
       let where: any = {};
@@ -102,8 +103,28 @@ export class ReservationsService {
         take: customLimit,
       });
 
+      // 為每個預約加入課程名稱、板類和最大人數
+      const reservationsWithCourseName = reservations.map((reservation) => {
+        const firstOrderMember = reservation.reservationMembers?.[0]?.orderMember;
+        const order = firstOrderMember?.order;
+        const coursePlan = order?.coursePlan;
+        const course = coursePlan?.course;
+        const coursePeople = course?.coursePeople?.[0];
+
+        const courseName = course?.name || '';
+        const skiType = order?.skiType;
+        const maxStudentCount = coursePeople?.maxPeople;
+
+        return {
+          ...reservation,
+          courseName,
+          skiType,
+          maxStudentCount,
+        };
+      });
+
       return {
-        data: reservations,
+        data: reservationsWithCourseName,
         total,
         page: customPage,
         limit: customLimit,
@@ -490,6 +511,48 @@ export class ReservationsService {
         throw err;
       }
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  /**
+   * 每 10 分鐘檢查是否有課程已結束需要更新狀態
+   * 將 SCHEDULED (1) 更新為 PENDING_REVIEW (2)
+   */
+  @Cron('*/10 * * * *')
+  async updateExpiredReservationStatuses() {
+    try {
+      // 查找所有 classTime 已過且狀態仍為 SCHEDULED 的預約
+      const expiredReservations = await this.reservationsRepo.find({
+        where: {
+          classTime: LessThanOrEqual(new Date()),
+          reservationStatus: ReservationStatus.SCHEDULED,
+        },
+      });
+
+      if (expiredReservations.length === 0) {
+        return;
+      }
+
+      // 更新狀態為 PENDING_REVIEW
+      const updatedReservations = expiredReservations.map((reservation) => ({
+        ...reservation,
+        reservationStatus: ReservationStatus.PENDING_REVIEW,
+      }));
+
+      // 保存到資料庫
+      await this.reservationsRepo.save(updatedReservations);
+
+      console.log(
+        `[CRON] Updated ${updatedReservations.length} reservations from SCHEDULED to PENDING_REVIEW`,
+      );
+
+      return updatedReservations;
+    } catch (err) {
+      console.error('[CRON] Error updating reservation statuses:', err);
+      throw new HttpException(
+        err.message,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

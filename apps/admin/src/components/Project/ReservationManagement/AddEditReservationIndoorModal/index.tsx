@@ -612,6 +612,13 @@ const AddEditReservationIndoorModal = ({
 
 	console.log('===dis', displayMembers);
 
+	// 檢查是否已達人數上限
+	const isAtCapacity = React.useMemo(() => {
+		console.log('檢查人數上限:', { reservationDetail, displayMembersLength: displayMembers.length });
+		if (!reservationDetail?.maxStudentCount) return false;
+		return displayMembers.length >= reservationDetail.maxStudentCount;
+	}, [reservationDetail?.maxStudentCount, displayMembers.length]);
+
 	const isLoading = detailLoading || createLoading || updateLoading || orderDetailLoading || courseDetailLoading;
 	return (
 		<>
@@ -624,49 +631,50 @@ const AddEditReservationIndoorModal = ({
 				{({ isSubmitting, values, setFieldValue }) => {
 					return (
 						<Form>
-						{isLoading || (isSubmitting && <CoreLoaders hasOverlay />)}
-						<FormikScrollToError />
-						<CoreAnchorModal anchorItems={anchorItems}>
-							<CoreBlock
-								title='參加成員'
-								buttonLabel='加入成員'
-								buttonIconType={BtnActionType.ADD}
-								handleClick={() => {
-									modal.openModal({
-										title: `加入成員`,
-										width: 800,
-										height: 600,
-										noAction: true,
-										noEscAndBackdrop: true,
-										children: (
-											<AddMemberModal
-												searchType="orderMembers"
-												onSelectMember={(member) => handleSelectMember(member, setFieldValue)}
-												// handleCloseModal={(action) => {
-												// 	if (action === 'confirm') {
-												// 		modal.closeModal();
-												// 	}
-												// }}
-											/>
-										),
-									});
-								}}
-							>
-								<MemberList
-									members={displayMembers}
-									onRemoveMember={(memberId) => handleRemoveMember(memberId, setFieldValue)}
-									loading={membersLoading}
-								/>
-							</CoreBlock>
-							<CoreBlock
-								title='預約資訊'
-								buttonLabel='課程資訊'
-								buttonIconType={BtnActionType.LINK}
-								handleClick={() => {
-									console.log('課程資訊');
-								}}
-							>
-								{/* {modalType === ModalType.EDIT &&
+							{isLoading || (isSubmitting && <CoreLoaders hasOverlay />)}
+							<FormikScrollToError />
+							<CoreAnchorModal anchorItems={anchorItems}>
+								<CoreBlock
+									title='參加成員'
+									buttonLabel='加入成員'
+									buttonIconType={BtnActionType.ADD}
+									buttonDisabled={isAtCapacity}
+									handleClick={() => {
+										modal.openModal({
+											title: `加入成員`,
+											width: 800,
+											height: 600,
+											noAction: true,
+											noEscAndBackdrop: true,
+											children: (
+												<AddMemberModal
+													searchType='orderMembers'
+													onSelectMember={(member) => handleSelectMember(member, setFieldValue)}
+													// handleCloseModal={(action) => {
+													// 	if (action === 'confirm') {
+													// 		modal.closeModal();
+													// 	}
+													// }}
+												/>
+											),
+										});
+									}}
+								>
+									<MemberList
+										members={displayMembers}
+										onRemoveMember={(memberId) => handleRemoveMember(memberId, setFieldValue)}
+										loading={membersLoading}
+									/>
+								</CoreBlock>
+								<CoreBlock
+									title='預約資訊'
+									buttonLabel='課程資訊'
+									buttonIconType={BtnActionType.LINK}
+									handleClick={() => {
+										console.log('課程資訊');
+									}}
+								>
+									{/* {modalType === ModalType.EDIT &&
 									reservationDetail?.linkedOrders &&
 									reservationDetail.linkedOrders.length > 1 && (
 										<Alert severity='warning' icon={<WarningAmberIcon />} sx={{ mb: 2 }}>
@@ -685,87 +693,87 @@ const AddEditReservationIndoorModal = ({
 											</div>
 										</Alert>
 									)} */}
-								<ReservationInfo
-									courseInfo={courseInfo}
-									reservationDetail={reservationDetail}
-									orderDetail={orderDetail}
-									courseDetail={courseDetail}
-								/>
-								<FormikDateTimePicker
-									name='courseStartDate'
-									title='上課時間'
-									isRequired
-									placeholder='yyyy/mm/dd hh:mm'
-									width='220px'
-									format='YYYY/MM/DD hh:mm'
-									margin='0 10px 10px 0'
-									// disabled={isReadonly}
-									disablePast
-								/>
-								<FormikInput name='courseLevel' title='授課等級' width='192px' isRequired placeholder='1-20' />
-								<Stack mt={3}>
-									<FormikRadio
-										name='pickTrainer'
-										title='指定教練'
-										width='192px'
-										isRequired
-										radios={[
-											{ label: '指定', value: 'Y' },
-											{ label: '不指定', value: 'N' },
-										]}
+									<ReservationInfo
+										courseInfo={courseInfo}
+										reservationDetail={reservationDetail}
+										orderDetail={orderDetail}
+										courseDetail={courseDetail}
 									/>
-									<BlockArea>
-										<FormikInput
-											name='trainerName'
-											title='教練'
-											width='320px'
-											isRequired={values.pickTrainer === 'Y'}
-											placeholder='請輸入教練名字'
+									<FormikDateTimePicker
+										name='courseStartDate'
+										title='上課時間'
+										isRequired
+										placeholder='yyyy/mm/dd hh:mm'
+										width='220px'
+										format='YYYY/MM/DD hh:mm'
+										margin='0 10px 10px 0'
+										// disabled={isReadonly}
+										disablePast
+									/>
+									<FormikInput name='courseLevel' title='授課等級' width='192px' isRequired placeholder='1-20' />
+									<Stack mt={3}>
+										<FormikRadio
+											name='pickTrainer'
+											title='指定教練'
+											width='192px'
+											isRequired
+											radios={[
+												{ label: '指定', value: 'Y' },
+												{ label: '不指定', value: 'N' },
+											]}
 										/>
-									</BlockArea>
-								</Stack>
-							</CoreBlock>
-							<CoreBlock title='上課紀錄'>
-								{modalType === ModalType.ADD && <BlockArea>加入成員紀錄上課情形</BlockArea>}
-								{modalType === ModalType.EDIT &&
-									savedMembers.map((member) => (
-										<NoteBox
-											key={member.id}
-											member={member}
-											note={memberNotes[member.id]?.note || ''}
-											attended={memberNotes[member.id]?.attended ?? true}
-											onNoteChange={handleNoteChange}
-											onAttendedChange={handleAttendedChange}
-										/>
-									))}
-							</CoreBlock>
-							<CoreBlock title='預約異動紀錄'>
-								<OrderChangesBlock reservationId={reservationId} />
-							</CoreBlock>
-						</CoreAnchorModal>
-						<StyledAbsoluteModalActions justifyContent='flex-end'>
-							<CoreButton
-								color='default'
-								variant='outlined'
-								label='關閉'
-								onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
-								margin='0 12px 0 0'
-							/>
-							<CoreButton
-								color='error'
-								variant='outlined'
-								label='取消'
-								customIcon={<DoDisturbOnOutlinedIcon />}
-								onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
-								margin='0 12px 0 0'
-							/>
-							<CoreButton
-								color='primary'
-								variant='contained'
-								type='submit'
-								label={modalType === ModalType.EDIT ? '更新' : '建立'}
-							/>
-						</StyledAbsoluteModalActions>
+										<BlockArea>
+											<FormikInput
+												name='trainerName'
+												title='教練'
+												width='320px'
+												isRequired={values.pickTrainer === 'Y'}
+												placeholder='請輸入教練名字'
+											/>
+										</BlockArea>
+									</Stack>
+								</CoreBlock>
+								<CoreBlock title='上課紀錄'>
+									{modalType === ModalType.ADD && <BlockArea>加入成員紀錄上課情形</BlockArea>}
+									{modalType === ModalType.EDIT &&
+										savedMembers.map((member) => (
+											<NoteBox
+												key={member.id}
+												member={member}
+												note={memberNotes[member.id]?.note || ''}
+												attended={memberNotes[member.id]?.attended ?? true}
+												onNoteChange={handleNoteChange}
+												onAttendedChange={handleAttendedChange}
+											/>
+										))}
+								</CoreBlock>
+								<CoreBlock title='預約異動紀錄'>
+									<OrderChangesBlock reservationId={reservationId} />
+								</CoreBlock>
+							</CoreAnchorModal>
+							<StyledAbsoluteModalActions justifyContent='flex-end'>
+								<CoreButton
+									color='default'
+									variant='outlined'
+									label='關閉'
+									onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
+									margin='0 12px 0 0'
+								/>
+								<CoreButton
+									color='error'
+									variant='outlined'
+									label='取消'
+									customIcon={<DoDisturbOnOutlinedIcon />}
+									onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
+									margin='0 12px 0 0'
+								/>
+								<CoreButton
+									color='primary'
+									variant='contained'
+									type='submit'
+									label={modalType === ModalType.EDIT ? '更新' : '建立'}
+								/>
+							</StyledAbsoluteModalActions>
 						</Form>
 					);
 				}}

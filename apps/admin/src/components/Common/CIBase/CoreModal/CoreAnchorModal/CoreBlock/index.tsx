@@ -10,6 +10,7 @@ interface CoreBlockProps {
 	buttonLabel?: string;
 	buttonIconType?: (typeof BtnActionType)[keyof typeof BtnActionType];
 	buttonIsLink?: boolean;
+	buttonDisabled?: boolean;
 	handleClick?: () => void;
 	isPlaceholder?: boolean;
 	isError?: boolean;
@@ -23,6 +24,7 @@ const CoreBlock = forwardRef(function CoreBlock(
 		isPlaceholder = false,
 		isError = false,
 		buttonIsLink = false,
+		buttonDisabled = false,
 		buttonIconType = BtnActionType.MANAGE,
 	}: CoreBlockProps,
 	ref: ForwardedRef<unknown>,
@@ -35,6 +37,7 @@ const CoreBlock = forwardRef(function CoreBlock(
 				buttonIconType={buttonIconType}
 				handleClick={handleClick}
 				buttonIsLink={buttonIsLink}
+				buttonDisabled={buttonDisabled}
 			/>
 			{children}
 		</StyledBlock>

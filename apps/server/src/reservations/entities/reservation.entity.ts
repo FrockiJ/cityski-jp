@@ -17,8 +17,9 @@ import {
 // 課程狀態 enum
 export enum ReservationStatus {
   SCHEDULED = 1, // 已排定
-  COMPLETED = 2, // 已完成
-  CANCELED = 9,  // 已取消
+  PENDING_REVIEW = 2, // 待評價
+  COMPLETED = 3, // 已完成
+  CANCELED = 9, // 已取消
 }
 
 @Entity()
@@ -46,14 +47,21 @@ export class Reservation extends UserDate {
   @Column({ name: 'instructor', type: 'varchar', length: 100, nullable: true })
   instructor: string;
 
-
-  @OneToMany(() => ReservationMember, (reservationMember) => reservationMember.reservation)
+  @OneToMany(
+    () => ReservationMember,
+    (reservationMember) => reservationMember.reservation,
+  )
   reservationMembers: ReservationMember[];
 
-  @OneToMany(() => OrderReservation, (orderReservation) => orderReservation.reservation)
+  @OneToMany(
+    () => OrderReservation,
+    (orderReservation) => orderReservation.reservation,
+  )
   orderReservations: OrderReservation[];
 
-  @OneToMany(() => ReservationHistory, (reservationHistory) => reservationHistory.reservation)
+  @OneToMany(
+    () => ReservationHistory,
+    (reservationHistory) => reservationHistory.reservation,
+  )
   reservationHistories: ReservationHistory[];
-
 }

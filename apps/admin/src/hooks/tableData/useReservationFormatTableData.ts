@@ -10,6 +10,7 @@ import {
   ReservationStatus,
   SkiAndSnowboardLevelEnum,
   SkiAndSnowboardLevel,
+  CourseSkiType,
 } from '@repo/shared';
 import dayjs from 'dayjs';
 import { configReservationsIndoorTable } from 'src/tableConfigs/reservations-indoor';
@@ -42,17 +43,21 @@ export const useReservationFormatTableData = (options?: Props) => {
 	useEffect(() => {
 		if (tableData) {
 			const data = tableData.map((reservation) => {
+				const currentNumber = reservation?.reservationMembers?.length || 0;
+				const maxNumber = reservation.maxStudentCount || 0;
+				const remaining = maxNumber > 0 ? maxNumber - currentNumber : 0;
+
 				// 基本資料結構
 				const baseData = {
 					id: reservation.id,
 					no: reservation.reservationNo.toString(),
-					name: `預約 #${reservation.reservationNo}`,
+					name: reservation.courseName || `預約 #${reservation.reservationNo}`,
 					status: getStatusText(reservation.reservationStatus),
-					boardType: getTeachingLevelText(reservation.teachingLevel),
+					boardType: getSkiTypeText(reservation.skiType),
 					level: `LV.${getTeachingLevelText(reservation.teachingLevel)}`,
 					instructor: reservation.instructor || '未指定',
 					beginTime: dayjs(reservation.classTime).format('YYYY/MM/DD HH:mm'),
-          
+
 				};
 
 				// if (isOverseas) {
@@ -67,9 +72,8 @@ export const useReservationFormatTableData = (options?: Props) => {
 					// 室內課程的資料結構
 					const indoorData: any = {
 						...baseData,
-						number: reservation?.reservationMembers?.length || 0,
-						remaining: 999
-						// remaining:  (reservation?.reservationMembers?.[0]?.orderMember?.order?.- (reservation?.reservationMembers?.length || 0)
+						number: currentNumber,
+						remaining: remaining,
 					};
 					return indoorData;
 				// }
@@ -99,4 +103,20 @@ function getStatusText(status: number): string {
 // 輔助函數：獲取教學等級文字
 function getTeachingLevelText(level: SkiAndSnowboardLevelEnum): string {
 	return SkiAndSnowboardLevel[level] || '未知等級';
+}
+
+// 輔助函數：獲取板類文字
+function getSkiTypeText(skiType?: number): string {
+	if (skiType === undefined || skiType === null) return '';
+
+	switch (skiType) {
+		case CourseSkiType.BOTH:
+			return '雙板/單板';
+		case CourseSkiType.SNOWBOARD:
+			return '單板';
+		case CourseSkiType.SKI:
+			return '雙板';
+		default:
+			return '';
+	}
 }

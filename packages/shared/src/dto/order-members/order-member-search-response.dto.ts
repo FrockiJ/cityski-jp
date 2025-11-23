@@ -1,5 +1,6 @@
 import { Expose, Type } from "class-transformer";
 import { MemberResponseDto } from "../member/get-members-response.dto";
+import { CourseSkiType, CourseType } from "../../constants/enums";
 
 
 class OrderReservationDto {
@@ -28,6 +29,15 @@ class OrderDto {
 
   @Expose()
   planNumber: number;
+
+  @Expose()
+  type: CourseType;
+
+  @Expose()
+  skiType: CourseSkiType;
+
+  @Expose()
+  coursePlanId: string;
 
   @Expose()
   @Type(() => OrderReservationDto)

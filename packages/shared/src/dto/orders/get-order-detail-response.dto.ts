@@ -63,6 +63,9 @@ export class GetOrderDetailResponseDTO {
 
   // CoursePlan information
   @Expose()
+  coursePlanId: string;
+
+  @Expose()
   coursePlanName: string;
 
   @Expose()

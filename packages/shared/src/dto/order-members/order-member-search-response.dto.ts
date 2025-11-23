@@ -37,7 +37,7 @@ class OrderDto {
   skiType: CourseSkiType;
 
   @Expose()
-  coursePlanId: string;
+  coursePlanId?: string;
 
   @Expose()
   @Type(() => OrderReservationDto)

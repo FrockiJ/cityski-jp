@@ -11,6 +11,7 @@ import { ReservationMember } from 'src/reservation-members/entities/reservation-
 import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { Member } from 'src/members/entities/member.entity';
+import { ReservationHistoryModule } from 'src/reservation-history/reservation-history.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { Member } from 'src/members/entities/member.entity';
       Member,
     ]),
     forwardRef(() => UsersModule),
+    ReservationHistoryModule,
   ],
   controllers: [ReservationsController],
   providers: [ReservationsService],

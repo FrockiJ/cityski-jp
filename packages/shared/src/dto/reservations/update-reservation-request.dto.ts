@@ -21,4 +21,8 @@ export class UpdateReservationRequestDto {
   @IsOptional()
   @IsEnum(ReservationStatus)
   reservationStatus?: ReservationStatusEnum;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
 }

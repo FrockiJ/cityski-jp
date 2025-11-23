@@ -47,6 +47,7 @@ import OrderChangesBlock from './OrderChangesBlock';
 import ReservationInfo from './ReservationInfo';
 import MemberList from './MemberList';
 import NoteBox from '../NoteBox';
+import RescheduleReasonModal from './RescheduleReasonModal';
 
 const anchorItems = [
 	{ id: 'basic', label: '參加成員', requireFields: [] },
@@ -124,6 +125,10 @@ const AddEditReservationIndoorModal = ({
 	// 課程詳情狀態
 	const [courseDetail, setCourseDetail] = useState<any>(null);
 	const [courseDetailLoading, setCourseDetailLoading] = useState(false);
+
+	// 改期原因 Modal 狀態
+	const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+	const [pendingFormValues, setPendingFormValues] = useState<InitialValuesProps | null>(null);
 
 	// 合併已儲存和待新增的成員，排除待刪除的成員
 	const displayMembers = React.useMemo(() => {
@@ -482,11 +487,43 @@ const AddEditReservationIndoorModal = ({
 	};
 
 	const handleFormSubmit = async (values: InitialValuesProps) => {
-		const reservationData: CreateReservationRequestDto = {
+		// 編輯模式下檢測上課時間是否有變更
+		if (modalType === ModalType.EDIT && reservationId && reservationDetail?.classTime) {
+			const originalClassTime = dayjs(reservationDetail.classTime);
+			const newClassTime = values.courseStartDate;
+
+			// 比較時間是否有變更（精確到分鐘）
+			const hasTimeChanged = newClassTime && !originalClassTime.isSame(newClassTime, 'minute');
+
+			if (hasTimeChanged) {
+				// 時間有變更，先儲存表單數據並顯示 Modal
+				setPendingFormValues(values);
+				setRescheduleModalOpen(true);
+				return;
+			}
+		}
+
+		// 直接執行更新（無時間變更或新增模式）
+		await executeSubmit(values);
+	};
+
+	// 處理改期原因提交
+	const handleRescheduleReasonSubmit = async (reason: string) => {
+		setRescheduleModalOpen(false);
+		if (pendingFormValues) {
+			await executeSubmit(pendingFormValues, reason);
+			setPendingFormValues(null);
+		}
+	};
+
+	// 執行實際的提交邏輯
+	const executeSubmit = async (values: InitialValuesProps, reason?: string) => {
+		const reservationData: CreateReservationRequestDto & { reason?: string } = {
 			departmentId: values.departmentId,
 			classTime: values.courseStartDate!.toDate(),
 			teachingLevel: values.courseLevel,
 			instructor: values.pickTrainer === 'Y' ? values.trainerName : undefined,
+			...(reason && { reason }),
 		};
 
 		let success = false;
@@ -577,15 +614,16 @@ const AddEditReservationIndoorModal = ({
 
 	const isLoading = detailLoading || createLoading || updateLoading || orderDetailLoading || courseDetailLoading;
 	return (
-		<Formik
-			initialValues={initialValues}
-			onSubmit={handleFormSubmit}
-			validationSchema={validationSchema}
-			enableReinitialize
-		>
-			{({ isSubmitting, values, setFieldValue }) => {
-				return (
-					<Form>
+		<>
+			<Formik
+				initialValues={initialValues}
+				onSubmit={handleFormSubmit}
+				validationSchema={validationSchema}
+				enableReinitialize
+			>
+				{({ isSubmitting, values, setFieldValue }) => {
+					return (
+						<Form>
 						{isLoading || (isSubmitting && <CoreLoaders hasOverlay />)}
 						<FormikScrollToError />
 						<CoreAnchorModal anchorItems={anchorItems}>
@@ -728,10 +766,19 @@ const AddEditReservationIndoorModal = ({
 								label={modalType === ModalType.EDIT ? '更新' : '建立'}
 							/>
 						</StyledAbsoluteModalActions>
-					</Form>
-				);
-			}}
-		</Formik>
+						</Form>
+					);
+				}}
+			</Formik>
+			<RescheduleReasonModal
+				open={rescheduleModalOpen}
+				onClose={() => {
+					setRescheduleModalOpen(false);
+					setPendingFormValues(null);
+				}}
+				onSubmit={handleRescheduleReasonSubmit}
+			/>
+		</>
 	);
 };
 

@@ -668,6 +668,9 @@ export class OrdersService {
         // todo: 創order同時要創交易資料 尚未完成
         this.transactionsService.createTransaction(savedOrder);
       }
+
+      return savedOrder;
+      
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;

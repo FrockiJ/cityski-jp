@@ -7,7 +7,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, MoreThan } from 'typeorm';
-import { OrderInvitation, OrderInvitationStatus, InviteeType } from './entities/order-invitation.entity';
+import {
+  OrderInvitation,
+  OrderInvitationStatus,
+  InviteeType,
+} from './entities/order-invitation.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { OrderMembersService } from 'src/order-members/order-members.service';
 import {
@@ -74,12 +78,16 @@ export class OrderInvitationsService {
       const savedInvitation = await this.orderInvitationsRepo.save(invitation);
 
       // 生成邀請連結
-      const baseUrl = process.env.CLIENT_URL || 'https://cityski.com.tw';
-      const inviteLink = `${baseUrl}/register?invitation=${inviteToken}`;
+      const baseUrl = process.env.CLIENT_DOMAIN || 'https://cityski.com.tw';
+      const inviteLink = `${baseUrl}/login?invitation=${inviteToken}`;
 
-      const response = plainToInstance(OrderInvitationResponseDto, savedInvitation, {
-        excludeExtraneousValues: true,
-      });
+      const response = plainToInstance(
+        OrderInvitationResponseDto,
+        savedInvitation,
+        {
+          excludeExtraneousValues: true,
+        },
+      );
       response.inviteLink = inviteLink;
 
       return response;
@@ -139,15 +147,19 @@ export class OrderInvitationsService {
         };
       }
 
-      return plainToInstance(ValidateInvitationResponseDto, {
-        valid: true,
-        inviteeType: invitation.inviteeType,
-        order: invitation.order,
-        inviter: invitation.inviter,
-        expiresAt: invitation.expiresAt,
-      }, {
-        excludeExtraneousValues: true,
-      });
+      return plainToInstance(
+        ValidateInvitationResponseDto,
+        {
+          valid: true,
+          inviteeType: invitation.inviteeType,
+          order: invitation.order,
+          inviter: invitation.inviter,
+          expiresAt: invitation.expiresAt,
+        },
+        {
+          excludeExtraneousValues: true,
+        },
+      );
     } catch (err) {
       throw new HttpException(
         err.message,
@@ -174,7 +186,10 @@ export class OrderInvitationsService {
 
       // 驗證邀請狀態
       if (invitation.status !== OrderInvitationStatus.PENDING) {
-        throw new HttpException('此邀請已被使用或已失效', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          '此邀請已被使用或已失效',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       if (new Date() > invitation.expiresAt) {

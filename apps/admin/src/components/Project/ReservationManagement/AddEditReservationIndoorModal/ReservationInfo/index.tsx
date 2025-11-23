@@ -6,6 +6,7 @@ import {
 	GetOrderDetailResponseDTO,
 	GetCourseDetailResponseDTO,
 	CourseSkiType,
+	CourseBkgType,
 } from '@repo/shared';
 
 import BlockArea from '@/components/Project/shared/BlockArea';
@@ -22,16 +23,19 @@ type Props = {
 	reservationDetail?: GetReservationDetailResponseDto | null;
 	orderDetail?: GetOrderDetailResponseDTO | null;
 	courseDetail: GetCourseDetailResponseDTO | null;
+	displayMembers?: any[];
 };
 
-const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDetail }: Props) => {
+const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDetail, displayMembers }: Props) => {
 	// 根據預約狀態顯示中文狀態
 	const getReservationStatusText = (status?: number) => {
 		if (!status) return '--';
 		switch (status) {
 			case 1: // SCHEDULED
 				return '已排定';
-			case 2: // COMPLETED
+			case 2: // PENDING_REVIEW
+				return '待紀錄';
+			case 3: // COMPLETED
 				return '已完成';
 			case 9: // CANCELLED
 				return '已取消';
@@ -47,8 +51,12 @@ const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDet
 			[CourseType.GROUP]: '團體課',
 			[CourseType.INDIVIDUAL]: '個人練習',
 		};
+		const bkgTypeMap = {
+			[CourseBkgType.FIXED]: '指定',
+			[CourseBkgType.FLEXIBLE]: '預約',
+		};
 
-		return typeMap[courseDetail?.type] || '--';
+		return `${bkgTypeMap[courseDetail?.bkgType] || '--'}${typeMap[courseDetail?.type] || '--'}`;
 	};
 
 	// 獲取滑雪類型文字
@@ -64,13 +72,10 @@ const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDet
 
 	// 計算人數限制
 	const getPersonLimit = () => {
-		if (!courseDetail || !courseDetail.coursePeople || courseDetail.coursePeople.length === 0) {
+		if (!reservationDetail?.minStudentCount || !reservationDetail?.maxStudentCount) {
 			return [];
 		}
-		const min = Math.max(...courseDetail.coursePeople.map((cp) => cp.minPeople));
-		const max = Math.min(...courseDetail.coursePeople.map((cp) => cp.maxPeople));
-
-		return [min, max];
+		return [reservationDetail.minStudentCount, reservationDetail.maxStudentCount];
 	};
 	const personLimit = getPersonLimit();
 	return (
@@ -96,14 +101,14 @@ const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDet
 							剩餘名額
 						</Typography>
 						<Typography variant='body1'>
-							{personLimit.length == 0 ? '--' : personLimit[1] - (reservationDetail?.reservationMembers?.length || 0)}
+							{personLimit.length == 0 ? '--' : personLimit[1] - (displayMembers?.length || 0)}
 						</Typography>
 					</Stack>
 				</Stack>
 				<Stack direction='row' gap={3}>
 					<Stack gap={0.5} width='33%'>
 						<Typography variant='body2' color='text.secondary'>
-							人數限制 (還沒完成,需要考慮平日或假日)
+							人數限制
 						</Typography>
 						<Typography variant='body1'>{personLimit.join(' - ')}</Typography>
 					</Stack>

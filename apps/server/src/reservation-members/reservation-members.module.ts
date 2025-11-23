@@ -5,6 +5,8 @@ import { ReservationMembersService } from './reservation-members.service';
 import { ReservationMember } from './entities/reservation-member.entity';
 import { Reservation } from 'src/reservations/entities/reservation.entity';
 import { OrderMember } from 'src/order-members/entities/order-member.entity';
+import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
+import { Order } from 'src/orders/entities/order.entity';
 import { ReservationsModule } from 'src/reservations/reservations.module';
 import { OrderMembersModule } from 'src/order-members/order-members.module';
 import { JwtModule } from '@nestjs/jwt';
@@ -12,7 +14,14 @@ import { User } from 'src/users/entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ReservationMember, Reservation, OrderMember, User]),
+    TypeOrmModule.forFeature([
+      ReservationMember,
+      Reservation,
+      OrderMember,
+      OrderReservation,
+      Order,
+      User,
+    ]),
     forwardRef(() => ReservationsModule),
     forwardRef(() => OrderMembersModule),
     JwtModule,

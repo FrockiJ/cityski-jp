@@ -34,6 +34,8 @@ const getStatusText = (status: number): string => {
 	switch (status) {
 		case ReservationStatus.SCHEDULED:
 			return '已排定';
+		case ReservationStatus.PENDING_REVIEW:
+			return '待紀錄';
 		case ReservationStatus.COMPLETED:
 			return '已完成';
 		case ReservationStatus.CANCELED:
@@ -107,7 +109,6 @@ const CourseReservation = ({
 
 	// 將預約數據轉換為表格行格式
 	const tableRows = new Array(size).fill(null).map((_, index) => {
-		console.log('reservations===', reservations);
 		const orderReservation = reservations.find((res) => res.index == index);
 		return [
 			{

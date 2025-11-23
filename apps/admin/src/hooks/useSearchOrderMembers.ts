@@ -1,13 +1,21 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { OrderMemberSearchResponseDto, ResponseWrapper, ResWithPaginationDTO } from '@repo/shared';
+import { OrderMemberSearchResponseDto, ResponseWrapper, ResWithPaginationDTO, CourseType, CourseSkiType } from '@repo/shared';
 
 import { httpWithToken } from '@/utils/http/instance';
+
+interface SearchFilters {
+	keyword: string;
+	orderType?: CourseType;
+	skiType?: CourseSkiType;
+	orderNo?: string;
+	coursePlanId?: string;
+}
 
 interface useSearchOrderMembersResult {
 	searchResults: OrderMemberSearchResponseDto[];
 	loading: boolean;
 	error: string | null;
-	searchMembers: (keyword: string) => void;
+	searchMembers: (filters: SearchFilters) => void;
 }
 
 /**
@@ -31,8 +39,8 @@ export const useSearchOrderMembers = (debounceMs: number = 500): useSearchOrderM
 	}, []);
 
 	// 搜尋剩餘課程數量大於 0 的會員的函數
-	const performSearch = useCallback(async (keyword: string) => {
-		if (!keyword.trim()) {
+	const performSearch = useCallback(async (filters: SearchFilters) => {
+		if (!filters.keyword.trim() && !filters.orderType && filters.skiType === undefined && !filters.orderNo && !filters.coursePlanId) {
 			setSearchResults([]);
 			setLoading(false);
 			setError(null);
@@ -43,8 +51,16 @@ export const useSearchOrderMembers = (debounceMs: number = 500): useSearchOrderM
 		setError(null);
 
 		try {
+			// Build query string
+			const params = new URLSearchParams();
+			if (filters.keyword) params.append('keyword', filters.keyword);
+			if (filters.orderType) params.append('orderType', filters.orderType);
+			if (filters.skiType !== undefined) params.append('skiType', String(filters.skiType));
+			if (filters.orderNo) params.append('orderNo', filters.orderNo);
+			if (filters.coursePlanId) params.append('coursePlanId', filters.coursePlanId);
+
 			const response = await httpWithToken.get<ResponseWrapper<OrderMemberSearchResponseDto[]>>(
-				`/api/order-members/search?keyword=${encodeURIComponent(keyword)}`,
+				`/api/order-members/search?${params.toString()}`,
 			);
 			setSearchResults(response.result || []);
 		} catch (err) {
@@ -58,14 +74,14 @@ export const useSearchOrderMembers = (debounceMs: number = 500): useSearchOrderM
 
 	// 帶 debounce 的搜尋函數
 	const searchMembers = useCallback(
-		(keyword: string) => {
+		(filters: SearchFilters) => {
 			// 清除之前的 timeout
 			if (debounceTimeoutRef.current) {
 				clearTimeout(debounceTimeoutRef.current);
 			}
 
-			// 如果關鍵字為空，立即清空結果
-			if (!keyword.trim()) {
+			// 如果所有過濾條件都為空，立即清空結果
+			if (!filters.keyword.trim() && !filters.orderType && filters.skiType === undefined && !filters.orderNo && !filters.coursePlanId) {
 				setSearchResults([]);
 				setLoading(false);
 				return;
@@ -76,7 +92,7 @@ export const useSearchOrderMembers = (debounceMs: number = 500): useSearchOrderM
 
 			// 設定新的 debounce timeout
 			debounceTimeoutRef.current = setTimeout(() => {
-				performSearch(keyword);
+				performSearch(filters);
 			}, debounceMs);
 		},
 		[debounceMs, performSearch],

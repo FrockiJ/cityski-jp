@@ -3,8 +3,8 @@ export type EnumValues<T> = T[keyof T];
 /** Auth Enums ******/
 
 export const JwtUserType = {
-  MEMBER: "member",
-  USER: "user",
+  MEMBER: 'member',
+  USER: 'user',
 } as const;
 export type JwtUserTypeEnum = EnumValues<typeof JwtUserType>;
 
@@ -20,8 +20,8 @@ export const UserStatus = {
 export type UserStatus = EnumValues<typeof UserStatus>;
 
 export const UserIsDefPassword = {
-  YES: "Y",
-  NO: "N",
+  YES: 'Y',
+  NO: 'N',
 } as const;
 export type UserIsDefPassword = EnumValues<typeof UserIsDefPassword>;
 
@@ -34,7 +34,7 @@ export type UserIsDefPassword = EnumValues<typeof UserIsDefPassword>;
  * Creation of Super admin accounts is restricted in this application.
  **/
 export const Roles = {
-  SUPER_ADMIN: "系統管理員",
+  SUPER_ADMIN: '系統管理員',
 } as const;
 export type Roles = (typeof Roles)[keyof typeof Roles];
 
@@ -75,8 +75,8 @@ export type DepartmentStatus = EnumValues<typeof DepartmentStatus>;
 /** Start Attachment Enums ******/
 
 export const AttachmentDeviceType = {
-  DESKTOP: "D",
-  MOBILE: "M",
+  DESKTOP: 'D',
+  MOBILE: 'M',
 };
 export type AttachmentDeviceType = EnumValues<typeof AttachmentDeviceType>;
 
@@ -105,46 +105,46 @@ export const MemberStatus = {
 export type MemberStatus = EnumValues<typeof MemberStatus>;
 
 export const MemberLinkedLineOA = {
-  TRUE: "true",
-  FALSE: "false",
+  TRUE: 'true',
+  FALSE: 'false',
 } as const;
 export type MemberLinkedLineOAEnum = EnumValues<typeof MemberLinkedLineOA>;
 
 export const LineWebhookType = {
-  FOLLOW: "follow",
-  UNFOLLOW: "unfollow",
-  MESSAGE: "message",
+  FOLLOW: 'follow',
+  UNFOLLOW: 'unfollow',
+  MESSAGE: 'message',
 } as const;
 export type LineWebhookTypeEnum = EnumValues<typeof LineWebhookType>;
 
 export const MemberType = {
-  L: "L", // line
-  E: "E", // email
+  L: 'L', // line
+  E: 'E', // email
 } as const;
 export type MemberTypeEnum = EnumValues<typeof MemberType>;
 
 export const SkiAndSnowboardLevel = {
-  "-": "-",
-  "1": "1",
-  "2": "2",
-  "3": "3",
-  "4": "4",
-  "5": "5",
-  "6": "6",
-  "7": "7",
-  "8": "8",
-  "9": "9",
-  "10": "10",
-  "11": "11",
-  "12": "12",
-  "13": "13",
-  "14": "14",
-  "15": "15",
-  "16": "16",
-  "17": "17",
-  "18": "18",
-  "19": "19",
-  "20": "20",
+  '-': '-',
+  '1': '1',
+  '2': '2',
+  '3': '3',
+  '4': '4',
+  '5': '5',
+  '6': '6',
+  '7': '7',
+  '8': '8',
+  '9': '9',
+  '10': '10',
+  '11': '11',
+  '12': '12',
+  '13': '13',
+  '14': '14',
+  '15': '15',
+  '16': '16',
+  '17': '17',
+  '18': '18',
+  '19': '19',
+  '20': '20',
 } as const;
 export type SkiAndSnowboardLevelEnum = EnumValues<typeof SkiAndSnowboardLevel>;
 
@@ -154,8 +154,8 @@ export type SkiAndSnowboardLevelEnum = EnumValues<typeof SkiAndSnowboardLevel>;
 
 /** discount type */
 export const DiscountType = {
-  AMOUNT: "A",
-  PERCENT: "P",
+  AMOUNT: 'A',
+  PERCENT: 'P',
 };
 export type DiscountType = EnumValues<typeof DiscountType>;
 
@@ -182,9 +182,9 @@ export type DiscountStatusDB = EnumValues<typeof DiscountStatusDB>;
  * Course's type, GROUP: "G" 團體課, PRIVATE: "P" 私人課, INDIVIDUAL: "I" 個人練習
  */
 export const CourseType = {
-  GROUP: "G",
-  PRIVATE: "P",
-  INDIVIDUAL: "I",
+  GROUP: 'G',
+  PRIVATE: 'P',
+  INDIVIDUAL: 'I',
 };
 export type CourseType = EnumValues<typeof CourseType>;
 
@@ -240,8 +240,8 @@ export type BkgAfterCourseType = EnumValues<typeof BkgAfterCourseType>;
  * 預約後可預約到多久之後的課程, HOUR: 'H' 小時, DAY: 'D' 天
  */
 export const BkgAfterCourseTypeUnit = {
-  HOUR: "H",
-  DAY: "D",
+  HOUR: 'H',
+  DAY: 'D',
 };
 export type BkgAfterCourseTypeUnit = EnumValues<typeof BkgAfterCourseTypeUnit>;
 
@@ -259,9 +259,9 @@ export type CourseSuggestType = EnumValues<typeof CourseSuggestType>;
  * Course info type
  */
 export const CourseInfoType = {
-  TARGET: "T",
-  CONTENT: "C",
-  PRICE: "P",
+  TARGET: 'T',
+  CONTENT: 'C',
+  PRICE: 'P',
 };
 
 export type CourseInfoType = EnumValues<typeof CourseInfoType>;
@@ -270,8 +270,8 @@ export type CourseInfoType = EnumValues<typeof CourseInfoType>;
  * 人數限制類別, SAME: "S", 平日遇週末相同, DIFFERENT: "D", 平日與週末不同
  */
 export const CoursePaxLimitType = {
-  SAME: "S",
-  DIFFERENT: "D",
+  SAME: 'S',
+  DIFFERENT: 'D',
 };
 
 export type CoursePaxLimitType = EnumValues<typeof CoursePaxLimitType>;
@@ -280,8 +280,8 @@ export type CoursePaxLimitType = EnumValues<typeof CoursePaxLimitType>;
  * 課程上架類別, DESIGNATE: "D" 指定時間, IMMEDIATE: "I" 立即上架,
  */
 export const CourseReleaseType = {
-  DESIGNATE: "D",
-  IMMEDIATE: "I",
+  DESIGNATE: 'D',
+  IMMEDIATE: 'I',
 };
 
 export type CourseReleaseType = EnumValues<typeof CourseReleaseType>;
@@ -290,8 +290,8 @@ export type CourseReleaseType = EnumValues<typeof CourseReleaseType>;
  * 課程下架類別, DESIGNATE: "D" 指定時間, ULIMIT: "U" 無期限
  */
 export const CourseRemovalType = {
-  DESIGNATE: "D",
-  ULIMIT: "U",
+  DESIGNATE: 'D',
+  ULIMIT: 'U',
 };
 
 export type CourseRemovalType = EnumValues<typeof CourseRemovalType>;
@@ -300,8 +300,8 @@ export type CourseRemovalType = EnumValues<typeof CourseRemovalType>;
  * 時間單位, HOUR: "H" 小時, MONTH: "M" 月
  */
 export const CourseDayUnit = {
-  HOUR: "H",
-  MONTH: "M",
+  HOUR: 'H',
+  MONTH: 'M',
 };
 
 export type CourseDayUnit = EnumValues<typeof CourseDayUnit>;
@@ -378,8 +378,8 @@ export type OrderStatusEnum = EnumValues<typeof OrderStatus>;
  * WEB: "W",
  */
 export const OrderChannel = {
-  LINE: "L",
-  WEB: "W",
+  LINE: 'L',
+  WEB: 'W',
 };
 export type OrderChannelEnum = EnumValues<typeof OrderChannel>;
 
@@ -420,12 +420,14 @@ export type VenueStatus = EnumValues<typeof VenueStatus>;
 /**
  * Reservation status -
  * SCHEDULED: 1 "已排定",
- * COMPLETED: 2 "已完成",
+ * PENDING_REVIEW: 2 "待紀錄",
+ * COMPLETED: 3 "已完成",
  * CANCELED: 9 "已取消"
  */
 export const ReservationStatus = {
   SCHEDULED: 1,
-  COMPLETED: 2,
+  PENDING_REVIEW: 2,
+  COMPLETED: 3,
   CANCELED: 9,
 };
 export type ReservationStatusEnum = EnumValues<typeof ReservationStatus>;
@@ -445,33 +447,33 @@ export enum FilterType {
 }
 
 export const BtnActionType = {
-  DELETE: "delete",
-  ADD: "add",
-  BASIC: "basic",
-  WARNING: "warning",
-  MANAGE: "manage",
-  OUTLINE: "outline",
-  TABLE_FILTER: "tableFilter",
-  FILTER_CLEAR: "filterClear",
-  LINK: "link",
+  DELETE: 'delete',
+  ADD: 'add',
+  BASIC: 'basic',
+  WARNING: 'warning',
+  MANAGE: 'manage',
+  OUTLINE: 'outline',
+  TABLE_FILTER: 'tableFilter',
+  FILTER_CLEAR: 'filterClear',
+  LINK: 'link',
 } as const;
 export type BtnActionTypeEnum = EnumValues<typeof BtnActionType>;
 
 export const OptionNames = {
-  DATETIME: "Date Time",
-  USER_STATUS: "User Status",
-  TEST: "test",
-  USER_ROLE: "User Role",
-  DISCOUNT_STATUS: "Discount Status",
-  MEMBER_NO: "Member No",
-  MEMBER_SNOWBOARD: "Member Snowboard",
-  MEMBER_SKIS: "Member Skis",
-  MEMBER_EMAIL: "Member Email",
-  MEMBER_TYPE: "Member Type",
-  MEMBER_STATUS: "Member Status",
-  COURSE_STATUS: "Course Status",
-  COURSE_TYPE: "Course Type",
-  COURSE_BOOKING_TYPE: "Course Booking Type",
+  DATETIME: 'Date Time',
+  USER_STATUS: 'User Status',
+  TEST: 'test',
+  USER_ROLE: 'User Role',
+  DISCOUNT_STATUS: 'Discount Status',
+  MEMBER_NO: 'Member No',
+  MEMBER_SNOWBOARD: 'Member Snowboard',
+  MEMBER_SKIS: 'Member Skis',
+  MEMBER_EMAIL: 'Member Email',
+  MEMBER_TYPE: 'Member Type',
+  MEMBER_STATUS: 'Member Status',
+  COURSE_STATUS: 'Course Status',
+  COURSE_TYPE: 'Course Type',
+  COURSE_BOOKING_TYPE: 'Course Booking Type',
 } as const;
 export type OptionNames = EnumValues<typeof OptionNames>;
 
@@ -479,8 +481,8 @@ export type OptionNames = EnumValues<typeof OptionNames>;
  * @deprecated use OrderByType instead
  */
 export const OrderType = {
-  ASC: "asc",
-  DESC: "desc",
+  ASC: 'asc',
+  DESC: 'desc',
 } as const;
 /**
  * @deprecated use OrderByType instead
@@ -488,8 +490,8 @@ export const OrderType = {
 export type OrderType = EnumValues<typeof OrderType>;
 
 export const OrderByType = {
-  asc: "ASC",
-  desc: "DESC",
+  asc: 'ASC',
+  desc: 'DESC',
 } as const;
 export type OrderByType = EnumValues<typeof OrderByType>;
 
@@ -511,49 +513,49 @@ export enum NavIconName {
 }
 
 export enum ColumnType {
-  INDEX = "index",
-  CONTENT = "content",
-  IMAGE = "image",
-  SWITCH = "switch",
-  BLANK = "blank",
-  DELETE = "delete",
-  TAG = "tag",
-  MEDIA = "media",
-  EDIT = "edit",
-  EMPTY = "empty",
-  LIST_AND_TOOLTIP = "listAndTooltip",
-  MANAGEMENT = "management",
+  INDEX = 'index',
+  CONTENT = 'content',
+  IMAGE = 'image',
+  SWITCH = 'switch',
+  BLANK = 'blank',
+  DELETE = 'delete',
+  TAG = 'tag',
+  MEDIA = 'media',
+  EDIT = 'edit',
+  EMPTY = 'empty',
+  LIST_AND_TOOLTIP = 'listAndTooltip',
+  MANAGEMENT = 'management',
 }
 
 export enum TableType {
-  TDemo = "TableDemo", // example
-  TRole = "TableRole",
-  TSheets = "Google Sheets",
-  T1 = "Table 1",
-  T2 = "Table 2",
-  T3 = "Table 3",
-  TAccount = "Table Account 1",
-  TSelectSort = "Table Select Sort",
+  TDemo = 'TableDemo', // example
+  TRole = 'TableRole',
+  TSheets = 'Google Sheets',
+  T1 = 'Table 1',
+  T2 = 'Table 2',
+  T3 = 'Table 3',
+  TAccount = 'Table Account 1',
+  TSelectSort = 'Table Select Sort',
 }
 
 export const ModalType = {
-  ADD: "ADD",
-  EDIT: "EDIT",
-  VIEW: "VIEW",
+  ADD: 'ADD',
+  EDIT: 'EDIT',
+  VIEW: 'VIEW',
 } as const;
 export type ModalType = EnumValues<typeof ModalType>;
 
 export const MessageType = {
-  ERROR: "ERROR",
-  WARNING: "WARNING",
-  CONFIRM: "CONFIRM",
-  INFO: "INFO",
+  ERROR: 'ERROR',
+  WARNING: 'WARNING',
+  CONFIRM: 'CONFIRM',
+  INFO: 'INFO',
 } as const;
 export type MessageType = EnumValues<typeof MessageType>;
 
 export const DialogAction = {
-  CONFIRM: "CONFIRM",
-  CANCEL: "CANCEL",
+  CONFIRM: 'CONFIRM',
+  CANCEL: 'CANCEL',
 };
 export type DialogAction = EnumValues<typeof DialogAction>;
 

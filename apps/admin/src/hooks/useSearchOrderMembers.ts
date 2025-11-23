@@ -8,6 +8,7 @@ interface SearchFilters {
 	orderType?: CourseType;
 	skiType?: CourseSkiType;
 	orderNo?: string;
+	coursePlanId?: string;
 }
 
 interface useSearchOrderMembersResult {
@@ -39,7 +40,7 @@ export const useSearchOrderMembers = (debounceMs: number = 500): useSearchOrderM
 
 	// 搜尋剩餘課程數量大於 0 的會員的函數
 	const performSearch = useCallback(async (filters: SearchFilters) => {
-		if (!filters.keyword.trim() && !filters.orderType && filters.skiType === undefined && !filters.orderNo) {
+		if (!filters.keyword.trim() && !filters.orderType && filters.skiType === undefined && !filters.orderNo && !filters.coursePlanId) {
 			setSearchResults([]);
 			setLoading(false);
 			setError(null);
@@ -56,6 +57,7 @@ export const useSearchOrderMembers = (debounceMs: number = 500): useSearchOrderM
 			if (filters.orderType) params.append('orderType', filters.orderType);
 			if (filters.skiType !== undefined) params.append('skiType', String(filters.skiType));
 			if (filters.orderNo) params.append('orderNo', filters.orderNo);
+			if (filters.coursePlanId) params.append('coursePlanId', filters.coursePlanId);
 
 			const response = await httpWithToken.get<ResponseWrapper<OrderMemberSearchResponseDto[]>>(
 				`/api/order-members/search?${params.toString()}`,
@@ -79,7 +81,7 @@ export const useSearchOrderMembers = (debounceMs: number = 500): useSearchOrderM
 			}
 
 			// 如果所有過濾條件都為空，立即清空結果
-			if (!filters.keyword.trim() && !filters.orderType && filters.skiType === undefined && !filters.orderNo) {
+			if (!filters.keyword.trim() && !filters.orderType && filters.skiType === undefined && !filters.orderNo && !filters.coursePlanId) {
 				setSearchResults([]);
 				setLoading(false);
 				return;

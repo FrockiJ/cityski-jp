@@ -676,17 +676,22 @@ const AddEditReservationIndoorModal = ({
 									buttonDisabled={isAtCapacity || isBasicInfoDisabled}
 									handleClick={() => {
 										// 判斷是否為預約式團體課
-
 										const isReservationBasedGroupCourse =
 											orderDetail?.type === CourseType.GROUP && orderDetail?.bkgType === CourseBkgType.FLEXIBLE;
 										console.log(CourseBkgType.FLEXIBLE, '===', orderDetail?.bkgType);
 
 										// 判斷是否為私人課
 										const isPrivateCourse = orderDetail?.type === CourseType.PRIVATE;
+
+										// 判斷是否為指定式團體課
+										const isDesignatedGroupCourse =
+											orderDetail?.type === CourseType.GROUP && orderDetail?.bkgType === CourseBkgType.FIXED;
+
 										console.log(orderDetail?.type, orderDetail?.bkgType);
 										console.log({
 											isReservationBasedGroupCourse,
 											isPrivateCourse,
+											isDesignatedGroupCourse,
 										});
 
 										modal.openModal({
@@ -702,6 +707,7 @@ const AddEditReservationIndoorModal = ({
 													orderType={isReservationBasedGroupCourse ? orderDetail.type : undefined}
 													skiType={isReservationBasedGroupCourse ? orderDetail.skiType : undefined}
 													orderNo={isPrivateCourse ? orderDetail.no : undefined}
+													coursePlanId={isDesignatedGroupCourse ? orderDetail.coursePlanId : undefined}
 													// handleCloseModal={(action) => {
 													// 	if (action === 'confirm') {
 													// 		modal.closeModal();

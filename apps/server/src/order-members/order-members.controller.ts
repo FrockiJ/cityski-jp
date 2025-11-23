@@ -67,6 +67,7 @@ export class OrderMembersController {
     @Query('orderType') orderType?: CourseType,
     @Query('skiType') skiType?: string,
     @Query('orderNo') orderNo?: string,
+    @Query('coursePlanId') coursePlanId?: string,
   ): Promise<OrderMemberSearchResponseDto[]> {
     const skiTypeNum = skiType !== undefined ? parseInt(skiType) : undefined;
     return plainToInstance(
@@ -75,7 +76,8 @@ export class OrderMembersController {
         keyword || '',
         orderType,
         skiTypeNum as CourseSkiType,
-        orderNo
+        orderNo,
+        coursePlanId
       ),
       { excludeExtraneousValues: true }
     );

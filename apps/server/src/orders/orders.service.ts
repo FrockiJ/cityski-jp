@@ -184,6 +184,7 @@ export class OrdersService {
         expDate: order.expDate,
         ordererName: order.member?.name || '',
         ordererPhone: order.member?.phone || '',
+        coursePlanId: order.coursePlan?.id || '',
         coursePlanName: order.coursePlan?.name || '',
         coursePlanImage: '',
         coursePlanDescription: order.coursePlan?.course?.description || '',

@@ -281,6 +281,7 @@ export class OrderMembersService {
     orderType?: CourseType,
     skiType?: CourseSkiType,
     orderNo?: string,
+    coursePlanId?: string,
   ): Promise<OrderMemberSearchResponseDto[]> {
     try {
       // Use QueryBuilder to filter by courses left
@@ -316,6 +317,13 @@ export class OrderMembersService {
         });
       }
 
+      // Course plan filter
+      if (coursePlanId && coursePlanId.trim()) {
+        queryBuilder.andWhere('order.coursePlanId = :coursePlanId', {
+          coursePlanId,
+        });
+      }
+
       // Group and filter by courses left
       // Only return order members where used courses < planned courses
       queryBuilder
@@ -340,6 +348,7 @@ export class OrderMembersService {
           member: true,
           order: {
             orderReservations: true,
+            coursePlan: true,
           },
         },
         order: {

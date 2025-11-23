@@ -26,9 +26,10 @@ type Props = {
 	orderType?: CourseType;
 	skiType?: CourseSkiType;
 	orderNo?: string;
+	coursePlanId?: string;
 };
 
-const AddMemberModal = ({ onSelectMember, handleCloseModal, searchType, excludeMemberIds = [], orderType, skiType, orderNo }: Props) => {
+const AddMemberModal = ({ onSelectMember, handleCloseModal, searchType, excludeMemberIds = [], orderType, skiType, orderNo, coursePlanId }: Props) => {
 	const [searchValue, setSearchValue] = useState('');
 	const {
 		searchResults: searchOrderResults,
@@ -63,12 +64,13 @@ const AddMemberModal = ({ onSelectMember, handleCloseModal, searchType, excludeM
 					orderType,
 					skiType,
 					orderNo,
+					coursePlanId,
 				});
 			} else {
 				searchMembers(searchText);
 			}
 		},
-		[searchMembers, searchType, searchOrderMembers, orderType, skiType, orderNo],
+		[searchMembers, searchType, searchOrderMembers, orderType, skiType, orderNo, coursePlanId],
 	);
 
 	// 處理選擇會員

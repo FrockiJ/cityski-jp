@@ -1,8 +1,15 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Or, ILike, DataSource, In, LessThanOrEqual } from 'typeorm';
+import {
+  Repository,
+  Or,
+  ILike,
+  DataSource,
+  In,
+  LessThanOrEqual,
+} from 'typeorm';
 import { Cron } from '@nestjs/schedule';
-import { SkiAndSnowboardLevelEnum } from '@repo/shared';
+import { SkiAndSnowboardLevelEnum, CourseType } from '@repo/shared';
 import { Reservation } from './entities/reservation.entity';
 import { Department } from 'src/departments/entities/department.entity';
 import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
@@ -10,6 +17,9 @@ import { ReservationMember } from 'src/reservation-members/entities/reservation-
 import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { User } from 'src/users/entities/user.entity';
+import { CoursePlanSession } from 'src/course-plan-session/entities/course-plan-session.entity';
+import { CoursePlan } from 'src/course-plan/entities/course-plan.entity';
+import { Course } from 'src/course/entities/course.entity';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { ReservationStatus } from './entities/reservation.entity';
 import { ReservationHistoryService } from 'src/reservation-history/reservation-history.service';
@@ -41,6 +51,8 @@ export class ReservationsService {
     private readonly ordersRepo: Repository<Order>,
     @InjectRepository(User)
     private readonly usersRepo: Repository<User>,
+    @InjectRepository(CoursePlanSession)
+    private readonly coursePlanSessionRepo: Repository<CoursePlanSession>,
     private readonly dataSource: DataSource,
     private readonly reservationHistoryService: ReservationHistoryService,
   ) {}
@@ -105,7 +117,8 @@ export class ReservationsService {
 
       // 為每個預約加入課程名稱、板類和最大人數
       const reservationsWithCourseName = reservations.map((reservation) => {
-        const firstOrderMember = reservation.reservationMembers?.[0]?.orderMember;
+        const firstOrderMember =
+          reservation.reservationMembers?.[0]?.orderMember;
         const order = firstOrderMember?.order;
         const coursePlan = order?.coursePlan;
         const course = coursePlan?.course;
@@ -549,10 +562,91 @@ export class ReservationsService {
       return updatedReservations;
     } catch (err) {
       console.error('[CRON] Error updating reservation statuses:', err);
-      throw new HttpException(
-        err.message,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  // 獲取預約時段 - 簡化版本用於測試
+  async getReservationSlots(query: any): Promise<any> {
+    try {
+      const { branch_id, start_date, end_date, course_type } = query;
+
+      // 基本查詢：取得指定分店和時間範圍內的課程計劃時段
+      const sessionsQuery = this.coursePlanSessionRepo
+        .createQueryBuilder('session')
+        .leftJoinAndSelect('session.plan', 'plan')
+        .leftJoinAndSelect('plan.course', 'course')
+        .leftJoinAndSelect('course.department', 'department')
+        .leftJoinAndSelect('course.coursePeople', 'coursePeople')
+        .where('department.id = :branch_id', { branch_id })
+        .andWhere('session.startTime >= :start_date', { start_date })
+        .andWhere('session.startTime <= :end_date', { end_date });
+
+      // 根據課程類型篩選
+      if (course_type !== undefined) {
+        sessionsQuery.andWhere('course.type = :course_type', { course_type });
+      }
+
+      const sessions = await sessionsQuery.getMany();
+      const slots = [];
+
+      for (const session of sessions) {
+        // 查找與此 session 相關的預約數量
+        const reservationCount = await this.reservationsRepo
+          .createQueryBuilder('reservation')
+          .leftJoin('reservation.orderReservations', 'or')
+          .leftJoin('or.order', 'order')
+          .leftJoin('order.coursePlan', 'coursePlan')
+          .leftJoin('coursePlan.sessions', 'coursePlanSession')
+          .where('coursePlanSession.id = :sessionId', { sessionId: session.id })
+          .andWhere('reservation.reservationStatus != :cancelStatus', {
+            cancelStatus: ReservationStatus.CANCELED,
+          })
+          .getCount();
+
+        // 取得課程容量
+        const coursePeople = session.plan?.course?.coursePeople?.[0];
+        const maxCapacity = coursePeople?.maxPeople || 0;
+
+        // 判斷時段狀態
+        let status = 'available';
+        const now = new Date();
+
+        if (session.startTime < now) {
+          status = 'closed';
+        } else if (reservationCount >= maxCapacity && maxCapacity > 0) {
+          status = 'full';
+        }
+
+        // 檢查是否併班 (團體課且有預約)
+        const isMixed =
+          session.plan?.course?.type === CourseType.GROUP &&
+          reservationCount > 0;
+
+        const slot = {
+          id: session.id,
+          startTime: session.startTime,
+          endTime: session.endTime,
+          courseName: session.plan?.course?.name || '未知課程',
+          currentBookedCount: reservationCount,
+          maxCapacity,
+          status,
+          courseType: session.plan?.course?.type,
+          isMixed,
+          departmentName: session.plan?.course?.department?.name,
+          venueName: session.plan?.name,
+        };
+
+        slots.push(slot);
+      }
+
+      return {
+        slots,
+        totalCount: slots.length,
+      };
+    } catch (err) {
+      console.error('Error in getReservationSlots:', err);
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

@@ -1,21 +1,85 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from '@mui/icons-material';
-import { Box, Button, IconButton, Paper, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, IconButton, Paper, Stack, Typography } from '@mui/material';
 import dayjs from 'dayjs';
+
+import { useReservationSlots } from '@/hooks/useReservationSlots';
+import { CourseType } from '@/shared/core/constants/enum';
 
 import DayView from './DayView';
 import IndoorOverseasToggle from './IndoorOverseasToggle';
+import ListView from './ListView';
+import ReservationFilters from './ReservationFilters';
+import ViewModeToggle from './ViewModeToggle';
 import WeekDayViewToggle from './WeekDayViewToggle';
 import WeekView from './WeekView';
 
 type ViewType = 'week' | 'day';
+type ViewMode = 'calendar' | 'list';
+
+interface FilterState {
+	branchId: string;
+	startDate: dayjs.Dayjs;
+	endDate: dayjs.Dayjs;
+	courseType?: CourseType;
+	instructorId?: string;
+}
 
 export default function Calendar() {
 	const container = useRef<HTMLDivElement>(null);
 	const containerNav = useRef<HTMLDivElement>(null);
 	const [viewType, setViewType] = useState<ViewType>('week');
+	const [viewMode, setViewMode] = useState<ViewMode>('calendar');
 	const [indoorOverseas, setIndoorOverseas] = useState<'indoor' | 'overseas'>('indoor');
 	const [currentDate, setCurrentDate] = useState(dayjs());
+
+	// 預約篩選狀態
+	const [filters, setFilters] = useState<FilterState>({
+		branchId: '1', // 預設分店 ID - 應該從用戶權限取得
+		startDate: dayjs().startOf('week'),
+		endDate: dayjs().endOf('week'),
+	});
+
+	// 模擬部門和教練資料 - 應該從 API 取得
+	const departments = [
+		{ id: '1', name: '台北分店' },
+		{ id: '2', name: '台中分店' },
+		{ id: '3', name: '高雄分店' },
+	];
+
+	const instructors = [
+		{ id: '1', name: '王教練' },
+		{ id: '2', name: '李教練' },
+		{ id: '3', name: '張教練' },
+	];
+
+	// 使用預約時段 hook
+	const slotsParams = {
+		branch_id: filters.branchId,
+		start_date: filters.startDate.format('YYYY-MM-DD'),
+		end_date: filters.endDate.format('YYYY-MM-DD'),
+		...(filters.courseType && { course_type: Number(filters.courseType) }),
+		...(filters.instructorId && { instructor_id: filters.instructorId }),
+	};
+
+	const { slots, loading, error, refetch } = useReservationSlots(slotsParams);
+
+	// 當檢視類型改變時，更新日期範圍
+	useEffect(() => {
+		if (viewType === 'week') {
+			setFilters((prev) => ({
+				...prev,
+				startDate: currentDate.startOf('week'),
+				endDate: currentDate.endOf('week'),
+			}));
+		} else {
+			setFilters((prev) => ({
+				...prev,
+				startDate: currentDate.startOf('day'),
+				endDate: currentDate.endOf('day'),
+			}));
+		}
+	}, [viewType, currentDate]);
 
 	// Format date based on view type
 	const getFormattedDate = () => {
@@ -64,6 +128,15 @@ export default function Calendar() {
 		setIndoorOverseas(newView);
 	};
 
+	const handleSlotClick = (slot: any) => {
+		console.log('Slot clicked:', slot);
+		// TODO: 開啟預約詳情彈窗
+	};
+
+	const handleFiltersChange = (newFilters: FilterState) => {
+		setFilters(newFilters);
+	};
+
 	return (
 		<Box
 			sx={{
@@ -90,6 +163,14 @@ export default function Calendar() {
 			}}
 		>
 			{/* Fixed Calendar Header */}
+			{/* 預約篩選器 */}
+			<ReservationFilters
+				filters={filters}
+				departments={departments}
+				instructors={instructors}
+				onFiltersChange={handleFiltersChange}
+			/>
+
 			<Paper
 				ref={containerNav}
 				elevation={1}
@@ -103,47 +184,87 @@ export default function Calendar() {
 					backgroundColor: 'background.paper',
 				}}
 			>
-				<Stack direction='row' alignItems='center' justifyContent='center' position='relative'>
+				<Stack direction='row' alignItems='center' justifyContent='center' position='relative' sx={{ height: 40 }}>
 					<Stack direction='row' position='absolute' left={0} gap='16px'>
-						<WeekDayViewToggle viewType={viewType} onViewChange={handleViewChange} />
+						<ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+						{viewMode === 'calendar' && <WeekDayViewToggle viewType={viewType} onViewChange={handleViewChange} />}
 						<Button variant='outlined' onClick={handleTodayClick}>
 							今天
 						</Button>
 					</Stack>
-					{/* View selector */}
 
 					<Stack direction='row' spacing={2} alignItems='center'>
-						{/* Navigation */}
-						<Stack direction='row' sx={{ display: 'flex', alignItems: 'center' }}>
-							<IconButton size='small' onClick={() => handleNavigate('prev')}>
-								<ChevronLeftIcon />
-							</IconButton>
-							<Typography variant='h6' px={1} width={180} textAlign='center'>
-								<time dateTime={currentDate.format('YYYY-MM')}>{getFormattedDate()}</time>
-							</Typography>
-							<IconButton size='small' onClick={() => handleNavigate('next')}>
-								<ChevronRightIcon />
-							</IconButton>
-						</Stack>
+						{/* Navigation - 只在行事曆模式顯示 */}
+						{viewMode === 'calendar' && (
+							<Stack direction='row' sx={{ display: 'flex', alignItems: 'center' }}>
+								<IconButton size='small' onClick={() => handleNavigate('prev')}>
+									<ChevronLeftIcon />
+								</IconButton>
+								<Typography variant='h6' px={1} width={180} textAlign='center'>
+									<time dateTime={currentDate.format('YYYY-MM')}>{getFormattedDate()}</time>
+								</Typography>
+								<IconButton size='small' onClick={() => handleNavigate('next')}>
+									<ChevronRightIcon />
+								</IconButton>
+							</Stack>
+						)}
 					</Stack>
+
 					<Stack direction='row' position='absolute' right={0}>
 						<IndoorOverseasToggle viewType={indoorOverseas} onViewChange={handleIndoorOverseasChange} />
 					</Stack>
 				</Stack>
 			</Paper>
 
-			{/* Scrollable Content */}
-			<Box
-				ref={container}
-				sx={{
-					flex: 1,
-					overflow: 'auto',
-					minHeight: 0,
-					maxHeight: '712px',
-				}}
-			>
-				{viewType === 'week' ? <WeekView currentDate={currentDate} /> : <DayView currentDate={currentDate} />}
-			</Box>
+			{/* 錯誤提示 */}
+			{error && (
+				<Box sx={{ p: 2 }}>
+					<Alert
+						severity='error'
+						action={
+							<Button size='small' onClick={refetch}>
+								重新載入
+							</Button>
+						}
+					>
+						{error}
+					</Alert>
+				</Box>
+			)}
+
+			{/* Loading 狀態 */}
+			{loading && (
+				<Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+					<CircularProgress />
+				</Box>
+			)}
+
+			{/* 內容區域 */}
+			{!loading && (
+				<Box
+					ref={container}
+					sx={{
+						flex: 1,
+						overflow: 'auto',
+						minHeight: 0,
+						maxHeight: viewMode === 'list' ? 'none' : '712px',
+					}}
+				>
+					{viewMode === 'list' ? (
+						<ListView
+							slots={slots.map((slot) => ({
+								...slot,
+								courseType: slot.courseType as unknown as CourseType,
+							}))}
+							onSlotClick={handleSlotClick}
+						/>
+					) : viewType === 'week' ? (
+						<WeekView currentDate={currentDate} />
+					) : (
+						<DayView currentDate={currentDate} />
+					)}
+				</Box>
+			)}
 		</Box>
 	);
 }

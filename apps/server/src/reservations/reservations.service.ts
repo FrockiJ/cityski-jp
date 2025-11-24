@@ -630,7 +630,7 @@ export class ReservationsService {
 
       const reservations = await reservationsQuery.getMany();
 
-      // 按 classTime 分組，將相同時間的預約視為一個時段
+      // 按 classTime 和 courseType 分組，同一時間的不同課程應該是不同的時段
       const slotsMap = new Map<string, any>();
 
       for (const reservation of reservations) {
@@ -638,13 +638,17 @@ export class ReservationsService {
         const course = reservation.orderReservations?.[0]?.order?.coursePlan?.course;
         const courseName = course?.name || '未知課程';
         const courseType = course?.type;
+        const courseId = course?.id;
         const coursePeople = course?.coursePeople?.[0];
         const maxCapacity = coursePeople?.maxPeople || 0;
         const courseLength = course?.length || 90; // 預設 90 分鐘
 
-        if (!slotsMap.has(classTimeStr)) {
-          slotsMap.set(classTimeStr, {
-            id: `slot-${classTimeStr}-${reservation.id}`,
+        // 使用 classTime + courseId 作為 key，確保同時間不同課程分開，即使是同一課程類型也能區分
+        const slotKey = `${classTimeStr}-${courseId}`;
+
+        if (!slotsMap.has(slotKey)) {
+          slotsMap.set(slotKey, {
+            id: `slot-${classTimeStr}-${courseId}`,
             startTime: reservation.classTime,
             endTime: new Date(new Date(reservation.classTime).getTime() + courseLength * 60 * 1000), // 使用 course.length（分鐘）
             courseName,
@@ -660,7 +664,7 @@ export class ReservationsService {
         }
 
         // 累計預約數量
-        const slot = slotsMap.get(classTimeStr);
+        const slot = slotsMap.get(slotKey);
         slot.currentBookedCount++;
 
         // 判斷狀態

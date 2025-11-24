@@ -39,11 +39,18 @@ type Props = {
 };
 
 // 重疊檢測算法
-const calculateOverlappingSlots = (slots: ReservationSlot[]) => {
+const calculateOverlappingSlots = (slots: ReservationSlot[], targetDate?: dayjs.Dayjs) => {
 	const overlaps = new Map<string, { overlappingCount: number; position: number }>();
 
+	// 如果指定了日期，只計算該日期的課程
+	let slotsToProcess = slots;
+	if (targetDate) {
+		slotsToProcess = slots.filter((slot) => dayjs(slot.startTime).isSame(targetDate, 'day'));
+	}
+
+
 	// 按開始時間排序
-	const sorted = [...slots].sort(
+	const sorted = [...slotsToProcess].sort(
 		(a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
 	);
 
@@ -78,8 +85,6 @@ const calculateOverlappingSlots = (slots: ReservationSlot[]) => {
 };
 
 const WeekView = ({ currentDate, slots = [], onSlotClick }: Props) => {
-	// 計算重疊時段
-	const overlappingMap = useMemo(() => calculateOverlappingSlots(slots), [slots]);
 	return (
 		<Box sx={{ display: 'flex', height: '100%' }}>
 			{/* Time Column */}
@@ -120,6 +125,8 @@ const WeekView = ({ currentDate, slots = [], onSlotClick }: Props) => {
 					const date = currentDate.startOf('week').add(dayIndex, 'day');
 					const formattedDate = `${date.month() + 1}/${date.date()}`;
 					const isToday = date.isSame(dayjs(), 'day'); // Check if this day is today
+					// 為該日期計算重疊時段
+					const overlappingMap = useMemo(() => calculateOverlappingSlots(slots, date), [slots, date]);
 
 					return (
 						<Box
@@ -187,14 +194,17 @@ const WeekView = ({ currentDate, slots = [], onSlotClick }: Props) => {
 								})}
 
 								{/* 渲染課程時段 */}
-								{slots.map((slot) => {
-									const slotDate = dayjs(slot.startTime);
-									const startTime = slotDate.format('HH:mm');
-									const endTime = dayjs(slot.endTime).format('HH:mm');
-									const overlapInfo = overlappingMap.get(slot.id) || {
-										overlappingCount: 1,
-										position: 0,
-									};
+								{slots
+									.filter((slot) => dayjs(slot.startTime).isSame(date, 'day'))
+									.map((slot) => {
+										const slotDate = dayjs(slot.startTime);
+										const startTime = slotDate.format('HH:mm');
+										const endTime = dayjs(slot.endTime).format('HH:mm');
+										const overlapInfo = overlappingMap.get(slot.id) || {
+											overlappingCount: 1,
+											position: 0,
+										};
+
 
 									return (
 										<Event

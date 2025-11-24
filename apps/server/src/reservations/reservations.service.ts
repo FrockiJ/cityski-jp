@@ -667,14 +667,6 @@ export class ReservationsService {
         const slot = slotsMap.get(slotKey);
         slot.currentBookedCount++;
 
-        // 判斷狀態
-        const now = new Date();
-        if (slot.startTime < now) {
-          slot.status = 'closed';
-        } else if (slot.currentBookedCount >= maxCapacity && maxCapacity > 0) {
-          slot.status = 'full';
-        }
-
         // 檢查是否併班
         if (courseType === CourseType.GROUP && slot.currentBookedCount > 1) {
           slot.isMixed = true;
@@ -682,6 +674,21 @@ export class ReservationsService {
       }
 
       const slots = Array.from(slotsMap.values());
+
+      // 為每個 slot 計算最終狀態
+      slots.forEach((slot) => {
+        const now = new Date();
+        if (slot.startTime < now) {
+          // 過去的課程
+          slot.status = 'closed';
+        } else if (slot.currentBookedCount >= slot.maxCapacity && slot.maxCapacity > 0) {
+          // 已額滿
+          slot.status = 'full';
+        } else {
+          // 有空位
+          slot.status = 'available';
+        }
+      });
 
       return {
         slots,

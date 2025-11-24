@@ -115,39 +115,7 @@ export const Event = ({
 		}
 	};
 
-	const getCourseTypeStyles = () => {
-		if (unPaidDownPayment || status !== 'available') {
-			return getStatusStyles();
-		}
-
-		switch (courseType) {
-			case CourseType.GROUP:
-				return {
-					backgroundColor: 'rgba(0, 184, 217, 0.24)',
-					color: '#006C9C',
-					border: '1px solid rgba(0, 184, 217, 0.32)',
-				};
-			case CourseType.PRIVATE:
-				return {
-					backgroundColor: 'rgba(255, 171, 0, 0.24)',
-					color: '#B76E00',
-					border: '1px solid rgba(255, 171, 0, 0.32)',
-				};
-			case CourseType.TRAINING:
-				return {
-					backgroundColor: 'rgba(54, 179, 126, 0.24)',
-					color: '#1B806A',
-					border: '1px solid rgba(54, 179, 126, 0.32)',
-				};
-			default:
-				return {
-					backgroundColor,
-					color,
-				};
-		}
-	};
-
-	const styles = getCourseTypeStyles();
+	const styles = getStatusStyles();
 
 	return (
 		<EventWrapper

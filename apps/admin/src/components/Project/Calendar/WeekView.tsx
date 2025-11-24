@@ -38,9 +38,9 @@ type Props = {
 	onSlotClick?: (slot: ReservationSlot) => void;
 };
 
-// 重疊檢測算法
-const calculateOverlappingSlots = (slots: ReservationSlot[], targetDate?: dayjs.Dayjs) => {
-	const overlaps = new Map<string, { overlappingCount: number; position: number }>();
+// 計算同一時間的課程，用於均分寬度
+const calculateSlotPositions = (slots: ReservationSlot[], targetDate?: dayjs.Dayjs) => {
+	const positions = new Map<string, { overlappingCount: number; position: number }>();
 
 	// 如果指定了日期，只計算該日期的課程
 	let slotsToProcess = slots;
@@ -48,40 +48,28 @@ const calculateOverlappingSlots = (slots: ReservationSlot[], targetDate?: dayjs.
 		slotsToProcess = slots.filter((slot) => dayjs(slot.startTime).isSame(targetDate, 'day'));
 	}
 
-
-	// 按開始時間排序
-	const sorted = [...slotsToProcess].sort(
-		(a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-	);
-
-	sorted.forEach((slot, index) => {
-		let overlappingCount = 1;
-		let position = 0;
-
-		sorted.forEach((otherSlot, otherIndex) => {
-			if (index === otherIndex) return;
-
-			const slotStart = new Date(slot.startTime);
-			const slotEnd = new Date(slot.endTime);
-			const otherStart = new Date(otherSlot.startTime);
-			const otherEnd = new Date(otherSlot.endTime);
-
-			// 檢查重疊
-			if (slotStart < otherEnd && slotEnd > otherStart) {
-				if (otherIndex < index) {
-					position++;
-				}
-				overlappingCount = Math.max(
-					overlappingCount,
-					(overlaps.get(otherSlot.id)?.overlappingCount || 1) + 1
-				);
-			}
-		});
-
-		overlaps.set(slot.id, { overlappingCount, position });
+	// 按開始時間分組
+	const timeGroups = new Map<string, ReservationSlot[]>();
+	slotsToProcess.forEach((slot) => {
+		const timeKey = new Date(slot.startTime).toISOString();
+		if (!timeGroups.has(timeKey)) {
+			timeGroups.set(timeKey, []);
+		}
+		timeGroups.get(timeKey)!.push(slot);
 	});
 
-	return overlaps;
+	// 為每個時間組的課程分配位置
+	timeGroups.forEach((slotsInTime) => {
+		const overlappingCount = slotsInTime.length;
+		slotsInTime.forEach((slot, index) => {
+			positions.set(slot.id, {
+				overlappingCount,
+				position: index,
+			});
+		});
+	});
+
+	return positions;
 };
 
 const WeekView = ({ currentDate, slots = [], onSlotClick }: Props) => {
@@ -125,8 +113,8 @@ const WeekView = ({ currentDate, slots = [], onSlotClick }: Props) => {
 					const date = currentDate.startOf('week').add(dayIndex, 'day');
 					const formattedDate = `${date.month() + 1}/${date.date()}`;
 					const isToday = date.isSame(dayjs(), 'day'); // Check if this day is today
-					// 為該日期計算重疊時段
-					const overlappingMap = useMemo(() => calculateOverlappingSlots(slots, date), [slots, date]);
+					// 為該日期計算課程位置
+					const positionsMap = useMemo(() => calculateSlotPositions(slots, date), [slots, date]);
 
 					return (
 						<Box
@@ -200,7 +188,7 @@ const WeekView = ({ currentDate, slots = [], onSlotClick }: Props) => {
 										const slotDate = dayjs(slot.startTime);
 										const startTime = slotDate.format('HH:mm');
 										const endTime = dayjs(slot.endTime).format('HH:mm');
-										const overlapInfo = overlappingMap.get(slot.id) || {
+										const overlapInfo = positionsMap.get(slot.id) || {
 											overlappingCount: 1,
 											position: 0,
 										};

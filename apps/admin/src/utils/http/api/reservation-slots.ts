@@ -15,9 +15,15 @@ export interface ReservationSlot {
 	instructorName?: string;
 }
 
-export interface GetReservationSlotsResponse {
+export interface GetReservationSlotsResponseData {
 	slots: ReservationSlot[];
 	totalCount: number;
+}
+
+export interface GetReservationSlotsResponse {
+	statusCode: number;
+	message: string;
+	result: GetReservationSlotsResponseData;
 }
 
 export interface GetReservationSlotsParams {
@@ -29,4 +35,4 @@ export interface GetReservationSlotsParams {
 }
 
 export const getReservationSlots = (params: GetReservationSlotsParams) =>
-	http.get<GetReservationSlotsResponse>('/api/reservations/slots', { params });
+	http.get<GetReservationSlotsResponse>('/api/reservations/slots', params);

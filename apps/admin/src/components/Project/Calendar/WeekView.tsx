@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import dayjs from 'dayjs';
 
 import { TEXT_PRIMARY } from '@/shared/constants/colors';
 import { CourseType } from '@/shared/core/constants/enum';
+import { ReservationSlot } from '@/utils/http/api/reservation-slots';
 
 import { Event } from './Event';
 
@@ -34,9 +35,52 @@ const TimeSlot = styled(Box)(({ theme }) => ({
 
 type Props = {
 	currentDate: dayjs.Dayjs;
+	slots?: ReservationSlot[];
+	onSlotClick?: (slot: ReservationSlot) => void;
 };
 
-const WeekView = ({ currentDate }: Props) => {
+// 重疊檢測算法
+const calculateOverlappingSlots = (slots: ReservationSlot[]) => {
+	const overlaps = new Map<string, { overlappingCount: number; position: number }>();
+
+	// 按開始時間排序
+	const sorted = [...slots].sort(
+		(a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+	);
+
+	sorted.forEach((slot, index) => {
+		let overlappingCount = 1;
+		let position = 0;
+
+		sorted.forEach((otherSlot, otherIndex) => {
+			if (index === otherIndex) return;
+
+			const slotStart = new Date(slot.startTime);
+			const slotEnd = new Date(slot.endTime);
+			const otherStart = new Date(otherSlot.startTime);
+			const otherEnd = new Date(otherSlot.endTime);
+
+			// 檢查重疊
+			if (slotStart < otherEnd && slotEnd > otherStart) {
+				if (otherIndex < index) {
+					position++;
+				}
+				overlappingCount = Math.max(
+					overlappingCount,
+					(overlaps.get(otherSlot.id)?.overlappingCount || 1) + 1
+				);
+			}
+		});
+
+		overlaps.set(slot.id, { overlappingCount, position });
+	});
+
+	return overlaps;
+};
+
+const WeekView = ({ currentDate, slots = [], onSlotClick }: Props) => {
+	// 計算重疊時段
+	const overlappingMap = useMemo(() => calculateOverlappingSlots(slots), [slots]);
 	return (
 		<Box sx={{ display: 'flex', height: '100%' }}>
 			{/* Time Column */}
@@ -143,67 +187,33 @@ const WeekView = ({ currentDate }: Props) => {
 									);
 								})}
 
-								<Event
-									courseType={CourseType.GROUP}
-									type='W'
-									title='Flight to Paris'
-									startTime='13:30'
-									endTime='14:00'
-									backgroundColor='primary.light'
-									color='primary.dark'
-									overlappingEvents={2}
-									eventPosition={0}
-									date={dayjs('2025-01-05')}
-									currentDate={date}
-								/>
-								<Event
-									courseType={CourseType.PRIVATE}
-									type='W'
-									title='Flight to Paris2'
-									startTime='13:30'
-									endTime='14:00'
-									backgroundColor='#d3d'
-									color='primary.dark'
-									overlappingEvents={2}
-									eventPosition={1}
-									date={dayjs('2025-01-05')}
-									currentDate={date}
-								/>
-								<Event
-									courseType={CourseType.GROUP}
-									type='W'
-									title='Flight to Paris3'
-									startTime='13:00'
-									endTime='13:30'
-									backgroundColor='#E43'
-									color='primary.dark'
-									date={dayjs('2025-01-05')}
-									currentDate={date}
-									paymentSettled={false}
-								/>
-								<Event
-									courseType={CourseType.TRAINING}
-									type='W'
-									title='Flight to Japan'
-									startTime='10:30'
-									endTime='11:00'
-									backgroundColor='primary.light'
-									color='primary.dark'
-									date={dayjs('2025-01-08')}
-									currentDate={date}
-								/>
-								<Event
-									courseType={CourseType.GROUP}
-									type='W'
-									title='Flight to Australia'
-									startTime='19:00'
-									endTime='20:00'
-									backgroundColor='primary.light'
-									color='primary.dark'
-									date={dayjs('2025-01-07')}
-									currentDate={date}
-									unPaidDownPayment
-								/>
+								{/* 渲染課程時段 */}
+								{slots.map((slot) => {
+									const slotDate = dayjs(slot.startTime);
+									const startTime = slotDate.format('HH:mm');
+									const endTime = dayjs(slot.endTime).format('HH:mm');
+									const overlapInfo = overlappingMap.get(slot.id) || {
+										overlappingCount: 1,
+										position: 0,
+									};
+
+									return (
+										<Event
+											key={slot.id}
+											courseType={slot.courseType as unknown as CourseType}
+											type='W'
+											title={slot.courseName}
+											startTime={startTime}
+											endTime={endTime}
+											instructor={slot.instructorName}
+											overlappingEvents={overlapInfo.overlappingCount}
+											eventPosition={overlapInfo.position}
+											date={slotDate}
+											currentDate={date}
+											onClick={() => onSlotClick?.(slot)}
+										/>
+									);
+								})}
 							</Box>
 						</Box>
 					);

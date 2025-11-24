@@ -33,6 +33,8 @@ interface EventProps {
 	currentDate?: Dayjs;
 	unPaidDownPayment?: boolean;
 	paymentSettled?: boolean;
+	instructor?: string;
+	onClick?: () => void;
 }
 
 export const Event = ({
@@ -49,6 +51,8 @@ export const Event = ({
 	unPaidDownPayment = false,
 	courseType,
 	paymentSettled = true,
+	instructor,
+	onClick,
 }: EventProps) => {
 	if (date && currentDate) {
 		const eventDate = date.startOf('day');
@@ -112,6 +116,7 @@ export const Event = ({
 
 	return (
 		<EventWrapper
+			onClick={onClick}
 			sx={{
 				top: `${topPosition + 3}px`,
 				height: `${heightPixels - 4}px`,
@@ -143,7 +148,7 @@ export const Event = ({
 				<span style={{ color: getCourseTypeStyles().color }}>{title}</span>
 			</Typography>
 			<Typography variant='caption'>
-				<span style={{ color: getCourseTypeStyles().color }}>王綺文 (團體)</span>
+				<span style={{ color: getCourseTypeStyles().color }}>{instructor || '未指定'}</span>
 			</Typography>
 		</EventWrapper>
 	);

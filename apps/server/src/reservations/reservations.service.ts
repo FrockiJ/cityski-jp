@@ -566,86 +566,122 @@ export class ReservationsService {
     }
   }
 
-  // 獲取預約時段 - 簡化版本用於測試
+  // 獲取預約時段 - 基於 reservation 表
   async getReservationSlots(query: any): Promise<any> {
     try {
-      const { branch_id, start_date, end_date, course_type } = query;
+      const { start_date, end_date, course_type, instructor_id } = query;
+      // TODO: 等前端的正確資料 - 暫時硬編碼使用測試的 department UUID
+      const branch_id = '2e050cd6-a1a2-485b-8f27-a50091a19e60';
 
-      // 基本查詢：取得指定分店和時間範圍內的課程計劃時段
-      const sessionsQuery = this.coursePlanSessionRepo
-        .createQueryBuilder('session')
-        .leftJoinAndSelect('session.plan', 'plan')
-        .leftJoinAndSelect('plan.course', 'course')
-        .leftJoinAndSelect('course.department', 'department')
+      // 驗證必要參數
+      if (!start_date || !end_date) {
+        throw new HttpException(
+          `Missing required parameters. Got: start_date=${start_date}, end_date=${end_date}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // 轉換日期：start_date 應該從當天 00:00:00 開始，end_date 應該到當天 23:59:59
+      let startDateTime: Date;
+      let endDateTime: Date;
+
+      try {
+        startDateTime = new Date(start_date);
+        if (isNaN(startDateTime.getTime())) {
+          throw new Error(`Invalid start_date: ${start_date}`);
+        }
+        startDateTime.setHours(0, 0, 0, 0);
+
+        endDateTime = new Date(end_date);
+        if (isNaN(endDateTime.getTime())) {
+          throw new Error(`Invalid end_date: ${end_date}`);
+        }
+        endDateTime.setHours(23, 59, 59, 999);
+      } catch (dateErr) {
+        throw new HttpException(`Invalid date format: ${dateErr.message}`, HttpStatus.BAD_REQUEST);
+      }
+
+
+      // 基本查詢：從 reservation 表取得指定分店和時間範圍內的預約
+      const reservationsQuery = this.reservationsRepo
+        .createQueryBuilder('reservation')
+        .leftJoinAndSelect('reservation.department', 'department')
+        .leftJoinAndSelect('reservation.orderReservations', 'orderReservation')
+        .leftJoinAndSelect('orderReservation.order', 'order')
+        .leftJoinAndSelect('order.coursePlan', 'coursePlan')
+        .leftJoinAndSelect('coursePlan.course', 'course')
         .leftJoinAndSelect('course.coursePeople', 'coursePeople')
         .where('department.id = :branch_id', { branch_id })
-        .andWhere('session.startTime >= :start_date', { start_date })
-        .andWhere('session.startTime <= :end_date', { end_date });
+        .andWhere('reservation.classTime >= :start_date', { start_date: startDateTime })
+        .andWhere('reservation.classTime <= :end_date', { end_date: endDateTime })
+        .andWhere('reservation.reservationStatus != :cancelStatus', {
+          cancelStatus: ReservationStatus.CANCELED,
+        });
 
       // 根據課程類型篩選
       if (course_type !== undefined) {
-        sessionsQuery.andWhere('course.type = :course_type', { course_type });
+        reservationsQuery.andWhere('course.type = :course_type', { course_type });
       }
 
-      const sessions = await sessionsQuery.getMany();
-      const slots = [];
+      // 根據講師篩選
+      if (instructor_id !== undefined) {
+        reservationsQuery.andWhere('reservation.instructor = :instructor_id', { instructor_id });
+      }
 
-      for (const session of sessions) {
-        // 查找與此 session 相關的預約數量
-        const reservationCount = await this.reservationsRepo
-          .createQueryBuilder('reservation')
-          .leftJoin('reservation.orderReservations', 'or')
-          .leftJoin('or.order', 'order')
-          .leftJoin('order.coursePlan', 'coursePlan')
-          .leftJoin('coursePlan.sessions', 'coursePlanSession')
-          .where('coursePlanSession.id = :sessionId', { sessionId: session.id })
-          .andWhere('reservation.reservationStatus != :cancelStatus', {
-            cancelStatus: ReservationStatus.CANCELED,
-          })
-          .getCount();
+      const reservations = await reservationsQuery.getMany();
 
-        // 取得課程容量
-        const coursePeople = session.plan?.course?.coursePeople?.[0];
+      // 按 classTime 分組，將相同時間的預約視為一個時段
+      const slotsMap = new Map<string, any>();
+
+      for (const reservation of reservations) {
+        const classTimeStr = new Date(reservation.classTime).toISOString();
+        const courseName = reservation.orderReservations?.[0]?.order?.coursePlan?.course?.name || '未知課程';
+        const courseType = reservation.orderReservations?.[0]?.order?.coursePlan?.course?.type;
+        const coursePeople = reservation.orderReservations?.[0]?.order?.coursePlan?.course?.coursePeople?.[0];
         const maxCapacity = coursePeople?.maxPeople || 0;
 
-        // 判斷時段狀態
-        let status = 'available';
-        const now = new Date();
-
-        if (session.startTime < now) {
-          status = 'closed';
-        } else if (reservationCount >= maxCapacity && maxCapacity > 0) {
-          status = 'full';
+        if (!slotsMap.has(classTimeStr)) {
+          slotsMap.set(classTimeStr, {
+            id: `slot-${classTimeStr}-${reservation.id}`,
+            startTime: reservation.classTime,
+            endTime: new Date(new Date(reservation.classTime).getTime() + 1.5 * 60 * 60 * 1000), // 預設 1.5 小時
+            courseName,
+            courseType,
+            maxCapacity,
+            currentBookedCount: 0,
+            instructorName: reservation.instructor || '未指定',
+            departmentName: reservation.department?.name,
+            venueName: reservation.orderReservations?.[0]?.order?.coursePlan?.name,
+            status: 'available',
+            isMixed: false,
+          });
         }
 
-        // 檢查是否併班 (團體課且有預約)
-        const isMixed =
-          session.plan?.course?.type === CourseType.GROUP &&
-          reservationCount > 0;
+        // 累計預約數量
+        const slot = slotsMap.get(classTimeStr);
+        slot.currentBookedCount++;
 
-        const slot = {
-          id: session.id,
-          startTime: session.startTime,
-          endTime: session.endTime,
-          courseName: session.plan?.course?.name || '未知課程',
-          currentBookedCount: reservationCount,
-          maxCapacity,
-          status,
-          courseType: session.plan?.course?.type,
-          isMixed,
-          departmentName: session.plan?.course?.department?.name,
-          venueName: session.plan?.name,
-        };
+        // 判斷狀態
+        const now = new Date();
+        if (slot.startTime < now) {
+          slot.status = 'closed';
+        } else if (slot.currentBookedCount >= maxCapacity && maxCapacity > 0) {
+          slot.status = 'full';
+        }
 
-        slots.push(slot);
+        // 檢查是否併班
+        if (courseType === CourseType.GROUP && slot.currentBookedCount > 1) {
+          slot.isMixed = true;
+        }
       }
+
+      const slots = Array.from(slotsMap.values());
 
       return {
         slots,
         totalCount: slots.length,
       };
     } catch (err) {
-      console.error('Error in getReservationSlots:', err);
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }

@@ -259,9 +259,9 @@ export default function Calendar() {
 							onSlotClick={handleSlotClick}
 						/>
 					) : viewType === 'week' ? (
-						<WeekView currentDate={currentDate} />
+						<WeekView currentDate={currentDate} slots={slots} onSlotClick={handleSlotClick} />
 					) : (
-						<DayView currentDate={currentDate} />
+						<DayView currentDate={currentDate} slots={slots} onSlotClick={handleSlotClick} />
 					)}
 				</Box>
 			)}

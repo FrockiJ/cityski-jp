@@ -27,11 +27,13 @@ export const useReservationSlots = (params?: GetReservationSlotsParams): UseRese
 		try {
 			const response = await getReservationSlots(params);
 
-			// Handle both direct data and wrapped response
-			const data = 'data' in response ? response.data : response;
+			// Backend returns { statusCode, message, result: { slots, totalCount } }
+			const result = response.result || response;
+			const slots = result.slots || [];
+			const totalCount = result.totalCount || 0;
 
-			setSlots(data.slots || []);
-			setTotalCount(data.totalCount || 0);
+			setSlots(slots);
+			setTotalCount(totalCount);
 		} catch (err: any) {
 			console.error('Failed to fetch reservation slots:', err);
 			setError(err?.response?.data?.message || err.message || '取得預約時段失敗');

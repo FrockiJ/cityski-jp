@@ -635,16 +635,18 @@ export class ReservationsService {
 
       for (const reservation of reservations) {
         const classTimeStr = new Date(reservation.classTime).toISOString();
-        const courseName = reservation.orderReservations?.[0]?.order?.coursePlan?.course?.name || '未知課程';
-        const courseType = reservation.orderReservations?.[0]?.order?.coursePlan?.course?.type;
-        const coursePeople = reservation.orderReservations?.[0]?.order?.coursePlan?.course?.coursePeople?.[0];
+        const course = reservation.orderReservations?.[0]?.order?.coursePlan?.course;
+        const courseName = course?.name || '未知課程';
+        const courseType = course?.type;
+        const coursePeople = course?.coursePeople?.[0];
         const maxCapacity = coursePeople?.maxPeople || 0;
+        const courseLength = course?.length || 90; // 預設 90 分鐘
 
         if (!slotsMap.has(classTimeStr)) {
           slotsMap.set(classTimeStr, {
             id: `slot-${classTimeStr}-${reservation.id}`,
             startTime: reservation.classTime,
-            endTime: new Date(new Date(reservation.classTime).getTime() + 1.5 * 60 * 60 * 1000), // 預設 1.5 小時
+            endTime: new Date(new Date(reservation.classTime).getTime() + courseLength * 60 * 1000), // 使用 course.length（分鐘）
             courseName,
             courseType,
             maxCapacity,

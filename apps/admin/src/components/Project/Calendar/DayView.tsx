@@ -3,7 +3,6 @@ import { Box, Typography } from '@mui/material';
 import { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 
-import { CourseType } from '@/shared/core/constants/enum';
 import { ReservationSlot } from '@/utils/http/api/reservation-slots';
 
 import { Event } from './Event';
@@ -184,7 +183,7 @@ export default function DayView({ currentDate, slots = [], onSlotClick }: DayVie
 							return (
 								<Event
 									key={slot.id}
-									courseType={slot.courseType as unknown as CourseType}
+									courseType={slot.courseType as any}
 									type='D'
 									title={slot.courseName}
 									startTime={startTime}

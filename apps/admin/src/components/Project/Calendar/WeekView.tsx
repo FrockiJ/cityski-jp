@@ -4,7 +4,6 @@ import { styled } from '@mui/material/styles';
 import dayjs from 'dayjs';
 
 import { TEXT_PRIMARY } from '@/shared/constants/colors';
-import { CourseType } from '@/shared/core/constants/enum';
 import { ReservationSlot } from '@/utils/http/api/reservation-slots';
 
 import { Event } from './Event';
@@ -200,7 +199,7 @@ const WeekView = ({ currentDate, slots = [], onSlotClick }: Props) => {
 									return (
 										<Event
 											key={slot.id}
-											courseType={slot.courseType as unknown as CourseType}
+											courseType={slot.courseType as any}
 											type='W'
 											title={slot.courseName}
 											startTime={startTime}

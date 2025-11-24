@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Chip,FormControl, InputLabel, MenuItem, Select, Stack, TextField, Typography } from '@mui/material';
 import dayjs, { Dayjs } from 'dayjs';
 
-import { CourseType } from '@/shared/core/constants/enum';
+import { CourseType } from '@repo/shared';
 
 interface Department {
 	id: string;
@@ -48,7 +48,7 @@ const ReservationFilters: React.FC<ReservationFiltersProps> = ({
 				return '私人課程';
 			case CourseType.GROUP:
 				return '團體課程';
-			case CourseType.TRAINING:
+			case CourseType.INDIVIDUAL:
 				return '個人練習';
 			default:
 				return '未知';
@@ -75,7 +75,7 @@ const ReservationFilters: React.FC<ReservationFiltersProps> = ({
 					color: '#006C9C',
 					border: '1px solid rgba(0, 184, 217, 0.32)',
 				};
-			case CourseType.TRAINING:
+			case CourseType.INDIVIDUAL:
 				return {
 					backgroundColor: 'rgba(54, 179, 126, 0.24)',
 					color: '#1B806A',
@@ -147,7 +147,7 @@ const ReservationFilters: React.FC<ReservationFiltersProps> = ({
 						<MenuItem value=''>全部</MenuItem>
 						<MenuItem value={CourseType.PRIVATE}>私人課程</MenuItem>
 						<MenuItem value={CourseType.GROUP}>團體課程</MenuItem>
-						<MenuItem value={CourseType.TRAINING}>個人練習</MenuItem>
+						<MenuItem value={CourseType.INDIVIDUAL}>個人練習</MenuItem>
 					</Select>
 				</FormControl>
 

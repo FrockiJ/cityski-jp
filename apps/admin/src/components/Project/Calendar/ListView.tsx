@@ -3,22 +3,9 @@ import { FitnessCenter, Group, Groups, Person, Schedule } from '@mui/icons-mater
 import { Avatar, Box, Card, CardContent, Chip, Divider, Grid, Stack, Typography } from '@mui/material';
 import dayjs from 'dayjs';
 
-import { CourseType } from '@/shared/core/constants/enum';
+import { CourseType } from '@repo/shared';
 
-interface ReservationSlot {
-	id: string;
-	startTime: Date;
-	endTime: Date;
-	courseName: string;
-	currentBookedCount: number;
-	maxCapacity: number;
-	status: 'available' | 'full' | 'closed';
-	courseType: CourseType;
-	isMixed: boolean;
-	departmentName: string;
-	venueName: string;
-	instructorName?: string;
-}
+import { ReservationSlot } from '@/utils/http/api/reservation-slots';
 
 interface ListViewProps {
 	slots: ReservationSlot[];
@@ -32,7 +19,7 @@ const ListView: React.FC<ListViewProps> = ({ slots, onSlotClick }) => {
 				return <Person fontSize='small' />;
 			case CourseType.GROUP:
 				return <Groups fontSize='small' />;
-			case CourseType.TRAINING:
+			case CourseType.INDIVIDUAL:
 				return <FitnessCenter fontSize='small' />;
 			default:
 				return <Schedule fontSize='small' />;
@@ -45,7 +32,7 @@ const ListView: React.FC<ListViewProps> = ({ slots, onSlotClick }) => {
 				return '私人課程';
 			case CourseType.GROUP:
 				return '團體課程';
-			case CourseType.TRAINING:
+			case CourseType.INDIVIDUAL:
 				return '個人練習';
 			default:
 				return '未知';
@@ -104,7 +91,7 @@ const ListView: React.FC<ListViewProps> = ({ slots, onSlotClick }) => {
 					color: '#006C9C',
 					border: '1px solid rgba(0, 184, 217, 0.32)',
 				};
-			case CourseType.TRAINING:
+			case CourseType.INDIVIDUAL:
 				return {
 					backgroundColor: 'rgba(54, 179, 126, 0.24)',
 					color: '#1B806A',

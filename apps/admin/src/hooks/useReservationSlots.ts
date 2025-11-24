@@ -27,10 +27,9 @@ export const useReservationSlots = (params?: GetReservationSlotsParams): UseRese
 		try {
 			const response = await getReservationSlots(params);
 
-			// Backend returns { statusCode, message, result: { slots, totalCount } }
-			const result = response.result || response;
-			const slots = result.slots || [];
-			const totalCount = result.totalCount || 0;
+			// Response is already properly typed with CourseType by transformReservationSlots
+			const slots: ReservationSlot[] = response.result.slots;
+			const totalCount = response.result.totalCount;
 
 			setSlots(slots);
 			setTotalCount(totalCount);

@@ -3,8 +3,8 @@ import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from
 import { Alert, Box, Button, CircularProgress, IconButton, Paper, Stack, Typography } from '@mui/material';
 import dayjs from 'dayjs';
 
+import { CourseType } from '@repo/shared';
 import { useReservationSlots } from '@/hooks/useReservationSlots';
-import { CourseType } from '@/shared/core/constants/enum';
 
 import DayView from './DayView';
 import IndoorOverseasToggle from './IndoorOverseasToggle';
@@ -58,7 +58,7 @@ export default function Calendar() {
 		branch_id: filters.branchId,
 		start_date: filters.startDate.format('YYYY-MM-DD'),
 		end_date: filters.endDate.format('YYYY-MM-DD'),
-		...(filters.courseType && { course_type: Number(filters.courseType) }),
+		...(filters.courseType && { course_type: filters.courseType }),
 		...(filters.instructorId && { instructor_id: filters.instructorId }),
 	};
 

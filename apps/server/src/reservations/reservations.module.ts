@@ -12,6 +12,7 @@ import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { Member } from 'src/members/entities/member.entity';
 import { ReservationHistoryModule } from 'src/reservation-history/reservation-history.module';
+import { CoursePlanSession } from 'src/course-plan-session/entities/course-plan-session.entity';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ReservationHistoryModule } from 'src/reservation-history/reservation-hi
       OrderMember,
       Order,
       Member,
+      CoursePlanSession,
     ]),
     forwardRef(() => UsersModule),
     ReservationHistoryModule,

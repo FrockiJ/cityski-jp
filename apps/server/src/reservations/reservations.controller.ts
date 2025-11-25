@@ -43,6 +43,13 @@ export class ReservationsController {
       }),
     };
   }
+
+  @UseGuards(AuthGuard)
+  @Get('/slots')
+  async getReservationSlots(@Query() query: any): Promise<any> {
+    return this.reservationsService.getReservationSlots(query);
+  }
+
   @UseGuards(AuthGuard)
   @Get('/:id')
   async getReservationDetail(
@@ -61,7 +68,10 @@ export class ReservationsController {
     @Req() request: CustomRequest,
   ): Promise<CreateReservationResponseDTO> {
     const userId = request['user']?.sub;
-    const result = await this.reservationsService.createReservation(body, userId);
+    const result = await this.reservationsService.createReservation(
+      body,
+      userId,
+    );
     return plainToInstance(CreateReservationResponseDTO, result, {
       excludeExtraneousValues: true,
     });
@@ -69,7 +79,9 @@ export class ReservationsController {
 
   @UseGuards(AuthGuard)
   @Get('/:id/linked-orders')
-  async getLinkedOrders(@Param('id') id: string): Promise<GetLinkedOrdersResponseDto> {
+  async getLinkedOrders(
+    @Param('id') id: string,
+  ): Promise<GetLinkedOrdersResponseDto> {
     const result = await this.reservationsService.getLinkedOrders(id);
     return result; // Already returns correct DTO format
   }
@@ -82,7 +94,11 @@ export class ReservationsController {
     @Req() request: CustomRequest,
   ): Promise<GetReservationDetailResponseDto> {
     const userId = request['user']?.sub;
-    const result = await this.reservationsService.updateReservation(id, body, userId);
+    const result = await this.reservationsService.updateReservation(
+      id,
+      body,
+      userId,
+    );
     return plainToInstance(GetReservationDetailResponseDto, result, {
       excludeExtraneousValues: true,
     });
@@ -96,6 +112,10 @@ export class ReservationsController {
     @Req() request: CustomRequest,
   ) {
     const userId = request['user']?.sub;
-    return this.reservationsService.updateReservationStatus(id, body.status, userId);
+    return this.reservationsService.updateReservationStatus(
+      id,
+      body.status,
+      userId,
+    );
   }
 }

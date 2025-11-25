@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { OrderReservationResponseDto, CourseType, OrderMemberDetailDTO, CoursePeople } from '@repo/shared';
+import { CoursePeople, CourseType, OrderMemberDetailDTO, OrderReservationResponseDto } from '@repo/shared';
+
 import DatePicker from '@/components/Project/Shared/DatePicker';
-import api from '@/lib/api';
 import { showToast } from '@/components/Project/Utils/Toast';
+import api from '@/lib/api';
 
 interface CourseReservationProps {
 	orderReservations: OrderReservationResponseDto[];
@@ -421,22 +422,22 @@ export default function CourseReservation({
 												data-property-1={index === 0 ? 'Next time' : 'Default'}
 												data-show-level='false'
 												data-state='Default'
-												className='w-36 px-3 pt-5 pb-3.5 bg-white rounded-lg outline outline-1 outline-offset-[-1px] outline-zinc-300 inline-flex flex-col justify-center items-center gap-2'
+												className='w-36 px-3 pt-3 pb-3.5 bg-white rounded-lg outline outline-1 outline-offset-[-1px] outline-zinc-300 inline-flex flex-col justify-center items-center gap-2'
 											>
-												<div className='self-stretch h-28 relative border-b border-gray-200'>
-													<div className='w-14 left-[34px] top-0 absolute inline-flex flex-col justify-start items-center gap-5'>
+												<div className='self-stretch h-28 relative'>
+													<div className='w-full inline-flex flex-col justify-start items-center gap-3'>
 														<div className='inline-flex justify-center items-center gap-1'>
 															<div className="text-center justify-start text-zinc-800 text-xs font-medium font-['Noto_Sans_TC'] leading-5">
 																{courseTypeMap[courseType]}
 															</div>
 														</div>
-														<div className='self-stretch flex flex-col justify-start items-center gap-4'>
+														<div className='self-stretch flex flex-col justify-start items-center gap-3'>
 															<div className='inline-flex justify-center items-center gap-1'>
 																<div className="justify-start text-zinc-800 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
 																	第
 																</div>
 																<div className="justify-start text-zinc-800 text-4xl font-medium font-['Poppins'] leading-9">
-																	{orderRes.index+1}
+																	{orderRes.index + 1}
 																</div>
 																<div className="justify-start text-zinc-800 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
 																	堂
@@ -461,7 +462,7 @@ export default function CourseReservation({
 														</div>
 													</div>
 												</div>
-												<div className="justify-start text-zinc-800 text-sm font-normal font-['Poppins'] leading-6">
+												<div className="justify-start text-zinc-800 text-sm font-normal font-['Poppins'] leading-6 border-t border-gray-200 pt-2">
 													{formattedDate}
 												</div>
 											</div>

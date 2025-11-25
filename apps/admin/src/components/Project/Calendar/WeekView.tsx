@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import dayjs from 'dayjs';
 
 import { TEXT_PRIMARY } from '@/shared/constants/colors';
-import { CourseType } from '@/shared/core/constants/enum';
+import { ReservationSlot } from '@/utils/http/api/reservation-slots';
 
 import { Event } from './Event';
 
@@ -34,9 +34,45 @@ const TimeSlot = styled(Box)(({ theme }) => ({
 
 type Props = {
 	currentDate: dayjs.Dayjs;
+	slots?: ReservationSlot[];
+	onSlotClick?: (slot: ReservationSlot) => void;
 };
 
-const WeekView = ({ currentDate }: Props) => {
+// 計算同一時間的課程，用於均分寬度
+const calculateSlotPositions = (slots: ReservationSlot[], targetDate?: dayjs.Dayjs) => {
+	const positions = new Map<string, { overlappingCount: number; position: number }>();
+
+	// 如果指定了日期，只計算該日期的課程
+	let slotsToProcess = slots;
+	if (targetDate) {
+		slotsToProcess = slots.filter((slot) => dayjs(slot.startTime).isSame(targetDate, 'day'));
+	}
+
+	// 按開始時間分組
+	const timeGroups = new Map<string, ReservationSlot[]>();
+	slotsToProcess.forEach((slot) => {
+		const timeKey = new Date(slot.startTime).toISOString();
+		if (!timeGroups.has(timeKey)) {
+			timeGroups.set(timeKey, []);
+		}
+		timeGroups.get(timeKey)!.push(slot);
+	});
+
+	// 為每個時間組的課程分配位置
+	timeGroups.forEach((slotsInTime) => {
+		const overlappingCount = slotsInTime.length;
+		slotsInTime.forEach((slot, index) => {
+			positions.set(slot.id, {
+				overlappingCount,
+				position: index,
+			});
+		});
+	});
+
+	return positions;
+};
+
+const WeekView = ({ currentDate, slots = [], onSlotClick }: Props) => {
 	return (
 		<Box sx={{ display: 'flex', height: '100%' }}>
 			{/* Time Column */}
@@ -77,6 +113,8 @@ const WeekView = ({ currentDate }: Props) => {
 					const date = currentDate.startOf('week').add(dayIndex, 'day');
 					const formattedDate = `${date.month() + 1}/${date.date()}`;
 					const isToday = date.isSame(dayjs(), 'day'); // Check if this day is today
+					// 為該日期計算課程位置
+					const positionsMap = useMemo(() => calculateSlotPositions(slots, date), [slots, date]);
 
 					return (
 						<Box
@@ -143,67 +181,40 @@ const WeekView = ({ currentDate }: Props) => {
 									);
 								})}
 
-								<Event
-									courseType={CourseType.GROUP}
-									type='W'
-									title='Flight to Paris'
-									startTime='13:30'
-									endTime='14:00'
-									backgroundColor='primary.light'
-									color='primary.dark'
-									overlappingEvents={2}
-									eventPosition={0}
-									date={dayjs('2025-01-05')}
-									currentDate={date}
-								/>
-								<Event
-									courseType={CourseType.PRIVATE}
-									type='W'
-									title='Flight to Paris2'
-									startTime='13:30'
-									endTime='14:00'
-									backgroundColor='#d3d'
-									color='primary.dark'
-									overlappingEvents={2}
-									eventPosition={1}
-									date={dayjs('2025-01-05')}
-									currentDate={date}
-								/>
-								<Event
-									courseType={CourseType.GROUP}
-									type='W'
-									title='Flight to Paris3'
-									startTime='13:00'
-									endTime='13:30'
-									backgroundColor='#E43'
-									color='primary.dark'
-									date={dayjs('2025-01-05')}
-									currentDate={date}
-									paymentSettled={false}
-								/>
-								<Event
-									courseType={CourseType.TRAINING}
-									type='W'
-									title='Flight to Japan'
-									startTime='10:30'
-									endTime='11:00'
-									backgroundColor='primary.light'
-									color='primary.dark'
-									date={dayjs('2025-01-08')}
-									currentDate={date}
-								/>
-								<Event
-									courseType={CourseType.GROUP}
-									type='W'
-									title='Flight to Australia'
-									startTime='19:00'
-									endTime='20:00'
-									backgroundColor='primary.light'
-									color='primary.dark'
-									date={dayjs('2025-01-07')}
-									currentDate={date}
-									unPaidDownPayment
-								/>
+								{/* 渲染課程時段 */}
+								{slots
+									.filter((slot) => dayjs(slot.startTime).isSame(date, 'day'))
+									.map((slot) => {
+										const slotDate = dayjs(slot.startTime);
+										const startTime = slotDate.format('HH:mm');
+										const endTime = dayjs(slot.endTime).format('HH:mm');
+										const overlapInfo = positionsMap.get(slot.id) || {
+											overlappingCount: 1,
+											position: 0,
+										};
+
+
+									return (
+										<Event
+											key={slot.id}
+											courseType={slot.courseType as any}
+											type='W'
+											title={slot.courseName}
+											startTime={startTime}
+											endTime={endTime}
+											instructor={slot.instructorName}
+											status={slot.status}
+											currentBookedCount={slot.currentBookedCount}
+											maxCapacity={slot.maxCapacity}
+											isMixed={slot.isMixed}
+											overlappingEvents={overlapInfo.overlappingCount}
+											eventPosition={overlapInfo.position}
+											date={slotDate}
+											currentDate={date}
+											onClick={() => onSlotClick?.(slot)}
+										/>
+									);
+								})}
 							</Box>
 						</Box>
 					);

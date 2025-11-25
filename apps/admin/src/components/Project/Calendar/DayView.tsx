@@ -1,18 +1,58 @@
+import { useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 import { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 
-import { CourseType } from '@/shared/core/constants/enum';
+import { ReservationSlot } from '@/utils/http/api/reservation-slots';
 
 import { Event } from './Event';
 
 interface DayViewProps {
 	currentDate: Dayjs;
+	slots?: ReservationSlot[];
+	onSlotClick?: (slot: ReservationSlot) => void;
 }
 
-export default function DayView({ currentDate }: DayViewProps) {
+// 計算同一時間的課程，用於均分寬度
+const calculateSlotPositions = (slots: ReservationSlot[], targetDate?: Dayjs) => {
+	const positions = new Map<string, { overlappingCount: number; position: number }>();
+
+	// 如果指定了日期，只計算該日期的課程
+	let slotsToProcess = slots;
+	if (targetDate) {
+		slotsToProcess = slots.filter((slot) => dayjs(slot.startTime).isSame(targetDate, 'day'));
+	}
+
+	// 按開始時間分組
+	const timeGroups = new Map<string, ReservationSlot[]>();
+	slotsToProcess.forEach((slot) => {
+		const timeKey = new Date(slot.startTime).toISOString();
+		if (!timeGroups.has(timeKey)) {
+			timeGroups.set(timeKey, []);
+		}
+		timeGroups.get(timeKey)!.push(slot);
+	});
+
+	// 為每個時間組的課程分配位置
+	timeGroups.forEach((slotsInTime) => {
+		const overlappingCount = slotsInTime.length;
+		slotsInTime.forEach((slot, index) => {
+			positions.set(slot.id, {
+				overlappingCount,
+				position: index,
+			});
+		});
+	});
+
+	return positions;
+};
+
+export default function DayView({ currentDate, slots = [], onSlotClick }: DayViewProps) {
 	const formattedDate = `${currentDate.month() + 1}/${currentDate.date()}`;
 	const dayName = `(${['日', '一', '二', '三', '四', '五', '六'][currentDate.day()]})`;
+
+	// 計算課程位置
+	const positionsMap = useMemo(() => calculateSlotPositions(slots, currentDate), [slots, currentDate]);
 
 	return (
 		<>
@@ -125,45 +165,39 @@ export default function DayView({ currentDate }: DayViewProps) {
 							);
 						})}
 
-						{/* Example Events */}
-						<Event
-							courseType={CourseType.GROUP}
-							type='D'
-							title='Flight to Paris'
-							startTime='13:30'
-							endTime='14:00'
-							backgroundColor='primary.light'
-							color='primary.dark'
-							date={dayjs('2025-01-06')}
-							currentDate={currentDate}
-						/>
-						<Event
-							courseType={CourseType.GROUP}
-							type='D'
-							title='Meeting 1'
-							startTime='15:00'
-							endTime='16:30'
-							backgroundColor='#d3d'
-							color='primary.dark'
-							date={dayjs('2025-01-06')}
-							currentDate={currentDate}
-							overlappingEvents={2}
-							eventPosition={0}
-						/>
-						<Event
-							courseType={CourseType.PRIVATE}
-							type='D'
-							title='Meeting 2'
-							startTime='15:00'
-							endTime='16:30'
-							backgroundColor='#ef6'
-							color='primary.dark'
-							date={dayjs('2025-01-06')}
-							currentDate={currentDate}
-							overlappingEvents={2}
-							eventPosition={1}
-							paymentSettled={false}
-						/>
+						{/* 渲染課程時段 */}
+						{slots
+							.filter((slot) => dayjs(slot.startTime).isSame(currentDate, 'day'))
+							.map((slot) => {
+								const slotDate = dayjs(slot.startTime);
+								const startTime = slotDate.format('HH:mm');
+								const endTime = dayjs(slot.endTime).format('HH:mm');
+								const overlapInfo = positionsMap.get(slot.id) || {
+									overlappingCount: 1,
+									position: 0,
+								};
+
+							return (
+								<Event
+									key={slot.id}
+									courseType={slot.courseType as any}
+									type='D'
+									title={slot.courseName}
+									startTime={startTime}
+									endTime={endTime}
+									instructor={slot.instructorName}
+									status={slot.status}
+									currentBookedCount={slot.currentBookedCount}
+									maxCapacity={slot.maxCapacity}
+									isMixed={slot.isMixed}
+									overlappingEvents={overlapInfo.overlappingCount}
+									eventPosition={overlapInfo.position}
+									date={slotDate}
+									currentDate={currentDate}
+									onClick={() => onSlotClick?.(slot)}
+								/>
+							);
+						})}
 					</Box>
 				</Box>
 			</Box>

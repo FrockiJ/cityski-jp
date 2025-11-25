@@ -15,9 +15,10 @@ import { PRIMARY_MAIN, TEXT_SECONDARY } from '@/shared/constants/colors';
 
 type Props = {
 	orderDetail: GetOrderDetailResponseDTO | null;
+	onCourseDetailsClick?: (courseId: string) => void;
 };
 
-const OrderInfoBlock = ({ orderDetail }: Props) => {
+const OrderInfoBlock = ({ orderDetail, onCourseDetailsClick }: Props) => {
 	console.log('orderDetail', orderDetail);
 	if (!orderDetail) {
 		return <BlockArea>載入中...</BlockArea>;
@@ -109,9 +110,24 @@ const OrderInfoBlock = ({ orderDetail }: Props) => {
 			<Stack direction='column' spacing={2.5} divider={<Divider flexItem />} width='100%'>
 				<Stack direction='row' justifyContent='space-between' width='100%'>
 					<span>{orderStatusMap[orderDetail.status]}</span>
-					<Typography variant='body2' color={PRIMARY_MAIN}>
-						課程詳情
-					</Typography>
+					<Box
+						component='button'
+						onClick={() => orderDetail?.courseId && onCourseDetailsClick?.(orderDetail.courseId)}
+						sx={{
+							background: 'none',
+							border: 'none',
+							padding: 0,
+							cursor: 'pointer',
+							'&:hover': {
+								opacity: 0.7,
+								textDecoration: 'underline',
+							},
+						}}
+					>
+						<Typography variant='body2' color={PRIMARY_MAIN}>
+							課程詳情
+						</Typography>
+					</Box>
 				</Stack>
 				<Stack>
 					<Stack direction='row' justifyContent='space-between' width='100%'>

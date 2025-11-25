@@ -13,6 +13,9 @@ import FormikDatePicker from '@/components/Common/CIBase/Formik/FormikDatePicker
 import { FormikScrollToError } from '@/Formik/common/FormikComponents';
 import { useGetOrderDetail } from '@/hooks/useGetOrderDetail';
 import { useOrderReservations } from '@/hooks/useOrderReservations';
+import useModalProvider from '@/hooks/useModalProvider';
+import { showToast } from '@/utils/ui/general';
+import AddEditViewCourseIndoorModal from '@/components/Project/CourseProducts/AddEditViewCourseIndoorModal';
 
 import ConfirmPaymentModal from './PaymentInfoBlock/ConfirmPaymentModal';
 import CourseReservation from './CourseReservation';
@@ -87,6 +90,9 @@ const EditOrderModal = ({
 	const [transferModalOpen, setTransferModalOpen] = useState(false);
 	const [orderHistoryRefetchTrigger, setOrderHistoryRefetchTrigger] = useState(0);
 
+	// --- MODAL PROVIDER ---
+	const modal = useModalProvider();
+
 	// --- API ---
 	const { orderDetail, loading: orderDetailLoading, refetch: refetchOrderDetail } = useGetOrderDetail(orderId);
 	const { reservations, loading: reservationsLoading, refetch: refetchReservations } = useOrderReservations(orderId);
@@ -125,6 +131,37 @@ const EditOrderModal = ({
 		// }
 	};
 
+	const handleCourseDetailsClick = (courseId: string) => {
+		if (!courseId) {
+			showToast('課程 ID 不存在', 'error');
+			return;
+		}
+
+		modal.openModal({
+			title: '課程詳情',
+			center: true,
+			fullScreen: true,
+			noAction: true,
+			marginBottom: true,
+			children: (
+				<AddEditViewCourseIndoorModal
+					modalType={ModalType.EDIT}
+					courseType={orderDetail?.type || CourseType.GROUP}
+					courseStatusType={CourseStatusType.PUBLISHED}
+					rowData={{
+						id: courseId,
+					} as GetCoursesResponseDTO}
+					handleCloseModal={(action: DialogAction) => {
+						if (action === DialogAction.CONFIRM) {
+							// 课程编辑后刷新订单数据
+							refetchOrderDetail();
+						}
+					}}
+				/>
+			),
+		});
+	};
+
 	const isLoading = orderDetailLoading;
 
 	return (
@@ -144,7 +181,7 @@ const EditOrderModal = ({
 							rightContent={<FixedPaymentBlock orderDetail={orderDetail ?? undefined} handleRefresh={(data) => { setStatus(data); refetchOrderDetail(); }} />}
 						>
 							<CoreBlock title='訂單資訊'>
-								<OrderInfoBlock orderDetail={orderDetail} />
+								<OrderInfoBlock orderDetail={orderDetail} onCourseDetailsClick={handleCourseDetailsClick} />
 							</CoreBlock>
 							{/* {
 								status === '待付訂金'

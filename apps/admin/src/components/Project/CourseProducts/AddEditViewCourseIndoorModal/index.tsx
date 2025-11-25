@@ -447,22 +447,24 @@ const AddEditViewCourseIndoorModal = ({
 					}));
 				}
 			}
+			// Use getCourseDetailData if available, fallback to rowData
+			const courseData = getCourseDetailData?.result || rowData;
 			setCourseInfo({
-				no: rowData?.no || '--',
+				no: courseData?.no || '--',
 				type:
 					{
 						[CourseType.PRIVATE]: '私人課',
 						[CourseType.GROUP]: '團體課',
 						[CourseType.INDIVIDUAL]: '個人練習',
-					}[rowData?.type] || '--',
-				teachingType: rowData?.type === CourseType.INDIVIDUAL ? '無教練授課' : '教練授課',
+					}[courseData?.type] || '--',
+				teachingType: courseData?.type === CourseType.INDIVIDUAL ? '無教練授課' : '教練授課',
 				status:
 					{
 						[CourseStatusType.DRAFT]: '草稿',
 						[CourseStatusType.PUBLISHED]: '已上架',
 						[CourseStatusType.SCHEDULED]: '排程中',
 						[CourseStatusType.UNPUBLISHED]: '已下架',
-					}[rowData?.status] || '--',
+					}[courseData?.status] || '--',
 			});
 		}
 	}, [getCourseDetailData, modalType, rowData, courseType]);

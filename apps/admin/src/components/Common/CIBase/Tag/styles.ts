@@ -27,6 +27,10 @@ export const whiteTextTheme = {
 	color: 'common.white',
 	backgroundColor: (theme: Theme) => alpha(theme.palette.grey[800], 0.8),
 };
+export const paymentStatusTheme = {
+	color: 'text.primary',
+	backgroundColor: (theme: Theme) => alpha(theme.palette.grey[500], 0.2),
+};
 
 /** Styles ******/
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { GetOrdersRequestDTO, GetOrdersResponseDTO, OrderByType, OrderStatus, SortType } from '@repo/shared';
+import { GetOrdersRequestDTO, GetOrdersResponseDTO, OrderByType, OrderStatus, SortType, TransactionStatus } from '@repo/shared';
 import dayjs from 'dayjs';
 
 import useGetTableData from '@/hooks/useGetTableData';
@@ -44,12 +44,11 @@ export const useOrderFormatTableData = (options?: Props) => {
 						[OrderStatus.ORDER_CANCELED]: '訂單取消',
 					}[data.status],
 					payStatus: {
-						[OrderStatus.PENDING_DEPOSIT]: '待付訂金',
-						[OrderStatus.WAITING_FOR_CONFIRMATION]: '等待確認',
-						[OrderStatus.ORDER_SUCCESSFUL]: '訂購成功',
-						[OrderStatus.ORDER_COMPLETED]: '訂單完成',
-						[OrderStatus.ORDER_CANCELED]: '訂單取消',
-					}[data.status],
+						[TransactionStatus.PENDING_DEPOSIT]: '待付訂金',
+						[TransactionStatus.DEPOSIT_PAID]: '已付訂金',
+						[TransactionStatus.PENDING_FULL_PAYMENT]: '待結清',
+						[TransactionStatus.FULLY_PAID]: '已結清',
+					}[data.paymentStatus] || '待付訂金',
 					lessons: data.number,
 					people: data.people,
 					progress: `${data.process}/${data.number}`,

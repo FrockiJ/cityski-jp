@@ -9,8 +9,10 @@ import { OrderReservation } from 'src/order-reservations/entities/order-reservat
 import { Order } from 'src/orders/entities/order.entity';
 import { ReservationsModule } from 'src/reservations/reservations.module';
 import { OrderMembersModule } from 'src/order-members/order-members.module';
+import { MembersModule } from 'src/members/members.module';
 import { JwtModule } from '@nestjs/jwt';
 import { User } from 'src/users/entities/user.entity';
+import { Member } from 'src/members/entities/member.entity';
 
 @Module({
   imports: [
@@ -21,9 +23,11 @@ import { User } from 'src/users/entities/user.entity';
       OrderReservation,
       Order,
       User,
+      Member,
     ]),
     forwardRef(() => ReservationsModule),
     forwardRef(() => OrderMembersModule),
+    forwardRef(() => MembersModule),
     JwtModule,
   ],
   controllers: [ReservationMembersController],

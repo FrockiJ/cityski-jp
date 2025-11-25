@@ -68,7 +68,8 @@ export class OrdersService {
         .createQueryBuilder('o')
         .leftJoinAndSelect('o.member', 'member')
         .leftJoinAndSelect('o.coursePlan', 'coursePlan')
-        .leftJoinAndSelect('o.orderReservations', 'orderReservations');
+        .leftJoinAndSelect('o.orderReservations', 'orderReservations')
+        .leftJoinAndSelect('o.transaction', 'transaction');
 
       // 根據部門ID篩選
       if (request.departmentId) {
@@ -150,6 +151,7 @@ export class OrdersService {
           'department',
           'orderMembers',
           'orderMembers.member',
+          'transaction',
         ],
       });
 
@@ -203,6 +205,18 @@ export class OrdersService {
         })),
         discountId: order.discountId,
         pendingInvitations: pendingInvitations || [],
+        transaction: order.transaction ? {
+          id: order.transaction.id,
+          totalAmt: order.transaction.totalAmt,
+          discountFee: order.transaction.discountFee,
+          depositAmt: order.transaction.depositAmt,
+          depositDate: order.transaction.depositDate,
+          balanceAmt: order.transaction.balanceAmt,
+          balanceDate: order.transaction.balanceDate,
+          status: order.transaction.status,
+          balancePaymentMethod: order.transaction.balancePaymentMethod,
+          balanceInvoice: order.transaction.balanceInvoice,
+        } : undefined,
       };
 
       return orderDetail;

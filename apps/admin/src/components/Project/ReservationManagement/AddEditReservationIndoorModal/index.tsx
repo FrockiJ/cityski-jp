@@ -25,7 +25,6 @@ import {
 	useReservationDetail,
 	useCreateReservation,
 	useUpdateReservation,
-	useCreateReservationWithLink,
 } from '@/hooks/useReservation';
 import { useReservationMembers } from '@/hooks/useReservationMembers';
 import { useGetOrderDetail } from '@/hooks/useGetOrderDetail';
@@ -50,6 +49,7 @@ import ReservationInfo from './ReservationInfo';
 import MemberList from './MemberList';
 import NoteBox from '../NoteBox';
 import RescheduleReasonModal from './RescheduleReasonModal';
+import CancelReservationModal from './CancelReservationModal';
 import SubmitAttendanceConfirmModal from '../SubmitAttendanceConfirmModal';
 
 const anchorItems = [
@@ -93,7 +93,7 @@ const AddEditReservationIndoorModal = ({
 }: AddEditReservationIndoorModalProps) => {
 	const modal = useModalProvider();
 	const { reservationDetail, loading: detailLoading, fetchReservationDetail } = useReservationDetail();
-	const { loading: createLoading, createReservationWithLink } = useCreateReservationWithLink();
+	const { loading: createLoading, createNewReservation } = useCreateReservation();
 	const { loading: updateLoading, updateExistingReservation } = useUpdateReservation();
 	const {
 		members: savedMembers,
@@ -133,6 +133,9 @@ const AddEditReservationIndoorModal = ({
 
 	// 送出上課紀錄確認 Modal 狀態
 	const [submitAttendanceModalOpen, setSubmitAttendanceModalOpen] = useState(false);
+
+	// 取消預約 Modal 狀態
+	const [cancelReservationModalOpen, setCancelReservationModalOpen] = useState(false);
 
 	// 合併已儲存和待新增的成員，排除待刪除的成員
 	const displayMembers = React.useMemo(() => {
@@ -374,45 +377,9 @@ const AddEditReservationIndoorModal = ({
 		return minLevel === Infinity ? null : minLevel;
 	};
 
-	// 更新授課等級（用於待新增成員變更）
-	const updateCourseLevel = (updatedPendingMembers: any[], setFieldValue?: (field: string, value: any) => void) => {
-		if (!setFieldValue || !orderDetail) return;
-
-		// 合併已儲存的成員（排除待刪除）和待新增的成員
-		const saved = savedMembers.filter((m) => !pendingRemoveMembers.includes(m.id));
-		const allMembers = [...saved, ...updatedPendingMembers];
-
-		const minLevel = calculateMinLevel(allMembers);
-
-		if (minLevel !== null) {
-			const newCourseLevel = minLevel + 1;
-			setFieldValue('courseLevel', newCourseLevel.toString());
-			console.log(`授課等級已更新為: ${newCourseLevel} (最低成員等級: ${minLevel})`);
-		}
-	};
-
-	// 更新授課等級（用於待刪除成員變更）
-	const updateCourseLevelAfterRemove = (
-		updatedRemoveList: string[],
-		setFieldValue?: (field: string, value: any) => void,
-	) => {
-		if (!setFieldValue || !orderDetail) return;
-
-		// 合併已儲存的成員（排除待刪除）和待新增的成員
-		const saved = savedMembers.filter((m) => !updatedRemoveList.includes(m.id));
-		const allMembers = [...saved, ...pendingAddMembers];
-
-		const minLevel = calculateMinLevel(allMembers);
-
-		if (minLevel !== null) {
-			const newCourseLevel = minLevel + 1;
-			setFieldValue('courseLevel', newCourseLevel.toString());
-			console.log(`授課等級已更新為: ${newCourseLevel} (最低成員等級: ${minLevel})`);
-		}
-	};
 
 	// 處理選擇成員 - 加入到待處理列表
-	const handleSelectMember = (member: any, setFieldValue?: (field: string, value: any) => void) => {
+	const handleSelectMember = (member: any) => {
 		// 檢查是否已經存在（避免重複加入）
 		const alreadyExists = displayMembers.some((m) => m.orderMember?.id === member.id || m.id === member.id);
 
@@ -428,42 +395,21 @@ const AddEditReservationIndoorModal = ({
 			orderMember: member,
 		};
 
-		setPendingAddMembers((prev) => {
-			const updatedMembers = [...prev, formattedMember];
-
-			// 更新授課等級
-			updateCourseLevel(updatedMembers, setFieldValue);
-
-			return updatedMembers;
-		});
+		setPendingAddMembers((prev) => [...prev, formattedMember]);
 		console.log('成員已加入待處理列表，將在按下更新按鈕後儲存');
 	};
 
 	// 處理移除成員 - 加入到待刪除列表或從待新增列表移除
-	const handleRemoveMember = (memberId: string, setFieldValue?: (field: string, value: any) => void) => {
+	const handleRemoveMember = (memberId: string) => {
 		// 檢查是否為待新增的成員
 		const isPending = memberId.startsWith('pending-');
 
 		if (isPending) {
 			// 從待新增列表中移除
-			setPendingAddMembers((prev) => {
-				const updatedMembers = prev.filter((m) => m.id !== memberId);
-
-				// 更新授課等級
-				updateCourseLevel(updatedMembers, setFieldValue);
-
-				return updatedMembers;
-			});
+			setPendingAddMembers((prev) => prev.filter((m) => m.id !== memberId));
 		} else {
 			// 加入到待刪除列表
-			setPendingRemoveMembers((prev) => {
-				const updatedRemoveList = [...prev, memberId];
-
-				// 更新授課等級（需要考慮待刪除的成員）
-				updateCourseLevelAfterRemove(updatedRemoveList, setFieldValue);
-
-				return updatedRemoveList;
-			});
+			setPendingRemoveMembers((prev) => [...prev, memberId]);
 		}
 		console.log('成員已標記為刪除，將在按下更新按鈕後生效');
 	};
@@ -537,15 +483,55 @@ const AddEditReservationIndoorModal = ({
 		}
 	};
 
+	// 處理取消預約提交
+	const handleCancelReservationSubmit = async (reason: string) => {
+		setCancelReservationModalOpen(false);
+		// TODO: 呼叫取消預約 API
+		console.log('取消預約原因:', reason);
+		handleCloseModal?.(DialogAction.CONFIRM);
+		handleRefresh?.();
+	};
+
 	// 執行實際的提交邏輯
 	const executeSubmit = async (values: InitialValuesProps, reason?: string) => {
-		const reservationData: CreateReservationRequestDto & { reason?: string } = {
-			departmentId: values.departmentId,
-			classTime: values.courseStartDate!.toDate(),
-			teachingLevel: values.courseLevel,
-			instructor: values.pickTrainer === 'Y' ? values.trainerName : undefined,
-			...(reason && { reason }),
-		};
+		// Extract orderId - use effectiveOrderId from component state
+		const reservationOrderId = effectiveOrderId ||
+			(pendingAddMembers.length > 0 ? pendingAddMembers[0].orderMember.orderId : undefined);
+
+		// Extract orderMemberIds from pendingAddMembers
+		const reservationOrderMemberIds = pendingAddMembers.map(m => m.orderMemberId);
+
+		// Validate required fields for ADD mode
+		if (modalType === ModalType.ADD) {
+			if (!reservationOrderId) {
+				console.error('Cannot create reservation: orderId is missing');
+				return;
+			}
+			if (reservationOrderMemberIds.length === 0) {
+				console.error('Cannot create reservation: no members selected');
+				return;
+			}
+		}
+
+		const reservationData: any = modalType === ModalType.ADD
+			? {
+				// ADD mode: include orderId and orderMemberIds
+				departmentId: values.departmentId,
+				classTime: values.courseStartDate!.toDate(),
+				teachingLevel: values.courseLevel,
+				instructor: values.pickTrainer === 'Y' ? values.trainerName : undefined,
+				orderId: reservationOrderId!,
+				orderMemberIds: reservationOrderMemberIds,
+				...(reason && { reason }),
+			} as CreateReservationRequestDto & { reason?: string }
+			: {
+				// EDIT mode: do not include orderId and orderMemberIds
+				departmentId: values.departmentId,
+				classTime: values.courseStartDate!.toDate(),
+				teachingLevel: values.courseLevel,
+				instructor: values.pickTrainer === 'Y' ? values.trainerName : undefined,
+				...(reason && { reason }),
+			};
 
 		let success = false;
 		let newReservationId: string | null = null;
@@ -595,32 +581,12 @@ const AddEditReservationIndoorModal = ({
 				console.log('成員變更處理完成');
 			}
 		} else {
-			// 建立模式 - 使用新的 createReservationWithLink 來同時建立預約和連結
-			if (orderId && reservationIndex !== undefined) {
-				// 從訂單頁面跳轉過來，需要建立連結
-				newReservationId = await createReservationWithLink(reservationData, orderId, reservationIndex);
-				success = !!newReservationId;
-			} else {
-				// 一般新增模式（沒有 orderId）- 暫時不支援
-				console.error('缺少 orderId 或 reservationIndex');
-				return;
-			}
+			// 建立模式 - Backend automatically creates Reservation, ReservationMembers, and OrderReservation
+			newReservationId = await createNewReservation(reservationData);
+			success = !!newReservationId;
 
-			// 如果建立成功且有待新增的成員，自動加入成員
-			if (success && newReservationId && pendingAddMembers.length > 0) {
-				console.log('開始加入成員到新建立的預約...');
-
-				for (const member of pendingAddMembers) {
-					const addSuccess = await addMember({
-						reservationId: newReservationId,
-						orderMemberId: member.orderMemberId,
-					});
-					if (!addSuccess) {
-						console.error(`新增成員 ${member.orderMemberId} 失敗`);
-					}
-				}
-
-				console.log('成員加入完成');
+			if (success) {
+				console.log('預約及成員建立成功');
 			}
 		}
 
@@ -664,6 +630,33 @@ const AddEditReservationIndoorModal = ({
 				enableReinitialize
 			>
 				{({ isSubmitting, values, setFieldValue }) => {
+					// 自動更新授課等級：當成員有變動時
+					React.useEffect(() => {
+						// 只在有 orderDetail 時處理
+						if (!orderDetail) return;
+
+						// 如果是編輯模式且狀態為「待紀錄」或「已完成」，不自動更新授課等級
+						if (
+							modalType === ModalType.EDIT &&
+							(reservationDetail?.reservationStatus === ReservationStatus.PENDING_REVIEW ||
+								reservationDetail?.reservationStatus === ReservationStatus.COMPLETED)
+						) {
+							return;
+						}
+
+						// 計算最小等級
+						const minLevel = calculateMinLevel(displayMembers);
+
+						if (minLevel !== null) {
+							const newCourseLevel = minLevel + 1;
+							// 只在等級需要更新時才更新（避免不必要的重渲染）
+							if (values.courseLevel !== newCourseLevel.toString()) {
+								setFieldValue('courseLevel', newCourseLevel.toString());
+								console.log(`授課等級已自動更新為: ${newCourseLevel} (最低成員等級: ${minLevel})`);
+							}
+						}
+					}, [displayMembers, orderDetail, modalType, reservationDetail?.reservationStatus, setFieldValue]);
+
 					return (
 						<Form>
 							{isLoading || (isSubmitting && <CoreLoaders hasOverlay />)}
@@ -703,7 +696,7 @@ const AddEditReservationIndoorModal = ({
 											children: (
 												<AddMemberModal
 													searchType='orderMembers'
-													onSelectMember={(member) => handleSelectMember(member, setFieldValue)}
+													onSelectMember={handleSelectMember}
 													orderType={isReservationBasedGroupCourse ? orderDetail.type : undefined}
 													skiType={isReservationBasedGroupCourse ? orderDetail.skiType : undefined}
 													orderNo={isPrivateCourse ? orderDetail.no : undefined}
@@ -720,9 +713,7 @@ const AddEditReservationIndoorModal = ({
 								>
 									<MemberList
 										members={displayMembers}
-										onRemoveMember={
-											isBasicInfoDisabled ? undefined : (memberId) => handleRemoveMember(memberId, setFieldValue)
-										}
+										onRemoveMember={isBasicInfoDisabled ? undefined : handleRemoveMember}
 										loading={membersLoading}
 									/>
 								</CoreBlock>
@@ -822,28 +813,41 @@ const AddEditReservationIndoorModal = ({
 									<OrderChangesBlock reservationId={reservationId} />
 								</CoreBlock>
 							</CoreAnchorModal>
-							<StyledAbsoluteModalActions justifyContent='flex-end'>
-								<CoreButton
-									color='default'
-									variant='outlined'
-									label='關閉'
-									onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
-									margin='0 12px 0 0'
-								/>
-								<CoreButton
-									color='error'
-									variant='outlined'
-									label='取消'
-									customIcon={<DoDisturbOnOutlinedIcon />}
-									onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
-									margin='0 12px 0 0'
-								/>
-								<CoreButton
-									color='primary'
-									variant='contained'
-									type='submit'
-									label={modalType === ModalType.EDIT ? '更新' : '建立'}
-								/>
+							<StyledAbsoluteModalActions
+								justifyContent={
+									orderDetail?.bkgType === CourseBkgType.FLEXIBLE &&
+									orderDetail?.type !== CourseType.GROUP &&
+									reservationDetail?.reservationStatus === ReservationStatus.SCHEDULED
+										? 'space-between'
+										: 'flex-end'
+								}
+							>
+								{orderDetail?.bkgType === CourseBkgType.FLEXIBLE &&
+									orderDetail?.type !== CourseType.GROUP &&
+									reservationDetail?.reservationStatus === ReservationStatus.SCHEDULED && (
+										<CoreButton
+											color='error'
+											variant='outlined'
+											label='取消預約'
+											customIcon={<DoDisturbOnOutlinedIcon />}
+											onClick={() => setCancelReservationModalOpen(true)}
+										/>
+									)}
+								<Stack direction='row'>
+									<CoreButton
+										color='default'
+										variant='outlined'
+										label='關閉'
+										onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
+										margin='0 12px 0 0'
+									/>
+									<CoreButton
+										color='primary'
+										variant='contained'
+										type='submit'
+										label={modalType === ModalType.EDIT ? '更新' : '建立'}
+									/>
+								</Stack>
 							</StyledAbsoluteModalActions>
 						</Form>
 					);
@@ -864,6 +868,11 @@ const AddEditReservationIndoorModal = ({
 					setPendingFormValues(null);
 				}}
 				onConfirm={handleSubmitAttendanceConfirm}
+			/>
+			<CancelReservationModal
+				open={cancelReservationModalOpen}
+				onClose={() => setCancelReservationModalOpen(false)}
+				onSubmit={handleCancelReservationSubmit}
 			/>
 		</>
 	);

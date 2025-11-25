@@ -1,6 +1,6 @@
 import { ColumnType, GetCoursesRequestDTO, OrderTableListResult, TableColumnType, TableConfig } from '@repo/shared';
 
-import { blueTheme, greenTheme, greyTheme, redTheme, whiteTextTheme, yellowTheme } from '@/components/Common/CIBase/Tag/styles';
+import { blueTheme, greyTheme, paymentStatusTheme, redTheme, whiteTextTheme, yellowTheme } from '@/components/Common/CIBase/Tag/styles';
 
 const statusTagStyles = {
 	待付訂金: yellowTheme,
@@ -8,6 +8,13 @@ const statusTagStyles = {
 	訂購成功: redTheme,
 	訂單完成: greyTheme,
 	訂單取消: whiteTextTheme,
+};
+
+const paymentStatusTagStyles = {
+	待付訂金: paymentStatusTheme,
+	已付訂金: paymentStatusTheme,
+	待結清: paymentStatusTheme,
+	已結清: paymentStatusTheme,
 };
 
 export const getOrdersTableConfigColumn: TableColumnType<any>[] = [
@@ -45,7 +52,7 @@ export const getOrdersTableConfigColumn: TableColumnType<any>[] = [
 		key: 'payStatus',
 		type: ColumnType.TAG,
 		width: 40,
-		styles: statusTagStyles,
+		styles: paymentStatusTagStyles,
 		sort: false,
 	},
 	{

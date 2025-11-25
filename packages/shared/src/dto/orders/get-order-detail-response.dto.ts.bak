@@ -1,39 +1,6 @@
 import { Expose, Type } from "class-transformer";
-import { OrderStatusEnum, CourseType, CourseSkiType, CourseBkgType, OrderChannelEnum, TransactionStatusEnum } from "src/constants/enums";
+import { OrderStatusEnum, CourseType, CourseSkiType, CourseBkgType, OrderChannelEnum } from "src/constants/enums";
 import { OrderInvitationResponseDto } from "../order-invitations/order-invitation-response.dto";
-
-export class TransactionDetailDTO {
-  @Expose()
-  id: string;
-
-  @Expose()
-  totalAmt: number;
-
-  @Expose()
-  discountFee: number;
-
-  @Expose()
-  depositAmt: number;
-
-  @Expose()
-  depositDate?: Date;
-
-  @Expose()
-  balanceAmt: number;
-
-  @Expose()
-  balanceDate?: Date;
-
-  @Expose()
-  status: TransactionStatusEnum;
-
-  @Expose()
-  balancePaymentMethod?: string;
-
-  @Expose()
-  balanceInvoice?: string;
-}
-
 export  class OrderMemberDetailDTO {
         id: string;
         memberId: string;
@@ -122,9 +89,4 @@ export class GetOrderDetailResponseDTO {
   @Expose()
   @Type(() => OrderInvitationResponseDto)
   pendingInvitations?: OrderInvitationResponseDto[];
-
-  // Transaction information
-  @Expose()
-  @Type(() => TransactionDetailDTO)
-  transaction?: TransactionDetailDTO;
 }

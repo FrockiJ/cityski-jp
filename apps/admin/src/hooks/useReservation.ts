@@ -193,6 +193,11 @@ export const useOrderReservation = (): UseOrderReservationReturn => {
 };
 
 /**
+ * @deprecated This hook is no longer needed.
+ * The backend createReservation API now automatically creates OrderReservation links
+ * when orderId and orderMemberIds are included in the payload.
+ * Use useCreateReservation instead.
+ *
  * Hook for creating reservation with OrderReservation link
  * 建立預約並同時建立與訂單的連結
  */

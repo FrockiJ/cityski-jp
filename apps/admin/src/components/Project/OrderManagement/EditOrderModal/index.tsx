@@ -141,7 +141,7 @@ const EditOrderModal = ({
 						<FormikScrollToError />
 						<CoreAnchorModal
 							anchorItems={anchorItems}
-							rightContent={<FixedPaymentBlock status={status} handleRefresh={(data) => setStatus(data)} />}
+							rightContent={<FixedPaymentBlock orderDetail={orderDetail ?? undefined} handleRefresh={(data) => { setStatus(data); refetchOrderDetail(); }} />}
 						>
 							<CoreBlock title='訂單資訊'>
 								<OrderInfoBlock orderDetail={orderDetail} />
@@ -181,7 +181,7 @@ const EditOrderModal = ({
 										orderId={orderId}
 										refetchReservations={refetchReservations}
 										refetchOrderDetail={refetchOrderDetail}
-										orderDetail={orderDetail}
+										orderDetail={orderDetail ?? undefined}
 									/>
 								)}
 								<FormikDatePicker

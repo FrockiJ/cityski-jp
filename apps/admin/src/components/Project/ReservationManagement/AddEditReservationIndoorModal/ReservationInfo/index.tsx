@@ -61,11 +61,11 @@ const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDet
 
 	// 獲取滑雪類型文字
 	const getSkiTypeText = () => {
-		//  CourseSkiType: 1=雙板, 2=單板
+		//  CourseSkiType: 0=單板和雙板, 1=單板, 2=雙板
 		const skiTypeMap: { [key: number]: string } = {
 			0: '單板和雙板',
-			1: '雙板',
-			2: '單板',
+			1: '單板',
+			2: '雙板',
 		};
 		return skiTypeMap[courseDetail?.skiType] || '--';
 	};

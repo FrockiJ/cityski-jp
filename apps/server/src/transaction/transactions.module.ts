@@ -8,10 +8,11 @@ import { TransactionsService } from './transactions.service';
 import { TransactionsController } from './transactions.controller';
 import { Order } from 'src/orders/entities/order.entity';
 import { Transaction } from './entities/transaction.entity';
+import { Discount } from 'src/discounts/entities/discount.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Transaction, User, Member, Order]),
+    TypeOrmModule.forFeature([Transaction, User, Member, Order, Discount]),
     forwardRef(() => UsersModule),
     forwardRef(() => MembersModule),
   ],

@@ -6,6 +6,8 @@ import { Reservation, ReservationStatus } from '../reservations/entities/reserva
 import { OrderMember } from '../order-members/entities/order-member.entity';
 import { OrderReservation } from '../order-reservations/entities/order-reservation.entity';
 import { Order } from '../orders/entities/order.entity';
+import { Member } from '../members/entities/member.entity';
+import { CourseSkiType } from '@repo/shared';
 
 @Injectable()
 export class ReservationMembersService {
@@ -18,6 +20,8 @@ export class ReservationMembersService {
     private readonly orderMembersRepo: Repository<OrderMember>,
     @InjectRepository(OrderReservation)
     private readonly orderReservationsRepo: Repository<OrderReservation>,
+    @InjectRepository(Member)
+    private readonly membersRepo: Repository<Member>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -203,6 +207,9 @@ export class ReservationMembersService {
           // Update to COMPLETED (3)
           reservation.reservationStatus = ReservationStatus.COMPLETED;
           await this.reservationsRepo.save(reservation);
+
+          // 當預約狀態變為已完成時，自動提升有出席成員的滑雪等級
+          await this.upgradeMemberLevelsOnCompletion(reservation.id);
         }
       }
 
@@ -224,6 +231,86 @@ export class ReservationMembersService {
         err.message,
         err.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  /**
+   * 當預約狀態變為已完成時，提升有出席成員的滑雪等級
+   * @param reservationId - 預約 ID
+   */
+  async upgradeMemberLevelsOnCompletion(reservationId: string): Promise<void> {
+    try {
+      // 1. 取得預約資訊（包含 teachingLevel）
+      const reservation = await this.reservationsRepo.findOne({
+        where: { id: reservationId },
+      });
+
+      if (!reservation) {
+        return;
+      }
+
+      const teachingLevel = reservation.teachingLevel;
+
+      // 如果 teachingLevel 為空或為 '-'，則不處理
+      if (!teachingLevel || teachingLevel === '-') {
+        return;
+      }
+
+      const courseLevel = parseInt(teachingLevel, 10);
+      if (isNaN(courseLevel)) {
+        return;
+      }
+
+      // 2. 取得該預約所有成員（包含出席狀態、訂單資訊）
+      const reservationMembers = await this.reservationMembersRepo.find({
+        where: { reservationId },
+        relations: ['orderMember', 'orderMember.order', 'orderMember.member'],
+      });
+
+      // 3. 對每個有出席的成員進行等級提升
+      for (const rm of reservationMembers) {
+        // 只處理有出席的成員
+        if (!rm.attended) {
+          continue;
+        }
+
+        const member = rm.orderMember?.member;
+        const order = rm.orderMember?.order;
+
+        if (!member || !order) {
+          continue;
+        }
+
+        const skiType = order.skiType;
+        let needsUpdate = false;
+
+        // 根據課程類型（skiType）決定更新哪個等級
+        // CourseSkiType: 0 = 雙板+單板, 1 = 單板(snowboard), 2 = 雙板(skis)
+        if (skiType === CourseSkiType.SNOWBOARD || skiType === CourseSkiType.BOTH) {
+          // 單板：如果課程等級 > 當前等級，則提升
+          if (courseLevel > member.snowboard) {
+            member.snowboard = courseLevel;
+            needsUpdate = true;
+          }
+        }
+
+        
+        if (skiType === CourseSkiType.SKI || skiType === CourseSkiType.BOTH) {
+          // 雙板：如果課程等級 > 當前等級，則提升
+          if (courseLevel > member.skis) {
+            member.skis = courseLevel;
+            needsUpdate = true;
+          }
+        }
+
+        // 4. 儲存更新後的會員資料
+        if (needsUpdate) {
+          await this.membersRepo.save(member);
+        }
+      }
+    } catch (err) {
+      // 等級提升失敗不應影響主流程，僅記錄錯誤
+      console.error('Failed to upgrade member levels:', err);
     }
   }
 }

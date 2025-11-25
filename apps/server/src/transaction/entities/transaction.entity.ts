@@ -55,4 +55,10 @@ export class Transaction extends UserDate {
 
   @Column({ name: 'trf_amt', type: 'int', nullable: true })
   trfAmt: string;
+
+  @Column({ name: 'balance_payment_method', type: 'varchar', length: 10, nullable: true })
+  balancePaymentMethod: string;
+
+  @Column({ name: 'balance_invoice', type: 'varchar', length: 50, nullable: true })
+  balanceInvoice: string;
 } 

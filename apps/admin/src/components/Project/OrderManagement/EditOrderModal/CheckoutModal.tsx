@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Box, debounce } from '@mui/material';
-import { DialogAction } from '@repo/shared';
+import { DialogAction, PaymentMethod } from '@repo/shared';
 import dayjs, { Dayjs } from 'dayjs';
 
 import CoreModalContent from '@/CIBase/CoreModal/ModalContent';
@@ -9,16 +9,53 @@ import CoreButton from '@/components/Common/CIBase/CoreButton';
 import CoreDatePicker from '@/components/Common/CIBase/CoreDatePicker';
 import CoreInput from '@/components/Common/CIBase/CoreInput';
 import { StyledAbsoluteModalActions } from '@/components/Common/CIBase/CoreModal/styles';
+import { settleTransaction } from '@/utils/http/api/order';
+import { showToast } from '@/utils/ui/general';
 
 interface CheckoutModalProps {
 	handleCloseModal?: (action: DialogAction) => void;
 	handleRefresh?: (data: any) => void;
+	orderId: string;
+	balanceAmt: number;
 }
 
-const CheckoutModal = ({ handleCloseModal, handleRefresh }: CheckoutModalProps) => {
-	const [paymentValue, setPaymentValue] = useState('CREDIT');
+const CheckoutModal = ({ handleCloseModal, handleRefresh, orderId, balanceAmt }: CheckoutModalProps) => {
+	const [paymentValue, setPaymentValue] = useState<PaymentMethod>(PaymentMethod.CREDIT);
 	const [date, setDate] = useState<Dayjs | null>(dayjs());
 	const [invoice, setInvoice] = useState('');
+	const [loading, setLoading] = useState(false);
+
+	const handleConfirm = async () => {
+		if (!date) {
+			showToast('請選擇結清日期', 'error');
+			return;
+		}
+
+		setLoading(true);
+		try {
+			const response = await settleTransaction({
+				orderId,
+				balanceDate: dayjs(date).format('YYYY-MM-DD'),
+				paymentMethod: paymentValue,
+				invoice: invoice || undefined,
+			});
+
+			if (response.result) {
+				showToast('結清成功', 'success');
+				handleCloseModal?.(DialogAction.CONFIRM);
+				handleRefresh?.({
+					date: dayjs(date).format('YYYY/MM/DD'),
+					paymentValue,
+					invoice
+				});
+			}
+		} catch (error: any) {
+			console.error('結清失敗:', error);
+			showToast(error?.response?.result?.message || '結清失敗', 'error');
+		} finally {
+			setLoading(false);
+		}
+	};
 
 	return (
 		<>
@@ -33,7 +70,7 @@ const CheckoutModal = ({ handleCloseModal, handleRefresh }: CheckoutModalProps) 
 					<CoreInput
 						title={`付款金額`}
 						size='medium'
-						defaultValue='NT$ 10,150'
+						defaultValue={`NT$ ${balanceAmt.toLocaleString()}`}
 						isDisabled={true}
 					/>
 				</Box>
@@ -43,7 +80,7 @@ const CheckoutModal = ({ handleCloseModal, handleRefresh }: CheckoutModalProps) 
 					width='100%'
 					value={paymentValue}
 					onChange={(_event, value) => {
-						if (value) setPaymentValue(value);
+						if (value) setPaymentValue(value as PaymentMethod);
 					}}
 					radios={[
 						{ label: '刷卡', description: ' ', value: 'CREDIT' },
@@ -68,36 +105,15 @@ const CheckoutModal = ({ handleCloseModal, handleRefresh }: CheckoutModalProps) 
 					label='取消'
 					onClick={() => handleCloseModal?.(DialogAction.CANCEL)}
 					margin='0 12px 0 0'
+					disabled={loading}
 				/>
 				<CoreButton
 					color='primary'
 					variant='contained'
 					type='submit'
 					label='確認'
-					onClick={async () => {
-						handleCloseModal?.(DialogAction.CONFIRM);
-						handleRefresh?.({
-							date: dayjs(date).format('YYYY/MM/DD'),
-							paymentValue,
-							invoice
-						});
-
-						// modal.openModal({
-						// 	title: `新增課程`,
-						// 	center: true,
-						// 	fullScreen: true,
-						// 	noAction: true,
-						// 	marginBottom: true,
-						// 	children: (
-						// 		<AddEditViewCourseModal
-						// 			modalType={ModalType.ADD}
-						// 			courseType={courseTypeValue}
-						// 			courseStatusType={CourseStatusType.DRAFT}
-						// 			handleRefresh={handleRefresh}
-						// 		/>
-						// 	),
-						// });
-					}}
+					onClick={handleConfirm}
+					disabled={loading}
 				/>
 			</StyledAbsoluteModalActions>
 		</>

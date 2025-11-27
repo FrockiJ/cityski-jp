@@ -6,7 +6,7 @@ import {
   CreateOrderReservationRequestDto,
   DialogAction
 } from '@repo/shared';
-import { createReservation, getReservationDetail, updateReservation } from '@/utils/http/api/reservation';
+import { createReservation, getReservationDetail, updateReservation, cancelReservation } from '@/utils/http/api/reservation';
 import { createOrderReservation, deleteOrderReservation } from '@/utils/http/api/order-reservation';
 import { getReservationHistoryByReservationId, ReservationHistory } from '@/utils/http/api/reservation-history';
 
@@ -51,6 +51,12 @@ interface UseReservationHistoryReturn {
   loading: boolean;
   error: string | null;
   fetchReservationHistory: (reservationId: string) => Promise<void>;
+}
+
+interface UseCancelReservationReturn {
+  loading: boolean;
+  error: string | null;
+  cancelExistingReservation: (id: string, reason: string) => Promise<boolean>;
 }
 
 /**
@@ -257,7 +263,7 @@ export const useReservationHistory = (): UseReservationHistoryReturn => {
   const fetchReservationHistory = useCallback(async (reservationId: string) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await getReservationHistoryByReservationId(reservationId);
       setHistories(response.result);
@@ -274,5 +280,35 @@ export const useReservationHistory = (): UseReservationHistoryReturn => {
     loading,
     error,
     fetchReservationHistory,
+  };
+};
+
+/**
+ * Hook for canceling reservation
+ */
+export const useCancelReservation = (): UseCancelReservationReturn => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const cancelExistingReservation = useCallback(async (id: string, reason: string): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await cancelReservation(id, reason);
+      return true;
+    } catch (err) {
+      console.error('取消預約失敗:', err);
+      setError('取消預約失敗');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return {
+    loading,
+    error,
+    cancelExistingReservation,
   };
 };

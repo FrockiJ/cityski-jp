@@ -25,6 +25,7 @@ import {
 	useReservationDetail,
 	useCreateReservation,
 	useUpdateReservation,
+	useCancelReservation,
 } from '@/hooks/useReservation';
 import { useReservationMembers } from '@/hooks/useReservationMembers';
 import { useGetOrderDetail } from '@/hooks/useGetOrderDetail';
@@ -95,6 +96,7 @@ const AddEditReservationIndoorModal = ({
 	const { reservationDetail, loading: detailLoading, fetchReservationDetail } = useReservationDetail();
 	const { loading: createLoading, createNewReservation } = useCreateReservation();
 	const { loading: updateLoading, updateExistingReservation } = useUpdateReservation();
+	const { loading: cancelLoading, cancelExistingReservation } = useCancelReservation();
 	const {
 		members: savedMembers,
 		loading: membersLoading,
@@ -486,10 +488,14 @@ const AddEditReservationIndoorModal = ({
 	// 處理取消預約提交
 	const handleCancelReservationSubmit = async (reason: string) => {
 		setCancelReservationModalOpen(false);
-		// TODO: 呼叫取消預約 API
-		console.log('取消預約原因:', reason);
-		handleCloseModal?.(DialogAction.CONFIRM);
-		handleRefresh?.();
+
+		if (reservationId) {
+			const success = await cancelExistingReservation(reservationId, reason);
+			if (success) {
+				handleCloseModal?.(DialogAction.CONFIRM);
+				handleRefresh?.();
+			}
+		}
 	};
 
 	// 執行實際的提交邏輯
@@ -604,21 +610,25 @@ const AddEditReservationIndoorModal = ({
 		return displayMembers.length >= reservationDetail.maxStudentCount;
 	}, [reservationDetail?.maxStudentCount, displayMembers.length]);
 
-	const isLoading = detailLoading || createLoading || updateLoading || orderDetailLoading || courseDetailLoading;
+	const isLoading = detailLoading || createLoading || updateLoading || cancelLoading || orderDetailLoading || courseDetailLoading;
 
-	// 檢查是否應該禁用基本資訊欄位（待紀錄或已完成狀態）
+	// 檢查是否應該禁用基本資訊欄位（待紀錄、已完成或已取消狀態）
 	const isBasicInfoDisabled = React.useMemo(() => {
 		if (modalType !== ModalType.EDIT) return false;
 		return (
 			reservationDetail?.reservationStatus === ReservationStatus.PENDING_REVIEW ||
-			reservationDetail?.reservationStatus === ReservationStatus.COMPLETED
+			reservationDetail?.reservationStatus === ReservationStatus.COMPLETED ||
+			reservationDetail?.reservationStatus === ReservationStatus.CANCELED
 		);
 	}, [modalType, reservationDetail?.reservationStatus]);
 
-	// 檢查是否應該禁用所有欄位（已完成狀態）
+	// 檢查是否應該禁用所有欄位（已完成或已取消狀態）
 	const isAllFieldsDisabled = React.useMemo(() => {
 		if (modalType !== ModalType.EDIT) return false;
-		return reservationDetail?.reservationStatus === ReservationStatus.COMPLETED;
+		return (
+			reservationDetail?.reservationStatus === ReservationStatus.COMPLETED ||
+			reservationDetail?.reservationStatus === ReservationStatus.CANCELED
+		);
 	}, [modalType, reservationDetail?.reservationStatus]);
 
 	return (
@@ -816,14 +826,14 @@ const AddEditReservationIndoorModal = ({
 							<StyledAbsoluteModalActions
 								justifyContent={
 									orderDetail?.bkgType === CourseBkgType.FLEXIBLE &&
-									orderDetail?.type !== CourseType.GROUP &&
+									// orderDetail?.type !== CourseType.GROUP &&
 									reservationDetail?.reservationStatus === ReservationStatus.SCHEDULED
 										? 'space-between'
 										: 'flex-end'
 								}
 							>
 								{orderDetail?.bkgType === CourseBkgType.FLEXIBLE &&
-									orderDetail?.type !== CourseType.GROUP &&
+									// orderDetail?.type !== CourseType.GROUP &&
 									reservationDetail?.reservationStatus === ReservationStatus.SCHEDULED && (
 										<CoreButton
 											color='error'

@@ -13,6 +13,7 @@ import { plainToInstance } from 'class-transformer';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { ReservationsService } from './reservations.service';
 import {
+  CancelReservationRequestDto,
   CreateReservationRequestDto,
   CreateReservationResponseDTO,
   UpdateReservationRequestDto,
@@ -117,5 +118,23 @@ export class ReservationsController {
       body.status,
       userId,
     );
+  }
+
+  @UseGuards(AuthGuard)
+  @Put('/:id/cancel')
+  async cancelReservation(
+    @Param('id') id: string,
+    @Body() body: CancelReservationRequestDto,
+    @Req() request: CustomRequest,
+  ): Promise<GetReservationDetailResponseDto> {
+    const userId = request['user']?.sub;
+    const result = await this.reservationsService.cancelReservation(
+      id,
+      body.reason,
+      userId,
+    );
+    return plainToInstance(GetReservationDetailResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 }

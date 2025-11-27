@@ -488,6 +488,62 @@ export class ReservationsService {
     }
   }
 
+  // 取消預約
+  async cancelReservation(
+    id: string,
+    reason: string,
+    userId?: string,
+  ): Promise<Reservation> {
+    try {
+      const reservation = await this.reservationsRepo.findOne({
+        where: { id },
+      });
+
+      if (!reservation) {
+        throw new CustomException(
+          `Reservation with id: ${id} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // 驗證預約狀態是否為 SCHEDULED（只有排程中的可以取消）
+      if (reservation.reservationStatus !== ReservationStatus.SCHEDULED) {
+        throw new CustomException(
+          `Only scheduled reservations can be canceled. Current status: ${reservation.reservationStatus}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // 更新狀態為 CANCELED
+      reservation.reservationStatus = ReservationStatus.CANCELED;
+      reservation.updatedUser = userId;
+
+      const savedReservation = await this.reservationsRepo.save(reservation);
+
+      // 查詢操作者名稱
+      let operatorName = '';
+      if (userId) {
+        const user = await this.usersRepo.findOne({ where: { id: userId } });
+        operatorName = user?.name || userId;
+      }
+
+      // 創建 ReservationHistory 記錄
+      await this.reservationHistoryService.create({
+        reservationId: id,
+        event: '取消預約',
+        operator: operatorName,
+        reason: reason,
+      });
+
+      return savedReservation;
+    } catch (err) {
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   // 獲取連結此預約的訂單詳細資訊
   async getLinkedOrders(reservationId: string) {
     try {

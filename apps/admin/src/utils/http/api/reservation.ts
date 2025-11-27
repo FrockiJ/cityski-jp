@@ -24,3 +24,6 @@ export const updateReservationStatus = (id: string, data: { status: number }) =>
 
 export const updateReservation = (id: string, data: UpdateReservationRequestDto) =>
   http.put<Response>(`/api/reservations/${id}`, data);
+
+export const cancelReservation = (id: string, reason: string) =>
+  http.put<Response>(`/api/reservations/${id}/cancel`, { reason });

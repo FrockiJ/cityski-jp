@@ -15,6 +15,7 @@ import {
   ResWithPaginationDTO,
   ReservationResponseDto,
   OrderStatus,
+  ReservationStatus,
 } from '@repo/shared';
 import { Order } from './entities/order.entity';
 import { Department } from 'src/departments/entities/department.entity';

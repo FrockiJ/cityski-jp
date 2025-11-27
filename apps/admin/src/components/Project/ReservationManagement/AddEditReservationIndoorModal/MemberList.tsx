@@ -1,13 +1,82 @@
 import React from 'react';
-import { Box, Typography, Paper, Avatar, Stack, Chip, IconButton } from '@mui/material';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { GetReservationDetailResponseDto } from '@repo/shared';
+import {
+	Box,
+	Typography,
+	Avatar,
+	Stack,
+	Chip,
+	Button,
+	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+} from '@mui/material';
+import { GetReservationDetailResponseDto, CourseSkiType, ReservationStatus } from '@repo/shared';
 
 interface MemberListProps {
 	members: NonNullable<GetReservationDetailResponseDto['reservationMembers']>;
 	onRemoveMember?: (memberId: string) => void;
 	loading?: boolean;
 }
+
+// Calculate age from birthday
+const calculateAge = (birthday: Date | null | undefined): string => {
+	if (!birthday) return '未知';
+	const today = new Date();
+	const birthDate = new Date(birthday);
+	let age = today.getFullYear() - birthDate.getFullYear();
+	const monthDiff = today.getMonth() - birthDate.getMonth();
+	if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+		age--;
+	}
+	return age.toString();
+};
+
+// Format ski type chips based on order.skiType
+const formatSkiTypeChips = (
+	skiType: CourseSkiType,
+	skis: number,
+	snowboard: number
+): Array<{ label: string; key: string }> => {
+	const chips = [];
+
+	// CourseSkiType: BOTH=0, SNOWBOARD=1, SKI=2
+	if (skiType === 2 || skiType === 0) {
+		// SKI or BOTH
+		chips.push({
+			label: `雙板 LV.${skis}`,
+			key: 'ski',
+		});
+	}
+
+	if (skiType === 1 || skiType === 0) {
+		// SNOWBOARD or BOTH
+		chips.push({
+			label: `單板 LV.${snowboard}`,
+			key: 'snowboard',
+		});
+	}
+
+	return chips;
+};
+
+// Calculate used sessions (count reservations where this member participated)
+const calculateUsedSessions = (
+	orderReservations: any[],
+	planNumber: number,
+	orderMemberId: string
+): string => {
+	const usedCount = orderReservations.filter(
+		(or) =>
+			or.reservation &&
+			or.reservation.reservationStatus !== ReservationStatus.CANCELED &&
+			or.reservation.reservationMembers?.some((rm: any) => rm.orderMemberId === orderMemberId)
+	).length;
+
+	return `${usedCount}/${planNumber}`;
+};
 
 const MemberList: React.FC<MemberListProps> = ({ members, onRemoveMember, loading }) => {
 	if (loading) {
@@ -30,101 +99,152 @@ const MemberList: React.FC<MemberListProps> = ({ members, onRemoveMember, loadin
 		);
 	}
 
-	console.log('members!!!!', members);
-
 	return (
-		<Stack spacing={2}>
-			{members.map((reservationMember) => {
-				const { orderMember } = reservationMember;
-				console.log(orderMember);
-				if (!orderMember || !orderMember.member	) return null;
+		<TableContainer>
+			<Table sx={{ minWidth: 640 }}>
+				{/* Table Header */}
+				<TableHead>
+					<TableRow sx={{ bgcolor: 'grey.200' }}>
+						<TableCell sx={{ width: 192, fontWeight: 600 }}>會員</TableCell>
+						<TableCell sx={{ width: 192, fontWeight: 600 }}>聯絡方式</TableCell>
+						<TableCell sx={{ width: 96, fontWeight: 600 }}>訂單編號</TableCell>
+						<TableCell sx={{ width: 80, fontWeight: 600 }}>前一堂課</TableCell>
+						<TableCell sx={{ width: 'auto', fontWeight: 600 }}>使用堂數</TableCell>
+						<TableCell sx={{ width: 80, fontWeight: 600 }}>操作</TableCell>
+					</TableRow>
+				</TableHead>
 
-				// const { member, order } = orderMember;
-				console.log('orderMember', orderMember);
-				const member = orderMember.member;
-				return (
-					<Paper
-						key={reservationMember.id}
-						sx={{
-							p: 2.5,
-							display: 'flex',
-							alignItems: 'center',
-							gap: 2,
-							borderRadius: 2,
-							bgcolor: 'background.paper',
-						}}
-					>
-						{/* 左側：頭像 + 姓名/標籤 */}
-						<Stack direction='row' alignItems='center' spacing={1.5} sx={{ width: 256 }}>
-							<Box sx={{ position: 'relative', width: 40, height: 40 }}>
-								<Avatar
-									src={member.avatar || undefined}
-									alt='avatar'
-									sx={{
-										width: 36,
-										height: 36,
-										position: 'absolute',
-										top: 2,
-										left: 2,
-										borderRadius: 99,
-									}}
-								/>
-							</Box>
+				{/* Table Body */}
+				<TableBody>
+					{members.map((reservationMember) => {
+						const { orderMember } = reservationMember;
+						if (!orderMember?.member || !orderMember?.order) return null;
 
-							<Stack spacing={0.5}>
-								<Stack direction='row' alignItems='center' spacing={1} sx={{ flexWrap: 'wrap' }}>
-									<Typography variant='body1' color='text.primary'>
-										{member.name}
+						const { member, order } = orderMember;
+						const age = calculateAge(member.birthday);
+						const skiChips = formatSkiTypeChips(order.skiType, member.skis, member.snowboard);
+						const usedSessions = calculateUsedSessions(
+							order.orderReservations || [],
+							order.planNumber,
+							orderMember.id
+						);
+
+						return (
+							<TableRow
+								key={reservationMember.id}
+								sx={{
+									'&:not(:last-child)': {
+										borderBottom: '1px solid',
+										borderColor: 'divider',
+									},
+								}}
+							>
+								{/* Column 1: Member (Avatar + Name + Age) */}
+								<TableCell>
+									<Stack direction='row' spacing={1.5} alignItems='center'>
+										<Box sx={{ width: 40, height: 40, position: 'relative' }}>
+											<Avatar
+												src={member.avatar || undefined}
+												alt={member.name}
+												sx={{
+													width: 36,
+													height: 36,
+													position: 'absolute',
+													top: 2,
+													left: 2,
+												}}
+											/>
+										</Box>
+										<Stack spacing={0.25}>
+											<Typography
+												variant='body2'
+												sx={{
+													color: 'primary.main',
+													cursor: 'pointer',
+													'&:hover': { textDecoration: 'underline' },
+												}}
+											>
+												{member.name}
+											</Typography>
+											<Typography variant='caption' color='text.secondary'>
+												{age}歲
+											</Typography>
+										</Stack>
+									</Stack>
+								</TableCell>
+
+								{/* Column 2: Contact (Phone + Email) */}
+								<TableCell>
+									<Stack spacing={0.25}>
+										<Typography variant='body2' color='text.primary'>
+											{member.phone || '-'}
+										</Typography>
+										<Typography variant='caption' color='text.secondary'>
+											{member.email || '-'}
+										</Typography>
+									</Stack>
+								</TableCell>
+
+								{/* Column 3: Order Number */}
+								<TableCell>
+									<Typography
+										variant='body2'
+										sx={{
+											color: 'primary.main',
+											cursor: 'pointer',
+											'&:hover': { textDecoration: 'underline' },
+										}}
+									>
+										{order.no}
 									</Typography>
+								</TableCell>
 
-									{/* 技能等級 Badge */}
-									<Chip
-										size='small'
-										label={
-											<Box component='span' sx={{ display: 'inline-flex', alignItems: 'baseline', gap: 0.5 }}>
-												<Typography component='span' variant='caption' sx={{ lineHeight: 1.25, fontWeight: 400 }}>
-													單板LV.{member.skis} 雙板LV.
-													{member.snowboard}
-												</Typography>
-											</Box>
-										}
-										sx={(theme) => ({
-											px: 0.75,
-											height: 24,
-											borderRadius: 1,
-											color: theme.palette.error.main,
-											'& .MuiChip-label': { px: 0.5, py: 0.25 },
-										})}
-										variant='filled'
-									/>
-								</Stack>
+								{/* Column 4: Previous Class (Ski Type Chips) */}
+								<TableCell>
+									<Stack spacing={0.5}>
+										{skiChips.map((chip) => (
+											<Chip
+												key={chip.key}
+												label={chip.label}
+												size='small'
+												sx={{
+													height: 24,
+													fontSize: '0.75rem',
+													bgcolor: 'info.lighter',
+													color: 'info.dark',
+												}}
+											/>
+										))}
+									</Stack>
+								</TableCell>
 
-								<Typography variant='caption' color='text.secondary'>
-									{member.phone || '無電話'}
-								</Typography>
-							</Stack>
-						</Stack>
+								{/* Column 5: Used Sessions */}
+								<TableCell>
+									<Typography variant='body2' color='text.primary'>
+										{usedSessions}
+									</Typography>
+								</TableCell>
 
-						{/* 訂單編號 */}
-						<Stack spacing={1} sx={{ minWidth: 100 }}>
-							<Typography variant='caption' color='text.secondary'>
-								訂單編號
-							</Typography>
-							<Typography variant='body2' color='text.primary'>
-								{orderMember.order.no}
-							</Typography>
-						</Stack>
-
-						{/* 刪除按鈕 */}
-						{onRemoveMember && (
-							<IconButton onClick={() => onRemoveMember(reservationMember.id)} color='error' sx={{ ml: 'auto' }}>
-								<DeleteOutlineIcon />
-							</IconButton>
-						)}
-					</Paper>
-				);
-			})}
-		</Stack>
+								{/* Column 6: Action (Remove Button) */}
+								<TableCell>
+									{onRemoveMember && (
+										<Button
+											variant='text'
+											color='error'
+											size='small'
+											onClick={() => onRemoveMember(reservationMember.id)}
+											sx={{ minWidth: 'auto', px: 1 }}
+										>
+											移除
+										</Button>
+									)}
+								</TableCell>
+							</TableRow>
+						);
+					})}
+				</TableBody>
+			</Table>
+		</TableContainer>
 	);
 };
 

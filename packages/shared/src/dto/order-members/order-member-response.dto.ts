@@ -1,4 +1,5 @@
 import { Exclude, Expose, Type } from "class-transformer";
+import { CourseSkiType } from "../../constants/enums";
 
 class MemberDto {
   @Expose()
@@ -32,6 +33,38 @@ class MemberDto {
   refresh?: string;
 }
 
+class OrderReservationDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  reservationId: string | null;
+
+  @Expose()
+  @Type(() => ReservationDto)
+  reservation: ReservationDto | null;
+}
+
+class ReservationDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  reservationStatus: number;
+
+  @Expose()
+  @Type(() => ReservationMemberDto)
+  reservationMembers: ReservationMemberDto[];
+}
+
+class ReservationMemberDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  orderMemberId: string;
+}
+
 class OrderDto {
   @Expose()
   id: string;
@@ -44,6 +77,13 @@ class OrderDto {
 
   @Expose()
   planNumber: number;
+
+  @Expose()
+  skiType: CourseSkiType;
+
+  @Expose()
+  @Type(() => OrderReservationDto)
+  orderReservations: OrderReservationDto[];
 }
 
 export class OrderMemberResponseDto {

@@ -163,7 +163,14 @@ export class ReservationMembersService {
     try {
       return await this.reservationMembersRepo.find({
         where: { reservationId },
-        relations: ['orderMember', 'orderMember.member', 'orderMember.order'],
+        relations: [
+          'orderMember',
+          'orderMember.member',
+          'orderMember.order',
+          'orderMember.order.orderReservations',
+          'orderMember.order.orderReservations.reservation',
+          'orderMember.order.orderReservations.reservation.reservationMembers',
+        ],
       });
     } catch (err) {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);

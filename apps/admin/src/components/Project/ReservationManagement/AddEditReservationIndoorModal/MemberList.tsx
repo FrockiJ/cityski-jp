@@ -105,7 +105,7 @@ const MemberList: React.FC<MemberListProps> = ({ members, onRemoveMember, loadin
 				{/* Table Header */}
 				<TableHead>
 					<TableRow sx={{ bgcolor: 'grey.200' }}>
-						<TableCell sx={{ width: 192, fontWeight: 600 }}>會員</TableCell>
+						<TableCell sx={{ width: 90, fontWeight: 600 }}>會員</TableCell>
 						<TableCell sx={{ width: 192, fontWeight: 600 }}>聯絡方式</TableCell>
 						<TableCell sx={{ width: 96, fontWeight: 600 }}>訂單編號</TableCell>
 						<TableCell sx={{ width: 80, fontWeight: 600 }}>前一堂課</TableCell>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import { OrderMemberDetailDTO, CourseType, OrderInvitationResponseDto } from '@repo/shared';
+import { OrderMemberDetailDTO, CourseType, OrderInvitationResponseDto, OrderReservationResponseDto } from '@repo/shared';
 import api from '@/lib/api';
 import { selectToken } from '@/state/slices/authSlice';
 
@@ -12,6 +12,8 @@ interface MemberListProps {
 	purchasedQuantity: number;
 	pendingInvitations?: OrderInvitationResponseDto[];
 	onInvitationCreated?: (invitation: OrderInvitationResponseDto) => void;
+	orderReservations: OrderReservationResponseDto[];
+	planNumber: number;
 }
 
 type MemberType = 'adult' | 'youth';
@@ -40,6 +42,8 @@ export default function MemberList({
 	purchasedQuantity,
 	pendingInvitations = [],
 	onInvitationCreated,
+	orderReservations,
+	planNumber,
 }: MemberListProps) {
 	const [newMemberSlots, setNewMemberSlots] = useState<MemberSlot[]>([]);
 	const [showTypeSelector, setShowTypeSelector] = useState(false);
@@ -55,6 +59,31 @@ export default function MemberList({
 	const selectorRef = useRef<HTMLDivElement>(null);
 	const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const accessToken = useSelector(selectToken);
+
+	// 計算會員已預約的堂數
+	const calculateReservedLessons = (orderMemberId: string): number => {
+		if (!orderReservations || orderReservations.length === 0) {
+			return 0;
+		}
+
+		let count = 0;
+
+		for (const orderReservation of orderReservations) {
+			if (!orderReservation.reservation?.reservationMembers) {
+				continue;
+			}
+
+			const memberInReservation = orderReservation.reservation.reservationMembers.some(
+				(rm) => rm.orderMemberId === orderMemberId
+			);
+
+			if (memberInReservation) {
+				count++;
+			}
+		}
+
+		return count;
+	};
 
 	// 計算當前參加人員總數（包含已加入會員、待註冊會員、空白參加人員）
 	const currentMemberCount = orderMembers.length + pendingInvitations.length + newMemberSlots.length;
@@ -504,7 +533,7 @@ export default function MemberList({
 										已預約
 									</div>
 									<div className="text-right justify-start text-zinc-500 text-sm font-medium font-['Poppins'] leading-6">
-										?/?
+										{calculateReservedLessons(member.id)}/{planNumber}
 									</div>
 									<div className="text-right justify-start text-zinc-500 text-sm font-medium font-['Noto_Sans_TC'] leading-6">
 										堂

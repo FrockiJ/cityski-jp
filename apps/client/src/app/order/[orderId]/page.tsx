@@ -410,6 +410,8 @@ export default function OrderDetail() {
 								courseType={courseDetail.type}
 								purchasedQuantity={orderDetail.adultCount + orderDetail.childCount}
 								pendingInvitations={pendingInvitations}
+								orderReservations={orderReservations}
+								planNumber={orderDetail.planNumber}
 								onAddMember={async () => {
 									// 重新获取订单详情以更新成员列表
 									try {

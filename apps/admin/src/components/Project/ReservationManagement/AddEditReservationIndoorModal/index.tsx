@@ -528,6 +528,7 @@ const AddEditReservationIndoorModal = ({
 				instructor: values.pickTrainer === 'Y' ? values.trainerName : undefined,
 				orderId: reservationOrderId!,
 				orderMemberIds: reservationOrderMemberIds,
+				...(reservationIndex !== undefined && { index: reservationIndex }),
 				...(reason && { reason }),
 			} as CreateReservationRequestDto & { reason?: string }
 			: {
@@ -605,10 +606,19 @@ const AddEditReservationIndoorModal = ({
 
 	// 檢查是否已達人數上限
 	const isAtCapacity = React.useMemo(() => {
-		console.log('檢查人數上限:', { reservationDetail, displayMembersLength: displayMembers.length });
-		if (!reservationDetail?.maxStudentCount) return false;
-		return displayMembers.length >= reservationDetail.maxStudentCount;
-	}, [reservationDetail?.maxStudentCount, displayMembers.length]);
+		console.log('檢查人數上限:', {
+			reservationDetail,
+			courseDetail,
+			displayMembersLength: displayMembers.length
+		});
+
+		// EDIT mode: use reservationDetail, ADD mode: use courseDetail
+		const maxStudentCount = reservationDetail?.maxStudentCount
+			?? courseDetail?.coursePeople?.[0]?.maxPeople;
+
+		if (!maxStudentCount) return false;
+		return displayMembers.length >= maxStudentCount;
+	}, [reservationDetail?.maxStudentCount, courseDetail?.coursePeople, displayMembers.length]);
 
 	const isLoading = detailLoading || createLoading || updateLoading || cancelLoading || orderDetailLoading || courseDetailLoading;
 

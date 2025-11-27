@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CoursePeople, CourseType, OrderMemberDetailDTO, OrderReservationResponseDto } from '@repo/shared';
+import { CoursePeople, CourseType, OrderMemberDetailDTO, OrderReservationResponseDto, ReservationStatus } from '@repo/shared';
 
 import DatePicker from '@/components/Project/Shared/DatePicker';
 import { showToast } from '@/components/Project/Utils/Toast';
@@ -411,6 +411,7 @@ export default function CourseReservation({
 							<div className='self-stretch inline-flex justify-start items-start gap-2 flex-wrap content-start'>
 								{orderReservations
 									.filter((or) => or.reservation)
+									.filter((or) => or.reservation!.reservationStatus !== ReservationStatus.CANCELED)
 									.map((orderRes, index) => {
 										const reservation = orderRes.reservation!;
 										const classTime = new Date(reservation.classTime);

@@ -110,6 +110,11 @@ const CourseReservation = ({
 	// 將預約數據轉換為表格行格式
 	const tableRows = new Array(size).fill(null).map((_, index) => {
 		const orderReservation = reservations.find((res) => res.index == index);
+		// 檢查是否為已取消的預約
+		const isCanceled = orderReservation?.reservation?.reservationStatus === ReservationStatus.CANCELED;
+		// 已取消的預約視為未預約
+		const hasActiveReservation = orderReservation?.reservation && !isCanceled;
+
 		return [
 			{
 				width: '60px',
@@ -118,25 +123,25 @@ const CourseReservation = ({
 			},
 			{
 				width: '80px',
-				label: orderReservation?.reservation ? getStatusText(orderReservation.reservation.reservationStatus) : '未預約',
+				label: hasActiveReservation ? getStatusText(orderReservation!.reservation!.reservationStatus) : '未預約',
 				show: true,
 			},
 			{
 				width: '150px',
-				label: orderReservation?.reservation
-					? dayjs(orderReservation.reservation.classTime).format('YYYY/MM/DD HH:mm')
+				label: hasActiveReservation
+					? dayjs(orderReservation!.reservation!.classTime).format('YYYY/MM/DD HH:mm')
 					: '',
 				show: true,
 			},
 			{
 				width: '60px',
-				label: orderReservation?.reservation ? getTeachingLevelText(orderReservation.reservation.teachingLevel) : '',
+				label: hasActiveReservation ? getTeachingLevelText(orderReservation!.reservation!.teachingLevel) : '',
 				show: true,
 			},
 			{
 				width: '300px',
-				label: orderReservation?.reservation?.reservationMembers
-					? formatMemberNames(orderReservation.reservation.reservationMembers)
+				label: hasActiveReservation && orderReservation!.reservation!.reservationMembers
+					? formatMemberNames(orderReservation!.reservation!.reservationMembers)
 					: '',
 				show: true,
 			},
@@ -146,18 +151,18 @@ const CourseReservation = ({
 				component: (
 					<Button
 						onClick={() => {
-							if (orderReservation) {
-								// 已有預約：開啟檢視模式的 Modal
+							if (hasActiveReservation) {
+								// 已有有效預約：開啟檢視模式的 Modal
 								handleOpenReservationModal(orderReservation?.reservation?.id, undefined);
 							} else {
 								// 訂購成功的時候才可以預約
 								orderDetail.status === OrderStatus.ORDER_SUCCESSFUL &&
-									// 尚未預約：開啟新增模式的 Modal，帶上 orderId 和 index
+									// 尚未預約或已取消：開啟新增模式的 Modal，帶上 orderId 和 index
 									handleOpenReservationModal(undefined, index);
 							}
 						}}
 					>
-						{orderReservation ? '檢視' : orderDetail.status === OrderStatus.ORDER_SUCCESSFUL ? '立即預約' : ''}
+						{hasActiveReservation ? '檢視' : orderDetail.status === OrderStatus.ORDER_SUCCESSFUL ? '立即預約' : ''}
 					</Button>
 				),
 			},

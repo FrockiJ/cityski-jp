@@ -72,10 +72,18 @@ const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDet
 
 	// 計算人數限制
 	const getPersonLimit = () => {
-		if (!reservationDetail?.minStudentCount || !reservationDetail?.maxStudentCount) {
-			return [];
+		// EDIT mode: use reservationDetail
+		if (reservationDetail?.minStudentCount && reservationDetail?.maxStudentCount) {
+			return [reservationDetail.minStudentCount, reservationDetail.maxStudentCount];
 		}
-		return [reservationDetail.minStudentCount, reservationDetail.maxStudentCount];
+
+		// ADD mode: use courseDetail
+		if (courseDetail?.coursePeople?.[0]?.minPeople && courseDetail?.coursePeople?.[0]?.maxPeople) {
+			return [courseDetail.coursePeople[0].minPeople, courseDetail.coursePeople[0].maxPeople];
+		}
+
+		// No data available
+		return [];
 	};
 	const personLimit = getPersonLimit();
 	return (

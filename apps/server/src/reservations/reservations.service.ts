@@ -334,24 +334,70 @@ export class ReservationsService {
 
       await queryRunner.manager.save(reservationMembers);
 
-      // 3. 計算 index 並創建 OrderReservation
-      const existingOrderReservations = await queryRunner.manager.find(
-        OrderReservation,
-        {
-          where: { orderId: body.orderId },
-          order: { index: 'DESC' },
-        },
-      );
+      // 3. 處理 index 並創建 OrderReservation
+      let targetIndex: number;
 
-      const nextIndex =
-        existingOrderReservations.length > 0
-          ? existingOrderReservations[0].index + 1
-          : 0;
+      if (body.index !== undefined && body.index !== null) {
+        // Admin 指定了 index - 需要驗證該 index 是否可用
+        targetIndex = body.index;
+
+        // 查詢該 index 是否存在 active reservation
+        const existingOrderReservations = await queryRunner.manager.find(
+          OrderReservation,
+          {
+            where: {
+              orderId: body.orderId,
+              index: targetIndex,
+            },
+            relations: ['reservation'],
+          },
+        );
+
+        // 檢查是否有 active (非取消) 的預約佔用此 index
+        const hasActiveReservation = existingOrderReservations.some(
+          or => or.reservation && or.reservation.reservationStatus !== ReservationStatus.CANCELED
+        );
+
+        if (hasActiveReservation) {
+          throw new CustomException(
+            `Index ${targetIndex} is already occupied by an active reservation`,
+            HttpStatus.CONFLICT,
+          );
+        }
+
+        // 如果 index 已被取消的預約佔用，可以重用該 index 創建新記錄
+        // 如果 index 為空，也可以使用
+      } else {
+        // Client 未指定 index - 自動分配下一個可用 index
+        // 查詢所有 OrderReservations with their reservation status
+        const allOrderReservations = await queryRunner.manager.find(
+          OrderReservation,
+          {
+            where: { orderId: body.orderId },
+            relations: ['reservation'],
+            order: { index: 'ASC' },
+          },
+        );
+
+        // 找出所有 active (非取消) 預約佔用的 indices
+        const occupiedIndices = new Set<number>();
+        allOrderReservations.forEach(or => {
+          if (or.reservation && or.reservation.reservationStatus !== ReservationStatus.CANCELED) {
+            occupiedIndices.add(or.index);
+          }
+        });
+
+        // 找出第一個未被 active 預約佔用的 index
+        targetIndex = 0;
+        while (occupiedIndices.has(targetIndex)) {
+          targetIndex++;
+        }
+      }
 
       const newOrderReservation = queryRunner.manager.create(OrderReservation, {
         orderId: body.orderId,
         reservationId: savedReservation.id,
-        index: nextIndex,
+        index: targetIndex,
       });
 
       await queryRunner.manager.save(newOrderReservation);

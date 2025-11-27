@@ -69,6 +69,7 @@ export class OrdersService {
         .leftJoinAndSelect('o.member', 'member')
         .leftJoinAndSelect('o.coursePlan', 'coursePlan')
         .leftJoinAndSelect('o.orderReservations', 'orderReservations')
+        .leftJoinAndSelect('orderReservations.reservation', 'reservation')
         .leftJoinAndSelect('o.transaction', 'transaction');
 
       // 根據部門ID篩選
@@ -121,7 +122,9 @@ export class OrdersService {
           paymentStatus: order.transaction?.status || 0,
           number: order.planNumber,
           people: order.adultCount + order.childCount,
-          process: order.orderReservations?.length || 0,
+          process: order.orderReservations?.filter(
+            (or) => or.reservation && or.reservation.reservationStatus !== ReservationStatus.CANCELED
+          )?.length || 0,
         }),
       );
 

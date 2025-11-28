@@ -64,6 +64,7 @@ export class GetReservationDetailResponseDto {
         id: string;
         name: string;
         phone: string | null;
+        email: string | null;
         birthday: Date | null;
         avatar: string | null;
         skis: number;
@@ -73,6 +74,9 @@ export class GetReservationDetailResponseDto {
         id: string;
         no: string;
         status: string;
+        skiType: CourseSkiType;
+        planNumber: number;
+        orderReservations?: Array<any>;
       };
     };
   }>;

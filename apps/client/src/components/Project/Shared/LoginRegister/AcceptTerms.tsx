@@ -95,4 +95,6 @@ const AcceptTerms = React.memo(({ id, name = id }: AcceptTermsProps) => {
 	);
 });
 
+AcceptTerms.displayName = 'AcceptTerms';
+
 export default AcceptTerms;

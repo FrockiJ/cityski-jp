@@ -256,4 +256,6 @@ const PhoneInputField: React.FC<PhoneInputFieldProps> = React.memo(({ id, label,
 	);
 });
 
+PhoneInputField.displayName = 'PhoneInputField';
+
 export default PhoneInputField;

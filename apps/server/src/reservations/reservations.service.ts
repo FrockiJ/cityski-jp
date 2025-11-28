@@ -429,6 +429,7 @@ export class ReservationsService {
     try {
       const reservation = await this.reservationsRepo.findOne({
         where: { id },
+        relations: ['reservationMembers', 'reservationMembers.orderMember', 'reservationMembers.orderMember.member'],
       });
 
       if (!reservation) {
@@ -436,6 +437,21 @@ export class ReservationsService {
           `Reservation with id: ${id} not found`,
           HttpStatus.NOT_FOUND,
         );
+      }
+
+      // 驗證 member 權限：只有預約參與者才能修改
+      // 檢查該 member 是否為此預約的參與者
+      if (userId) {
+        const isMemberOfReservation = reservation.reservationMembers?.some(
+          (rm) => rm.orderMember?.memberId === userId,
+        );
+
+        if (!isMemberOfReservation) {
+          throw new CustomException(
+            'You do not have permission to modify this reservation',
+            HttpStatus.FORBIDDEN,
+          );
+        }
       }
 
       // 如果有提供 departmentId，驗證部門
@@ -547,6 +563,7 @@ export class ReservationsService {
     try {
       const reservation = await this.reservationsRepo.findOne({
         where: { id },
+        relations: ['reservationMembers', 'reservationMembers.orderMember', 'reservationMembers.orderMember.member'],
       });
 
       if (!reservation) {
@@ -554,6 +571,21 @@ export class ReservationsService {
           `Reservation with id: ${id} not found`,
           HttpStatus.NOT_FOUND,
         );
+      }
+
+      // 驗證 member 權限：只有預約參與者才能取消
+      // 檢查該 member 是否為此預約的參與者
+      if (userId) {
+        const isMemberOfReservation = reservation.reservationMembers?.some(
+          (rm) => rm.orderMember?.memberId === userId,
+        );
+
+        if (!isMemberOfReservation) {
+          throw new CustomException(
+            'You do not have permission to cancel this reservation',
+            HttpStatus.FORBIDDEN,
+          );
+        }
       }
 
       // 驗證預約狀態是否為 SCHEDULED（只有排程中的可以取消）

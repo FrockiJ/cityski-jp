@@ -87,7 +87,7 @@ export class ReservationsController {
     return result; // Already returns correct DTO format
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AdminOrMemberGuard)
   @Put('/:id')
   async updateReservation(
     @Param('id') id: string,
@@ -120,7 +120,7 @@ export class ReservationsController {
     );
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AdminOrMemberGuard)
   @Put('/:id/cancel')
   async cancelReservation(
     @Param('id') id: string,

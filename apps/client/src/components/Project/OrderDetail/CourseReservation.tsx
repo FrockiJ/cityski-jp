@@ -42,6 +42,11 @@ export default function CourseReservation({
 	const [showSurchargeModal, setShowSurchargeModal] = useState(false);
 	const [showDatePickerModal, setShowDatePickerModal] = useState(false);
 	const [selectedDateTime, setSelectedDateTime] = useState<string>('');
+	const [showCancelModal, setShowCancelModal] = useState(false);
+	const [selectedReservationId, setSelectedReservationId] = useState<string | null>(null);
+	const [cancelReason, setCancelReason] = useState('');
+	const [isLoading, setIsLoading] = useState(false);
+	const [showCancelReasonError, setShowCancelReasonError] = useState(false);
 
 	// 獲取最低人數要求
 	const minPeople = coursePeople.length > 0 ? Math.min(...coursePeople.map((cp) => cp.minPeople)) : 1;
@@ -140,6 +145,45 @@ export default function CourseReservation({
 		// 取消時也清除選擇狀態
 		setSelectedMembers(new Set());
 	};
+
+	const handleCancelReservation = async () => {
+		if (!selectedReservationId || !cancelReason.trim()) {
+			setShowCancelReasonError(true);
+			return;
+		}
+
+		setIsLoading(true);
+		try {
+			const response = await api.put(
+				`/api/reservations/${selectedReservationId}/cancel`,
+				{ reason: cancelReason },
+				{
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+				},
+			);
+
+			if (response.status === 200) {
+				showToast('預約已成功取消', 'success');
+				setShowCancelModal(false);
+				setCancelReason('');
+				setShowCancelReasonError(false);
+				setSelectedReservationId(null);
+				// 刷新預約列表
+				if (onReservationCreated) {
+					onReservationCreated();
+				}
+			}
+		} catch (error: any) {
+			console.error('取消預約失敗:', error);
+			const errorMessage = error.response?.data?.message || '取消預約失敗，請稍後再試';
+			showToast(errorMessage, 'error');
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
 
 	return (
 		<>
@@ -473,18 +517,23 @@ export default function CourseReservation({
 												{/* Hover 遮罩層 */}
 												<div className='w-36 h-44 left-0 top-0 absolute bg-zinc-800/80 flex flex-col justify-center items-center gap-2 overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity'>
 													<button
+														disabled
 														data-state='Default'
 														data-type='Stroke_Rounded'
-														className='px-3 py-2 rounded-[20px] outline outline-1 outline-offset-[-1px] outline-white inline-flex justify-center items-center gap-2.5 overflow-hidden hover:bg-white/10 transition-colors'
+														className='px-3 py-2 rounded-[20px] outline outline-1 outline-offset-[-1px] outline-white inline-flex justify-center items-center gap-2.5 overflow-hidden hover:bg-white/10 transition-colors cursor-not-allowed opacity-50'
 													>
 														<div className="text-center justify-start text-white text-xs font-medium font-['Noto_Sans_TC'] leading-5">
 															修改預約
 														</div>
 													</button>
 													<button
+														onClick={() => {
+															setSelectedReservationId(reservation.id);
+															setShowCancelModal(true);
+														}}
 														data-state='Default'
 														data-type='Stroke_Rounded'
-														className='px-3 py-2 rounded-[20px] outline outline-1 outline-offset-[-1px] outline-white inline-flex justify-center items-center gap-2.5 overflow-hidden hover:bg-white/10 transition-colors'
+														className='px-3 py-2 rounded-[20px] outline outline-1 outline-offset-[-1px] outline-white inline-flex justify-center items-center gap-2.5 overflow-hidden hover:bg-white/10 transition-colors cursor-pointer'
 													>
 														<div className="text-center justify-start text-white text-xs font-medium font-['Noto_Sans_TC'] leading-5">
 															取消預約
@@ -499,6 +548,92 @@ export default function CourseReservation({
 					</>
 				)}
 			</div>
+
+			{/* 取消預約彈窗 */}
+			{showCancelModal && (
+				<div className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'>
+					<div className='w-[400px] h-[354px] bg-white rounded-[20px] shadow-[0px_10px_26px_0px_rgba(0,0,0,0.13)] flex flex-col items-center justify-between overflow-hidden'>
+						{/* 彈窗標題 */}
+						<div className='self-stretch h-16 relative bg-white flex items-center justify-between px-8'>
+							<div className="text-zinc-800 text-xl font-medium font-['Noto_Sans_TC'] leading-7">
+								取消預約
+							</div>
+							<button
+								onClick={() => {
+									setShowCancelModal(false);
+									setCancelReason('');
+									setShowCancelReasonError(false);
+								}}
+								className='w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors'
+							>
+								<svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
+									<path
+										d='M18 6L6 18M6 6L18 18'
+										stroke='#737373'
+										strokeWidth='2'
+										strokeLinecap='round'
+										strokeLinejoin='round'
+									/>
+								</svg>
+							</button>
+						</div>
+
+						{/* 內容 */}
+						<div className='self-stretch px-8 pt-4 pb-8 flex flex-col justify-start items-center gap-4'>
+							<div className="text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
+								若取消預約，請注意根據取消政策可能會產生額外費用。確定要取消預約嗎？
+							</div>
+							<div className='w-full'>
+								<textarea
+									value={cancelReason}
+									onChange={(e) => {
+										setCancelReason(e.target.value);
+										if (e.target.value.trim()) {
+											setShowCancelReasonError(false);
+										}
+									}}
+									placeholder='輸入取消原因'
+									className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 resize-none text-zinc-800 font-normal font-['Noto_Sans_TC'] ${
+										showCancelReasonError
+											? 'border-red-500 focus:ring-red-500'
+											: 'border-gray-300 focus:ring-blue-500'
+									}`}
+									rows={1}
+								/>
+								<div className='h-6'>
+									{showCancelReasonError && (
+										<div className="text-red-500 text-sm font-normal font-['Noto_Sans_TC'] mt-2">
+											必填欄位
+										</div>
+									)}
+								</div>
+							</div>
+						</div>
+
+						{/* 按鈕區域 */}
+						<div className='self-stretch px-8 py-5 bg-white border-t border-zinc-300 inline-flex justify-end items-center gap-3'>
+							<button
+								onClick={() => {
+									setShowCancelModal(false);
+									setCancelReason('');
+									setShowCancelReasonError(false);
+								}}
+								className="px-6 py-2.5 bg-white rounded-lg border border-zinc-800 text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6 hover:bg-gray-50 transition-colors cursor-pointer"
+							>
+								不，保留預約
+							</button>
+							<button
+								onClick={handleCancelReservation}
+								disabled={isLoading}
+								className="px-6 py-2.5 bg-red-600 rounded-lg text-white text-sm font-medium font-['Noto_Sans_TC'] leading-6 hover:bg-red-700 transition-colors cursor-pointer disabled:opacity-50"
+							>
+								{isLoading ? '處理中...' : '取消預約'}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
 		</>
 	);
 }

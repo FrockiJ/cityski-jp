@@ -197,6 +197,7 @@ export class ReservationsService {
           reservationId: rm.reservationId,
           orderMemberId: rm.orderMemberId,
           note: rm.note || undefined,
+          attended: rm.attended,
           orderMember: rm.orderMember
             ? {
                 id: rm.orderMember.id,
@@ -206,6 +207,7 @@ export class ReservationsService {
                   id: rm.orderMember.member.id,
                   name: rm.orderMember.member.name,
                   phone: rm.orderMember.member.phone,
+                  email: rm.orderMember.member.email,
                   birthday: rm.orderMember.member.birthday,
                   avatar: rm.orderMember.member.avatar,
                   skis: rm.orderMember.member.skis,
@@ -215,6 +217,8 @@ export class ReservationsService {
                   id: rm.orderMember.order.id,
                   no: rm.orderMember.order.no,
                   status: String(rm.orderMember.order.status),
+                  skiType: rm.orderMember.order.skiType,
+                  planNumber: rm.orderMember.order.planNumber,
                 },
               }
             : undefined,

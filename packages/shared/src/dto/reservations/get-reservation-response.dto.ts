@@ -56,6 +56,7 @@ export class GetReservationDetailResponseDto {
     reservationId: string;
     orderMemberId: string;
     note?: string;
+    attended: boolean;
     orderMember?: {
       id: string;
       orderId: string;

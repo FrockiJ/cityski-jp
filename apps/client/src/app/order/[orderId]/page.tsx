@@ -11,6 +11,7 @@ import {
 	OrderReservationResponseDto,
 } from '@repo/shared';
 import { useParams } from 'next/navigation';
+import CancelOrderModal from '@/components/Project/OrderDetail/CancelOrderModal';
 
 import ProfileIcon from '@/components/Icon/ProfileIcon';
 import SnowBoardIcon from '@/components/Icon/SnowBoardIcon';
@@ -37,6 +38,7 @@ export default function OrderDetail() {
 	const [orderMembers, setOrderMembers] = useState(orderDetail?.orderMembers || []);
 	const [orderReservations, setOrderReservations] = useState<OrderReservationResponseDto[]>([]);
 	const [pendingInvitations, setPendingInvitations] = useState(orderDetail?.pendingInvitations || []);
+	const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
 	useEffect(() => {
 		if (!accessToken) return;
@@ -105,6 +107,18 @@ export default function OrderDetail() {
 	const coursePlan = courseDetail?.coursePlans.find((plan) => plan.name === orderDetail.coursePlanName);
 	const price = coursePlan?.price || 0;
 	const deposit = Math.floor(price * 0.5);
+
+	const handleCancelOrder = async (reason: string) => {
+		try {
+			// TODO: 調用取消訂單 API
+			console.log('取消訂單，原因:', reason);
+			showToast('已提交取消申請', 'success');
+			setIsCancelModalOpen(false);
+		} catch (error) {
+			console.error('取消訂單失敗:', error);
+			showToast('取消訂單失敗，請重試', 'error');
+		}
+	};
 
 	return (
 		<div className='flex overflow-hidden flex-col bg-white pt-1'>
@@ -885,14 +899,22 @@ export default function OrderDetail() {
 										</div>
 									</div>
 								</div>
-								<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] underline leading-6">
+								<button
+									onClick={() => setIsCancelModalOpen(true)}
+									className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] underline leading-6 hover:text-blue-600 transition-colors cursor-pointer"
+								>
 									申請取消訂單
-								</div>
+								</button>
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
+			<CancelOrderModal
+				isOpen={isCancelModalOpen}
+				onClose={() => setIsCancelModalOpen(false)}
+				onConfirm={handleCancelOrder}
+			/>
 		</div>
 	);
 }

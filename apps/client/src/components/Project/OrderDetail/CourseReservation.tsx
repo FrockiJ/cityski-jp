@@ -423,48 +423,73 @@ export default function CourseReservation({
 												data-property-1={index === 0 ? 'Next time' : 'Default'}
 												data-show-level='false'
 												data-state='Default'
-												className='w-36 px-3 pt-3 pb-3.5 bg-white rounded-lg outline outline-1 outline-offset-[-1px] outline-zinc-300 inline-flex flex-col justify-center items-center gap-2'
+												className='w-36 relative bg-white rounded-lg outline outline-1 outline-offset-[-1px] outline-zinc-300 inline-flex flex-col justify-center items-center gap-2 overflow-hidden group'
 											>
-												<div className='self-stretch h-28 relative'>
-													<div className='w-full inline-flex flex-col justify-start items-center gap-3'>
-														<div className='inline-flex justify-center items-center gap-1'>
-															<div className="text-center justify-start text-zinc-800 text-xs font-medium font-['Noto_Sans_TC'] leading-5">
-																{courseTypeMap[courseType]}
-															</div>
-														</div>
-														<div className='self-stretch flex flex-col justify-start items-center gap-3'>
+												{/* 卡片內容 */}
+												<div className='w-36 px-3 pt-3 pb-3.5 bg-white rounded-lg outline outline-1 outline-offset-[-1px] outline-zinc-300 flex flex-col justify-center items-center gap-2'>
+													<div className='self-stretch h-28 relative'>
+														<div className='w-full inline-flex flex-col justify-start items-center gap-3'>
 															<div className='inline-flex justify-center items-center gap-1'>
-																<div className="justify-start text-zinc-800 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
-																	第
-																</div>
-																<div className="justify-start text-zinc-800 text-4xl font-medium font-['Poppins'] leading-9">
-																	{orderRes.index + 1}
-																</div>
-																<div className="justify-start text-zinc-800 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
-																	堂
+																<div className="text-center justify-start text-zinc-800 text-xs font-medium font-['Noto_Sans_TC'] leading-5">
+																	{courseTypeMap[courseType]}
 																</div>
 															</div>
-															<div className='self-stretch inline-flex justify-center items-center'>
-																{reservation.reservationMembers?.slice(0, 2).map((resMember, idx) => (
-																	<div
-																		key={resMember.id}
-																		data-show-hover='false'
-																		data-size={idx === 0 ? '36' : 'User_36'}
-																		className={`w-6 h-6 relative rounded-[99px] overflow-hidden ${idx > 0 ? 'outline outline-2 outline-white -ml-2' : ''}`}
-																	>
-																		<img
-																			className='w-6 h-6 left-0 top-0 absolute rounded-[99px]'
-																			src={resMember.orderMember?.member?.avatar || '/image/profile/default-avatar.png'}
-																			alt={resMember.orderMember?.member?.name || 'Member'}
-																		/>
+															<div className='self-stretch flex flex-col justify-start items-center gap-3'>
+																<div className='inline-flex justify-center items-center gap-1'>
+																	<div className="justify-start text-zinc-800 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
+																		第
 																	</div>
-																))}
+																	<div className="justify-start text-zinc-800 text-4xl font-medium font-['Poppins'] leading-9">
+																		{orderRes.index + 1}
+																	</div>
+																	<div className="justify-start text-zinc-800 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
+																		堂
+																	</div>
+																</div>
+																<div className='self-stretch inline-flex justify-center items-center'>
+																	{reservation.reservationMembers?.slice(0, 2).map((resMember, idx) => (
+																		<div
+																			key={resMember.id}
+																			data-show-hover='false'
+																			data-size={idx === 0 ? '36' : 'User_36'}
+																			className={`w-6 h-6 relative rounded-[99px] overflow-hidden ${idx > 0 ? 'outline outline-2 outline-white -ml-2' : ''}`}
+																		>
+																			<img
+																				className='w-6 h-6 left-0 top-0 absolute rounded-[99px]'
+																				src={resMember.orderMember?.member?.avatar || '/image/profile/default-avatar.png'}
+																				alt={resMember.orderMember?.member?.name || 'Member'}
+																			/>
+																		</div>
+																	))}
+																</div>
 															</div>
 														</div>
 													</div>
+													<div className="justify-start text-zinc-800 text-sm font-normal font-['Poppins'] leading-6 border-t border-gray-200 pt-2">
+														{formattedDate}
+													</div>
 												</div>
-												<div className="justify-start text-zinc-800 text-sm font-normal font-['Poppins'] leading-6 border-t border-gray-200 pt-2">
-													{formattedDate}
+
+												{/* Hover 遮罩層 */}
+												<div className='w-36 h-44 left-0 top-0 absolute bg-zinc-800/80 flex flex-col justify-center items-center gap-2 overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity'>
+													<button
+														data-state='Default'
+														data-type='Stroke_Rounded'
+														className='px-3 py-2 rounded-[20px] outline outline-1 outline-offset-[-1px] outline-white inline-flex justify-center items-center gap-2.5 overflow-hidden hover:bg-white/10 transition-colors'
+													>
+														<div className="text-center justify-start text-white text-xs font-medium font-['Noto_Sans_TC'] leading-5">
+															修改預約
+														</div>
+													</button>
+													<button
+														data-state='Default'
+														data-type='Stroke_Rounded'
+														className='px-3 py-2 rounded-[20px] outline outline-1 outline-offset-[-1px] outline-white inline-flex justify-center items-center gap-2.5 overflow-hidden hover:bg-white/10 transition-colors'
+													>
+														<div className="text-center justify-start text-white text-xs font-medium font-['Noto_Sans_TC'] leading-5">
+															取消預約
+														</div>
+													</button>
 												</div>
 											</div>
 										);

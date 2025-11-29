@@ -40,7 +40,7 @@ export default function NoteBox({ member, note, attended, onNoteChange, onAttend
 				{/* 頭像與姓名 */}
 				<Stack direction='row' spacing={2} alignItems='center'>
 					<Avatar
-						src={memberInfo?.avatar || 'https://placehold.co/54x54'}
+						src={memberInfo?.avatar || '/images/profile/default-avatar.png'}
 						alt={memberInfo?.name || '未知'}
 						sx={{ width: 56, height: 56 }}
 					/>

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
 	CourseType,
+	CourseSkiType,
 	GetCourseDetailResponseDTO,
 	GetOrderDetailResponseDTO,
 	OrderStatus,
@@ -26,6 +27,12 @@ const courseTypeMap = {
 	[CourseType.GROUP]: '團體班教學',
 	[CourseType.PRIVATE]: '私人班教學',
 	[CourseType.INDIVIDUAL]: '個人練習',
+};
+
+const skiTypeMap = {
+	[CourseSkiType.SKI]: '雙板',
+	[CourseSkiType.SNOWBOARD]: '單板',
+	[CourseSkiType.BOTH]: '單板/雙板',
 };
 
 export default function OrderDetail() {
@@ -371,7 +378,7 @@ export default function OrderDetail() {
 													<SnowBoardIcon width={16} height={16} />
 												</div>
 												<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
-													雙板
+													{orderDetail ? skiTypeMap[orderDetail.skiType] || '雙板' : '雙板'}
 												</div>
 											</div>
 											<div data-svg-wrapper>
@@ -422,6 +429,7 @@ export default function OrderDetail() {
 								orderMembers={orderMembers}
 								orderId={orderId}
 								courseType={courseDetail.type}
+								skiType={orderDetail.skiType}
 								purchasedQuantity={orderDetail.adultCount + orderDetail.childCount}
 								pendingInvitations={pendingInvitations}
 								orderReservations={orderReservations}

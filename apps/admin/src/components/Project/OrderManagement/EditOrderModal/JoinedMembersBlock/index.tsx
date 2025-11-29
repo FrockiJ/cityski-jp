@@ -2,7 +2,7 @@ import React from 'react';
 
 import { Button } from '@/components/Common/CIBase/CoreDynamicTable/CoreFilter/styles';
 import FormikModalTable from '@/components/Common/CIBase/Formik/FormikModalTable';
-import { OrderReservationResponseDto, ReservationResponseDto } from '@repo/shared';
+import { OrderReservationResponseDto, ReservationResponseDto, CourseSkiType } from '@repo/shared';
 
 interface OrderMember {
 	id: string;
@@ -17,9 +17,10 @@ interface OrderMember {
 interface Props {
 	members?: OrderMember[];
 	reservations?: OrderReservationResponseDto[];
+	skiType?: CourseSkiType;
 }
 
-const JoinedMembersBlock = ({ members = [], reservations = [] }: Props) => {
+const JoinedMembersBlock = ({ members = [], reservations = [], skiType }: Props) => {
 	// Calculate age from birthday
 	const calculateAge = (birthday: Date | null | undefined): number => {
 		if (!birthday) return 0;
@@ -43,13 +44,19 @@ const JoinedMembersBlock = ({ members = [], reservations = [] }: Props) => {
 
 		return count;
 	};
-	// Format board type and level
+	// Format board type and level based on skiType
 	const formatBoardLevel = (snowboard: number, skis: number): string => {
 		const parts: string[] = [];
-		if (snowboard > 1) {
+
+		// CourseSkiType: BOTH=0, SNOWBOARD=1, SKI=2
+		// If skiType is not provided, show both (backward compatibility)
+		const shouldShowSnowboard = skiType === undefined || skiType === CourseSkiType.SNOWBOARD || skiType === CourseSkiType.BOTH;
+		const shouldShowSki = skiType === undefined || skiType === CourseSkiType.SKI || skiType === CourseSkiType.BOTH;
+
+		if (shouldShowSnowboard ) {
 			parts.push(`單板 (L${snowboard})`);
 		}
-		if (skis > 1) {
+		if (shouldShowSki ) {
 			parts.push(`雙板 (L${skis})`);
 		}
 		return parts.length > 0 ? parts.join('、') : '-';

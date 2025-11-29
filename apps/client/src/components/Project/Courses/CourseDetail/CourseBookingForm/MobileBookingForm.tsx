@@ -92,16 +92,16 @@ const MobileBookingForm = ({ data, onSubmit }: CourseBookingFormProps) => {
 		}
 	}, [data]);
 
-	const totalPrice = 1600; // This should be calculated based on the form data
-
-	// const currentPlan = data?.coursePlans.find(plan => plan.id === formData.plan)
-	// const maxPeople = data?.coursePeople;
+	// 計算總價格：單價 × 堂數 × 總人數
+	const currentPlan = data?.coursePlans?.find(plan => plan.id === formData.plan);
+	const totalPeople = formData.participants.adult + formData.participants.minor;
+	const totalPrice = currentPlan ? currentPlan.price * currentPlan.number * totalPeople : 0;
 	return (
 		<div tabIndex={-1}>
 			<div className='py-[16px] px-[20px] xs:hidden  absolute z-10 left-0 bottom-0 p-10px w-[100%] h-[80px] bg-white shadow-[0px_0px_4px_0px_rgba(0,0,0,0.10),0px_1px_16px_0px_rgba(0,0,0,0.05)]'>
 				<div className='flex justify-between'>
 					<p className='self-end text-[20px] font-bold text-[#2b2b2b] font-poppins'>
-						1,600<span className='text-[14px]'>元</span>
+						{totalPrice.toLocaleString()}<span className='text-[14px]'>元</span>
 					</p>
 					<button
 						type='button'

@@ -131,7 +131,7 @@ const AddMemberModal = ({ onSelectMember, handleCloseModal, searchType, excludeM
 										<Stack direction='row' alignItems='center' spacing={1.5} sx={{ width: 256 }}>
 											<Box sx={{ position: 'relative', width: 40, height: 40 }}>
 												<Avatar
-													src={pureMember.avatar || undefined}
+													src={pureMember.avatar || '/images/profile/default-avatar.png'}
 													alt='avatar'
 													sx={{ width: 36, height: 36, position: 'absolute', top: 2, left: 2, borderRadius: 99 }}
 												/>

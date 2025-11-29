@@ -67,7 +67,7 @@ const ReservationInfo = ({ courseInfo, reservationDetail, orderDetail, courseDet
 			1: '單板',
 			2: '雙板',
 		};
-		return skiTypeMap[courseDetail?.skiType] || '--';
+		return skiTypeMap[orderDetail?.skiType] || '--';
 	};
 
 	// 計算人數限制

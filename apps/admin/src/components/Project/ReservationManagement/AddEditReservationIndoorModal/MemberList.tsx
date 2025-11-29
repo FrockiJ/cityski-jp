@@ -144,7 +144,7 @@ const MemberList: React.FC<MemberListProps> = ({ members, onRemoveMember, loadin
 									<Stack direction='row' spacing={1.5} alignItems='center'>
 										<Box sx={{ width: 40, height: 40, position: 'relative' }}>
 											<Avatar
-												src={member.avatar || undefined}
+												src={member.avatar || '/images/profile/default-avatar.png'}
 												alt={member.name}
 												sx={{
 													width: 36,

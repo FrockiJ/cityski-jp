@@ -87,7 +87,7 @@ function OrderConfirmationPage() {
 			type: courseDetail.type,
 			departmentId: courseDetail.departmentId,
 			coursePlanId: plan.id,
-			skiType: courseDetail.skiType,
+			skiType: formData.boardType,
 			bkgType: courseDetail.bkgType,
 			planNumber: plan.number,
 			planType: plan.type,

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import { OrderMemberDetailDTO, CourseType, OrderInvitationResponseDto, OrderReservationResponseDto } from '@repo/shared';
+import { OrderMemberDetailDTO, CourseType, CourseSkiType, OrderInvitationResponseDto, OrderReservationResponseDto } from '@repo/shared';
 import api from '@/lib/api';
 import { selectToken } from '@/state/slices/authSlice';
 
@@ -9,6 +9,7 @@ interface MemberListProps {
 	orderId: string;
 	onAddMember: () => void;
 	courseType: CourseType;
+	skiType: CourseSkiType;
 	purchasedQuantity: number;
 	pendingInvitations?: OrderInvitationResponseDto[];
 	onInvitationCreated?: (invitation: OrderInvitationResponseDto) => void;
@@ -39,6 +40,7 @@ export default function MemberList({
 	orderId,
 	onAddMember,
 	courseType,
+	skiType,
 	purchasedQuantity,
 	pendingInvitations = [],
 	onInvitationCreated,
@@ -500,28 +502,33 @@ export default function MemberList({
 											{member.memberName}
 										</div>
 										<div className='pt-[3px] flex justify-start items-center gap-1.5'>
-											<div
-												data-property-1='單板'
-												className='p-[5px] bg-rose-50 rounded flex justify-center items-end gap-0.5'
-											>
-												<div className="justify-start text-red-400 text-xs font-normal font-['Noto_Sans_TC'] leading-4">
-													單板{' '}
+											{/* CourseSkiType: BOTH=0, SNOWBOARD=1, SKI=2 */}
+											{(skiType === CourseSkiType.SNOWBOARD || skiType === CourseSkiType.BOTH) && (
+												<div
+													data-property-1='單板'
+													className='p-[5px] bg-rose-50 rounded flex justify-center items-end gap-0.5'
+												>
+													<div className="justify-start text-red-400 text-xs font-normal font-['Noto_Sans_TC'] leading-4">
+														單板{' '}
+													</div>
+													<div className="justify-start text-red-400 text-xs font-semibold font-['Poppins'] leading-5">
+														LV.{member.snowboard}
+													</div>
 												</div>
-												<div className="justify-start text-red-400 text-xs font-semibold font-['Poppins'] leading-5">
-													LV.{member.snowboard}
+											)}
+											{(skiType === CourseSkiType.SKI || skiType === CourseSkiType.BOTH) && (
+												<div
+													data-property-1='雙板'
+													className='p-[5px] bg-sky-100 rounded flex justify-center items-end gap-0.5'
+												>
+													<div className="justify-start text-cyan-600 text-xs font-normal font-['Noto_Sans_TC'] leading-4">
+														雙板{' '}
+													</div>
+													<div className="justify-start text-cyan-600 text-xs font-semibold font-['Poppins'] leading-5">
+														LV.{member.skis}
+													</div>
 												</div>
-											</div>
-											<div
-												data-property-1='雙板'
-												className='p-[5px] bg-sky-100 rounded flex justify-center items-end gap-0.5'
-											>
-												<div className="justify-start text-cyan-600 text-xs font-normal font-['Noto_Sans_TC'] leading-4">
-													雙板{' '}
-												</div>
-												<div className="justify-start text-cyan-600 text-xs font-semibold font-['Poppins'] leading-5">
-													LV.{member.skis}
-												</div>
-											</div>
+											)}
 										</div>
 									</div>
 									<div className="self-stretch h-6 justify-center text-zinc-500 text-xs font-normal font-['Poppins'] leading-5">

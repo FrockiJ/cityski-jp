@@ -17,6 +17,7 @@ import {
 	ReservationStatus,
 	GetOrderDetailResponseDTO,
 	CourseTeachingType,
+	CourseSkiType,
 } from '@repo/shared';
 import dayjs, { Dayjs } from 'dayjs';
 import { Form, Formik, FormikProps } from 'formik';
@@ -350,6 +351,7 @@ const AddEditReservationIndoorModal = ({
 		if (!orderDetail) return null;
 
 		const skiType = orderDetail.skiType;
+		console.log('計算授課等級，skiType:', skiType);
 		let minLevel = Infinity;
 
 		members.forEach((m) => {
@@ -357,10 +359,10 @@ const AddEditReservationIndoorModal = ({
 			if (memberData) {
 				let memberLevel: number;
 
-				if (skiType === 1) {
+				if (skiType === CourseSkiType.SKI) {
 					// 雙板課程，使用 skis 等級
 					memberLevel = Number(memberData.skis) || Infinity;
-				} else if (skiType === 2) {
+				} else if (skiType === CourseSkiType.SNOWBOARD) {
 					// 單板課程，使用 snowboard 等級
 					memberLevel = Number(memberData.snowboard) || Infinity;
 				} else {

@@ -48,7 +48,17 @@ const CourseBookingForm = ({ data, onSubmit }: CourseBookingFormProps) => {
 				[name]: value as string,
 				planType: selectedPlan?.type || 0,
 			}));
-			setTotalPrice(selectedPlan.number * selectedPlan.price);
+			const totalPeople = formData.participants.adult + formData.participants.minor;
+			setTotalPrice(selectedPlan.number * selectedPlan.price * totalPeople);
+		} else if (name === 'participants') {
+			setFormData((prevData) => ({ ...prevData, [name]: value }));
+			// 當人數改變時，重新計算價格
+			const selectedPlan = data?.coursePlans?.find((plan) => plan.id === formData.plan);
+			if (selectedPlan) {
+				const participants = value as { adult: number; minor: number };
+				const totalPeople = participants.adult + participants.minor;
+				setTotalPrice(selectedPlan.number * selectedPlan.price * totalPeople);
+			}
 		} else {
 			setFormData((prevData) => ({ ...prevData, [name]: value }));
 		}
@@ -98,7 +108,8 @@ const CourseBookingForm = ({ data, onSubmit }: CourseBookingFormProps) => {
 				planType: data.coursePlans?.[0].type,
 			}));
 		}
-			setTotalPrice(data.coursePlans?.[0].number * data.coursePlans?.[0].price);
+			const totalPeople = formData.participants.adult + formData.participants.minor;
+			setTotalPrice(data.coursePlans?.[0].number * data.coursePlans?.[0].price * totalPeople);
 	}, [data]);
 	return (
 		<form

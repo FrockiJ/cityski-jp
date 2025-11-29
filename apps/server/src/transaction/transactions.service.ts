@@ -20,8 +20,9 @@ export class TransactionsService {
 
   async createTransaction(order: Order) {
     try {
-      // 計算原價：單價 × 購買堂數
-      const originalPrice = order.coursePlan.price * order.planNumber;
+      // 計算原價：單價 × 購買堂數 × 人數
+      const totalPeople = (order.adultCount || 0) + (order.childCount || 0);
+      const originalPrice = order.coursePlan.price * order.planNumber * totalPeople;
 
       // 計算折扣金額
       let discountFee = 0;
@@ -111,8 +112,8 @@ export class TransactionsService {
 
       await this.transactionsRepo.save(transaction);
 
-      // Update order status to WAITING_FOR_CONFIRMATION
-      order.status = 1; // WAITING_FOR_CONFIRMATION
+      // Update order status 
+      order.status = 2; 
       await this.ordersRepo.save(order);
 
       return {

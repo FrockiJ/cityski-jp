@@ -125,10 +125,8 @@ const EditOrderModal = ({
 	const handleFormSubmit = async (values: InitialValuesProps) => {
 		console.log({ values });
 
-		// if (statusCode === HttpStatusCode.OK) {
-		// 	handleCloseModal?.(DialogAction.CONFIRM);
-		// 	handleRefresh?.();
-		// }
+		handleCloseModal?.(DialogAction.CONFIRM);
+		handleRefresh?.();
 	};
 
 	const handleCourseDetailsClick = (courseId: string) => {
@@ -239,7 +237,7 @@ const EditOrderModal = ({
 									setTransferModalOpen(true);
 								}}
 							>
-								<JoinedMembersBlock members={orderDetail?.orderMembers} reservations={reservations} />
+								<JoinedMembersBlock members={orderDetail?.orderMembers} reservations={reservations} skiType={orderDetail?.skiType} />
 							</CoreBlock>
 							<CoreBlock title='訂單異動紀錄'>
 								<OrderChangesBlock orderId={orderId} refetchTrigger={orderHistoryRefetchTrigger} />

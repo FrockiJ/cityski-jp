@@ -109,6 +109,12 @@ export class Order extends UserDate {
   @Column({ type: 'smallint' })
   status: OrderStatusEnum;
 
+  @Column({ type: 'varchar', nullable: true })
+  cancelReason: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  cancelledBy: string;
+
   @OneToMany(() => OrderMember, (orderMember) => orderMember.order)
   orderMembers: OrderMember[];
 

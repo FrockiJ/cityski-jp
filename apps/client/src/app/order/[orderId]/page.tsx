@@ -117,10 +117,21 @@ export default function OrderDetail() {
 
 	const handleCancelOrder = async (reason: string) => {
 		try {
-			// TODO: 調用取消訂單 API
-			console.log('取消訂單，原因:', reason);
-			showToast('已提交取消申請', 'success');
+			const response = await api.post<ResponseWrapper<GetOrderDetailResponseDTO>>(
+				`/api/orders/${orderId}/cancel`,
+				{ reason },
+				{
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+				}
+			);
+			showToast('訂單已成功取消', 'success');
 			setIsCancelModalOpen(false);
+			// 刷新訂單詳情
+			if (response.data.result) {
+				setOrderDetail(response.data.result);
+			}
 		} catch (error) {
 			console.error('取消訂單失敗:', error);
 			showToast('取消訂單失敗，請重試', 'error');
@@ -140,11 +151,11 @@ export default function OrderDetail() {
 								<div className='self-stretch flex flex-col justify-start items-start gap-1'>
 									<div
 										className={
-											orderStatusMapper[orderDetail.status].headerStyle +
+											(orderStatusMapper[orderDetail.status]?.headerStyle || '') +
 											" justify-start text-2xl font-medium font-['Noto_Sans_TC'] leading-10 border-none"
 										}
 									>
-										{orderStatusMapper[orderDetail.status].headerLabel}
+										{orderStatusMapper[orderDetail.status]?.headerLabel}
 									</div>
 									{orderDetail.status === OrderStatus.PENDING_DEPOSIT && (
 										<div className='inline-flex justify-start items-center gap-1'>
@@ -365,7 +376,7 @@ export default function OrderDetail() {
 													</svg>
 												</div>
 												<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
-													{coursePlan.number}堂{courseTypeMap[courseDetail.type]}
+													{coursePlan?.number}堂{courseTypeMap[courseDetail?.type]}
 												</div>
 											</div>
 											<div data-svg-wrapper>

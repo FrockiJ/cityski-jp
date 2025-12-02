@@ -20,6 +20,7 @@ import {
   GetOrdersResponseDTO,
   OrderReservationResponseDto,
   ResWithPaginationDTO,
+  CancelOrderRequestDto,
 } from '@repo/shared';
 import { ClientAuthGuard } from 'src/guards/client-auth.guard';
 import { CustomRequest } from 'src/shared/interfaces/custom-request';
@@ -99,6 +100,20 @@ export class OrdersController {
     const memberId = request['user'].sub;
     const result = await this.ordersService.createOrder(body, memberId);
     return plainToInstance(CreateOrderResponseDTO, result, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  @UseGuards(ClientAuthGuard)
+  @Post('/:id/cancel')
+  async cancelOrder(
+    @Param('id') orderId: string,
+    @Body() body: CancelOrderRequestDto,
+    @Req() request: CustomRequest,
+  ): Promise<GetOrderDetailResponseDTO> {
+    const userId = request['user'].sub;
+    const result = await this.ordersService.cancelOrder(orderId, body.reason, userId);
+    return plainToInstance(GetOrderDetailResponseDTO, result, {
       excludeExtraneousValues: true,
     });
   }

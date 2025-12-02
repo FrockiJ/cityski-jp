@@ -26,6 +26,7 @@ import { TransactionsService } from 'src/transaction/transactions.service';
 import { OrderMembersService } from 'src/order-members/order-members.service';
 import { OrderInvitationsService } from 'src/order-invitations/order-invitations.service';
 import { Reservation } from 'src/reservations/entities/reservation.entity';
+import { ReservationsService } from 'src/reservations/reservations.service';
 import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
 import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
@@ -56,6 +57,8 @@ export class OrdersService {
     private readonly orderMembersService: OrderMembersService,
     @Inject(forwardRef(() => OrderInvitationsService))
     private readonly orderInvitationsService: OrderInvitationsService,
+    @Inject(forwardRef(() => ReservationsService))
+    private readonly reservationsService: ReservationsService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -732,6 +735,181 @@ export class OrdersService {
         throw err;
       }
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  /**
+   * 取消訂單
+   * 根據訂單中的預約情況，按以下規則處理：
+   * 1. 獲取訂單的所有預約
+   * 2. 對於每個預約：
+   *    - 如果該訂單是預約中的唯一訂單 → 調用預約取消 service
+   *    - 如果預約中還有其他訂單的成員 → 只移除該訂單成員的預約記錄
+   * 3. 只有在所有預約都被取消或沒有預約時，才更新訂單狀態為 ORDER_CANCELED
+   * 4. 記錄取消原因、時間和操作者
+   */
+  async cancelOrder(
+    orderId: string,
+    reason: string,
+    userId: string,
+  ): Promise<Order> {
+    // console.log(`[cancelOrder] 開始取消訂單 - orderId: ${orderId}, userId: ${userId}, reason: ${reason}`);
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. 驗證訂單存在且有效
+      // console.log(`[cancelOrder] 1️⃣ 查詢訂單信息...`);
+      const order = await queryRunner.manager.findOne(Order, {
+        where: { id: orderId },
+        relations: ['orderReservations', 'orderReservations.reservation', 'orderReservations.reservation.reservationMembers', 'orderReservations.reservation.reservationMembers.orderMember', 'orderReservations.reservation.reservationMembers.orderMember.order'],
+      });
+
+      if (!order) {
+        await queryRunner.rollbackTransaction();
+        // console.error(`[cancelOrder] ❌ 訂單不存在 - orderId: ${orderId}`);
+        throw new CustomException(
+          `Order with id: ${orderId} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      // console.log(`[cancelOrder] ✅ 訂單找到 - 訂單ID: ${order.id}, 訂單狀態: ${order.status}, 訂購人: ${order.orderer}`);
+
+      // 驗證訂單狀態：只能取消 PENDING_DEPOSIT, WAITING_FOR_CONFIRMATION, ORDER_SUCCESSFUL 的訂單
+      const cancelableStatuses = [
+        OrderStatus.PENDING_DEPOSIT,
+        OrderStatus.WAITING_FOR_CONFIRMATION,
+        OrderStatus.ORDER_SUCCESSFUL,
+      ];
+
+      if (!cancelableStatuses.includes(order.status)) {
+        await queryRunner.rollbackTransaction();
+        // console.error(`[cancelOrder] ❌ 訂單狀態不可取消 - 當前狀態: ${order.status}`);
+        throw new CustomException(
+          `Only pending or successful orders can be canceled. Current status: ${order.status}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      // console.log(`[cancelOrder] ✅ 訂單狀態可以取消`);
+
+      // 驗證權限：只允許訂單所有者取消
+      if (order.orderer !== userId) {
+        await queryRunner.rollbackTransaction();
+        // console.error(`[cancelOrder] ❌ 無權限 - 訂購人: ${order.orderer}, 操作人: ${userId}`);
+        throw new CustomException(
+          'You do not have permission to cancel this order',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+      // console.log(`[cancelOrder] ✅ 用戶有權限取消訂單`);
+
+      // 2. 獲取訂單的所有預約
+      const orderReservations = order.orderReservations || [];
+      // console.log(`[cancelOrder] 2️⃣ 獲取訂單預約 - 預約數量: ${orderReservations.length}`);
+      let allReservationsCanceled = true;
+
+      // 3. 對每個預約進行處理
+      // console.log(`[cancelOrder] 3️⃣ 開始處理每個預約...`);
+      for (let i = 0; i < orderReservations.length; i++) {
+        const orderReservation = orderReservations[i];
+        const reservation = orderReservation.reservation;
+        // console.log(`[cancelOrder] 📋 預約 ${i + 1}/${orderReservations.length} - 預約ID: ${reservation?.id}`);
+
+        if (!reservation) {
+          // console.warn(`[cancelOrder] ⚠️ 預約不存在，跳過`);
+          continue;
+        }
+
+        const reservationMembers = reservation.reservationMembers || [];
+        // console.log(`[cancelOrder] 預約成員數量: ${reservationMembers.length}`);
+
+        // a. 檢查該訂單是否為預約的唯一訂單
+        // 獲取所有預約成員及其對應的訂單ID
+        const orderIdsInReservation = new Set<string>();
+        for (let j = 0; j < reservationMembers.length; j++) {
+          const rm = reservationMembers[j];
+          // console.log(`[cancelOrder] 預約成員 ${j + 1}/${reservationMembers.length}:`);
+          // console.log(`  - ID: ${rm.id}`);
+          // console.log(`  - orderMemberId: ${rm.orderMemberId}`);
+          // console.log(`  - orderMember 是否存在: ${rm.orderMember ? '是' : '否'}`);
+
+          if (rm.orderMember) {
+            // console.log(`    - orderMember.id: ${rm.orderMember.id}`);
+            // console.log(`    - orderMember.orderId: ${rm.orderMember.orderId}`);
+            if (rm.orderMember.order) {
+              // console.log(`    - orderMember.order.id: ${rm.orderMember.order.id}`);
+              orderIdsInReservation.add(rm.orderMember.order.id);
+            }
+          }
+        }
+
+        // 檢查是否只有當前訂單
+        const isOnlyOrder = orderIdsInReservation.size === 1 && orderIdsInReservation.has(orderId);
+        // console.log(`[cancelOrder] 找到的訂單ID集合: [${Array.from(orderIdsInReservation).join(', ')}]`);
+        // console.log(`[cancelOrder] 不同訂單數量: ${orderIdsInReservation.size}, 當前訂單ID: ${orderId}, 是否唯一訂單: ${isOnlyOrder}`);
+
+        if (isOnlyOrder) {
+          // b. 如果該訂單是預約的唯一訂單 → 調用預約取消 service
+          // console.log(`[cancelOrder] 🔄 該訂單是預約的唯一訂單，準備取消預約...`);
+          try {
+            await this.reservationsService.cancelReservation(reservation.id, reason, userId);
+            // console.log(`[cancelOrder] ✅ 預約已取消 - 預約ID: ${reservation.id}`);
+          } catch (err) {
+            // 如果預約已經被取消或不能取消，記錄但不中斷流程
+            // console.error(`[cancelOrder] ❌ 預約取消失敗 - 預約ID: ${reservation.id}, 錯誤: ${err.message}`);
+          }
+        } else {
+          // c. 如果預約中還有其他訂單的成員 → 只移除該訂單成員的預約記錄
+          // console.log(`[cancelOrder] 🗑️ 預約中還有其他訂單，只移除該訂單的成員記錄...`);
+          const orderMembersToRemove = reservationMembers.filter(
+            (rm) => rm.orderMember?.order?.id === orderId,
+          );
+          // console.log(`[cancelOrder] 要移除的成員數量: ${orderMembersToRemove.length}`);
+
+          for (const rm of orderMembersToRemove) {
+            await queryRunner.manager.remove(ReservationMember, rm);
+            // console.log(`[cancelOrder] ✅ 已移除預約成員 - 成員ID: ${rm.id}`);
+          }
+
+          // 預約保持原樣，標記為未完全取消
+          allReservationsCanceled = false;
+        }
+      }
+
+      // 4. 根據預約情況決定是否更新訂單狀態
+      // console.log(`[cancelOrder] 4️⃣ 檢查是否更新訂單狀態 - 所有預約已取消: ${allReservationsCanceled}, 預約數量: ${orderReservations.length}`);
+      if (allReservationsCanceled || orderReservations.length === 0) {
+        // console.log(`[cancelOrder] 📝 將訂單狀態更新為 ORDER_CANCELED`);
+        order.status = OrderStatus.ORDER_CANCELED;
+      } else {
+        // console.log(`[cancelOrder] ⚠️ 還有預約保留，訂單狀態保持不變`);
+      }
+
+      // 5. 記錄取消信息
+      // console.log(`[cancelOrder] 5️⃣ 記錄取消信息...`);
+      order.cancelReason = reason;
+      order.cancelledBy = userId;
+
+      // 6. 保存訂單
+      // console.log(`[cancelOrder] 6️⃣ 保存訂單...`);
+      const savedOrder = await queryRunner.manager.save(Order, order);
+      // console.log(`[cancelOrder] ✅ 訂單已保存 - 新狀態: ${savedOrder.status}`);
+
+      await queryRunner.commitTransaction();
+      // console.log(`[cancelOrder] ✅ 事務已提交 - 取消成功！`);
+      return savedOrder;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      // console.error(`[cancelOrder] ❌ 發生錯誤，事務已回滾 - 錯誤: ${err.message}`);
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    } finally {
+      await queryRunner.release();
+      // console.log(`[cancelOrder] 🔌 數據庫連接已釋放`);
     }
   }
 }

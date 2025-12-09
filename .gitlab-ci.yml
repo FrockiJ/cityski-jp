@@ -64,28 +64,24 @@ stages:
     - set -e
     - export DOCKER_CLIENT_TIMEOUT=300
     - export COMPOSE_HTTP_TIMEOUT=300
-    - docker-compose push client &
-    - docker-compose push admin &
-    - docker-compose push server &
-    - wait
     - |
       ERROR_FLAG="/tmp/push_error_${ENV}_${CI_PIPELINE_ID}_$$"
       rm -f "$ERROR_FLAG"
-      
+
       # Define the error handling function
       handle_error() {
         touch "$ERROR_FLAG"
         echo "Error detected in container push!"
       }
-      
-      # Push the server container (add more containers as needed)
-      docker-compose -f ./docker-compose-build.yml push client || handle_error &
-      docker-compose -f ./docker-compose-build.yml push admin || handle_error &
-      docker-compose -f ./docker-compose-build.yml push server || handle_error &
-      
+
+      # Push containers with error handling
+      docker-compose -f ./docker-compose.yml push client || handle_error &
+      docker-compose -f ./docker-compose.yml push admin || handle_error &
+      docker-compose -f ./docker-compose.yml push server || handle_error &
+
       # Wait for all background tasks to complete
       wait
-      
+
       # Check if any error occurred
       if [ -f "$ERROR_FLAG" ]; then
         echo "One or more container pushes failed!"

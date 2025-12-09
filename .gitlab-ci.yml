@@ -35,6 +35,8 @@ stages:
 .job_build_uat:
   stage: build
   script:
+    - export DOCKER_BUILDKIT=1
+    - export COMPOSE_DOCKER_CLI_BUILD=1
     - whoami
     - id
     - df -h | grep -E "(ubuntu--vg-ubuntu--lv|Filesystem)"

@@ -35,8 +35,6 @@ stages:
 .job_build_uat:
   stage: build
   script:
-    - export DOCKER_BUILDKIT=1
-    - export COMPOSE_DOCKER_CLI_BUILD=1
     - whoami
     - id
     - df -h | grep -E "(ubuntu--vg-ubuntu--lv|Filesystem)"
@@ -55,7 +53,7 @@ stages:
     - cp /home/gitlab-runner/pj-devops/${PJ_NAME}/${ENV}/Dockerfile.admin Dockerfile.admin
     - cp /home/gitlab-runner/pj-devops/${PJ_NAME}/${ENV}/Dockerfile.client Dockerfile.client
     - cp /home/gitlab-runner/pj-devops/${PJ_NAME}/${ENV}/docker-compose-build.yml docker-compose.yml
-    - docker-compose -f ./docker-compose.yml build --progress=plain --compress --force-rm --parallel --no-cache
+    - docker-compose -f ./docker-compose.yml build --force-rm --no-cache
     - eval "$(cat /home/gitlab-runner/ci-vault/sdlc/ci-dockerhub-self.sh)"
     - docker logout
     - eval "$(cat /home/gitlab-runner/ci-vault/cloud-aws/${PJ_NAME}/${ENV}/aws_access)"
@@ -70,6 +68,30 @@ stages:
     - docker-compose push admin &
     - docker-compose push server &
     - wait
+    - |
+      ERROR_FLAG="/tmp/push_error_${ENV}_${CI_PIPELINE_ID}_$$"
+      rm -f "$ERROR_FLAG"
+      
+      # Define the error handling function
+      handle_error() {
+        touch "$ERROR_FLAG"
+        echo "Error detected in container push!"
+      }
+      
+      # Push the server container (add more containers as needed)
+      docker-compose -f ./docker-compose-build.yml push client || handle_error &
+      docker-compose -f ./docker-compose-build.yml push admin || handle_error &
+      docker-compose -f ./docker-compose-build.yml push server || handle_error &
+      
+      # Wait for all background tasks to complete
+      wait
+      
+      # Check if any error occurred
+      if [ -f "$ERROR_FLAG" ]; then
+        echo "One or more container pushes failed!"
+        exit 1
+      fi
+      echo "All container pushes completed successfully!"
 
 
 

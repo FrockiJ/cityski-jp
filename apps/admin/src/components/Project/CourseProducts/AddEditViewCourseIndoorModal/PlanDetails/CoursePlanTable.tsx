@@ -247,7 +247,7 @@ const CoursePlanTable = ({
 										// },
 									}}
 								>
-									{planList
+									{[...planList]
 										.sort((a, b) => a.sequence - b.sequence)
 										.map((item, index) => {
 											// console.log(item);

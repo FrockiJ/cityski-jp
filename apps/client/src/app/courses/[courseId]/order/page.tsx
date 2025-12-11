@@ -126,11 +126,15 @@ function OrderConfirmationPage() {
 					}),
 				);
 
+				// 計算總金額（包含所有參與者和堂數）
+				const totalAmount = plan.price * (plan.number || 1) * formData.participants.adult +
+				                   plan.price * (plan.number || 1) * formData.participants.minor;
+
 				// 根據付款方式判斷流程
 				if (paymentMethod === 'credit') {
-					console.log('Credit card payment - orderId:', orderId, 'amount:', plan.price);
+					console.log('Credit card payment - orderId:', orderId, 'totalAmount:', totalAmount);
 					// 跳轉到 ECPay 支付頁面
-					await initiateCreditCardPayment(orderId, plan.price);
+					await initiateCreditCardPayment(orderId, totalAmount);
 				} else if (paymentMethod === 'atm') {
 					console.log('使用ATM轉帳付款 - 直接跳轉到成功頁面');
 					// ATM 轉帳直接跳轉到成功頁面

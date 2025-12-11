@@ -27,25 +27,15 @@ const CourseDetailPage = () => {
 
 	useEffect(() => {
 		const createOrderSuccess = localStorage.getItem('createOrderSuccess');
-		console.log('📦 localStorage createOrderSuccess:', createOrderSuccess);
-
 		if (createOrderSuccess) {
-			const parsedData = JSON.parse(createOrderSuccess);
-			const { courseDetail, order, department, plan, formData } = parsedData;
-
-			console.log('✅ Parsed data:', parsedData);
-			console.log('📋 Order object:', order);
-			console.log('🆔 Order ID:', order?.id);
-
+			const { courseDetail, order, department, plan, formData } = JSON.parse(createOrderSuccess);
 			setCourseDetail(courseDetail);
 			setDepartment(department);
 			setPlan(plan);
 			setFormData(formData);
 			setImages(courseDetail?.attachments.map((image) => process.env.NEXT_PUBLIC_AWS_S3_URL + image.key));
 			setOrderId(order?.id || null);
-
 		} else {
-			console.log('❌ No createOrderSuccess in localStorage, redirecting to /courses');
 			router.push('/courses');
 		}
 	}, [router]);
@@ -117,16 +107,7 @@ const CourseDetailPage = () => {
 							</Button>
 							<button
 								className='overflow-hidden gap-2.5 self-stretch px-6 py-5 max-w-full text-base font-bold text-white whitespace-nowrap rounded-lg bg-[linear-gradient(99deg,#FE696C_0%,#FD8E4B_100%)] w-full max-xs:px-5 transition-all duration-300 hover:opacity-90 hover:shadow-lg'
-								onClick={() => {
-									console.log('🔘 檢視我的訂單 button clicked');
-									console.log('🆔 Current orderId:', orderId);
-									if (orderId) {
-										console.log(`✈️ Navigating to /order/${orderId}`);
-										router.push(`/order/${orderId}`);
-									} else {
-										console.log('⚠️ orderId is null, cannot navigate');
-									}
-								}}
+								onClick={() => orderId && router.push(`/order/${orderId}`)}
 								aria-label='檢視我的訂單'
 							>
 								檢視我的訂單

@@ -118,7 +118,7 @@ function OrderConfirmationPage() {
 					'createOrderSuccess',
 					JSON.stringify({
 						courseDetail: courseDetail,
-						order: body,
+						order: orderData?.result,
 						department: department,
 						plan: plan,
 						formData,

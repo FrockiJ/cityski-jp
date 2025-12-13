@@ -133,6 +133,59 @@ export class TransactionsService {
     }
   }
 
+  // pay deposit by order number (called by ECPay callback)
+  async payDepositByOrderNo(orderNo: string) {
+    try {
+      const order = await this.ordersRepo.findOne({
+        where: { no: orderNo },
+        relations: ['transaction'],
+      });
+
+      if (!order) {
+        throw new CustomException('Order not found', HttpStatus.NOT_FOUND);
+      }
+
+      if (!order.transaction) {
+        throw new CustomException('Transaction not found', HttpStatus.NOT_FOUND);
+      }
+
+      const transaction = order.transaction;
+
+      // Validate current status
+      if (transaction.status !== TransactionStatus.PENDING_DEPOSIT) {
+        throw new CustomException(
+          'Deposit has already been paid',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Update transaction status to PENDING_FULL_PAYMENT
+      transaction.status = TransactionStatus.PENDING_FULL_PAYMENT;
+      transaction.depositDate = new Date();
+
+      await this.transactionsRepo.save(transaction);
+
+      // Update order status
+      order.status = 2;
+      await this.ordersRepo.save(order);
+
+      return {
+        success: true,
+        message: 'Deposit paid successfully',
+        data: {
+          transactionId: transaction.id,
+          status: transaction.status,
+          depositDate: transaction.depositDate,
+        },
+      };
+    } catch (err) {
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   async settleTransaction(orderId: string, balanceDate: Date, paymentMethod: string, invoice?: string) {
     try {
       const order = await this.ordersRepo.findOne({

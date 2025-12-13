@@ -104,17 +104,39 @@ export class OrdersController {
   }
 
   /**
-   * 信用卡支付回調處理
-   * POST /api/orders/credit-card/callback
+   * 查詢訂單支付狀態
+   * GET /api/orders/:orderNo/payment-status
    */
-  @Post('credit-card/callback')
-  async handleCreditCardCallback(
-    @Body() paymentResult: any,
-  ) {
-    // TODO: 根據實際的 paymentResult 結構進行處理
-    this.logger.log(
-      `[CREDIT CARD CALLBACK] Received payment result: ${JSON.stringify(paymentResult)}`,
-    );
-    return { success: true };
+  @Get(':orderNo/payment-status')
+  async getPaymentStatus(@Param('orderNo') orderNo: string) {
+    try {
+      const order = await this.ordersService.getOrderByOrderNo(orderNo);
+
+      if (!order) {
+        return {
+          success: false,
+          error: 'Order not found',
+        };
+      }
+
+      const depositPaid = order.transaction?.status >= 1;
+
+      return {
+        success: true,
+        data: {
+          orderNo: order.no,
+          orderId: order.id,
+          orderStatus: order.status,
+          transactionStatus: order.transaction?.status,
+          depositPaid,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get payment status: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
   }
 }

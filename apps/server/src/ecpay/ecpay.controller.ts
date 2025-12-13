@@ -36,14 +36,8 @@ export class EcpayController {
       // TODO:
       // 驗證訂單? 驗證金額?
 
-      // 設置後端 callback URL
-      const callbackUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4040'}/api/orders/credit-card/callback`;
-
       // 初始化支付
-      const result = await this.ecpayService.initializeCreditCardPayment({
-        ...request,
-        callbackUrl,
-      });
+      const result = await this.ecpayService.initializeCreditCardPayment(request);
 
       if (!result.success) {
         throw new InternalServerErrorException(result.error);

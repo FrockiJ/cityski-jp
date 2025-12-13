@@ -143,6 +143,20 @@ export class OrdersService {
     }
   }
 
+  // get order by order number
+  async getOrderByOrderNo(orderNo: string): Promise<Order | null> {
+    try {
+      const order = await this.ordersRepo.findOne({
+        where: { no: orderNo },
+        relations: ['transaction', 'member', 'coursePlan', 'department'],
+      });
+
+      return order;
+    } catch (err) {
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   // get order detail by id
   async getOrderDetail(id: string): Promise<GetOrderDetailResponseDTO> {
     try {

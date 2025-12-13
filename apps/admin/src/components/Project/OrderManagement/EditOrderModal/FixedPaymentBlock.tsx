@@ -146,20 +146,6 @@ const FixedPaymentBlock = ({ orderDetail, handleRefresh }: Props) => {
 					</Typography>
 				</Stack>
 
-				{/* ============ DEV ONLY - REMOVE BEFORE PRODUCTION ============ */}
-				{isPendingDeposit && (
-					<Stack direction='row' justifyContent='space-between' mt='22px'>
-						<CoreButton
-							color='warning'
-							variant='outlined'
-							width='100%'
-							label='付訂金 for dev'
-							onClick={handlePayDepositForDev}
-						/>
-					</Stack>
-				)}
-				{/* ============================================================ */}
-
 				{
 					!isPendingDeposit && !isFullyPaid
 						? <Stack direction='row' justifyContent='space-between' mt='22px'>

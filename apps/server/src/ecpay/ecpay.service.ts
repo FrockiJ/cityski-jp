@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EcpayConfig } from './ecpay.config';
 import { EcpayCryptoService } from './ecpay-crypto.service';
+import { TransactionsService } from '../transaction/transactions.service';
 import {
   CreditCardPaymentInitializeRequest,
   CreditCardPaymentInitializeResponse,
@@ -11,11 +12,11 @@ import {
 @Injectable()
 export class EcpayService {
   private readonly logger = new Logger(EcpayService.name);
-  private paymentCallbacks: Map<string, string> = new Map(); // merchantTradeNo => callbackUrl
 
   constructor(
     private ecpayConfig: EcpayConfig,
     private cryptoService: EcpayCryptoService,
+    private transactionsService: TransactionsService,
   ) {}
 
   /**
@@ -52,11 +53,6 @@ export class EcpayService {
       // 生成表單 HTML
       const formHtml = this.generateFormHtml(paymentParams);
 
-      // 保存 callbackUrl
-      if (request.callbackUrl) {
-        this.paymentCallbacks.set(merchantTradeNo, request.callbackUrl);
-      }
-
       return {
         success: true,
         formHtml,
@@ -78,17 +74,23 @@ export class EcpayService {
   async handlePaymentCallback(
     notification: EcpayCallbackNotification,
   ): Promise<{ success: boolean; redirectUrl?: string }> {
+    this.logger.log('========================================');
+    this.logger.log('[CALLBACK START] Processing ECPay payment callback');
+    this.logger.log('========================================');
+
     try {
       // 記錄接收到的 callback 資訊
       this.logger.log(
         `[CALLBACK RECEIVED] MerchantTradeNo: ${notification.MerchantTradeNo}, RtnCode: ${notification.RtnCode}, TradeNo: ${notification.TradeNo}`,
       );
-      this.logger.debug(`[CALLBACK DATA] ${JSON.stringify(notification)}`);
+      this.logger.debug(`[CALLBACK DATA] Full notification: ${JSON.stringify(notification)}`);
 
       // 驗證 CheckMacValue
+      this.logger.log('[CALLBACK STEP 1] Verifying CheckMacValue...');
       const receivedCheckMacValue = notification.CheckMacValue;
       const isCheckMacValid = this.cryptoService.verifyCheckMacValue(notification, receivedCheckMacValue);
 
+      // TODO:
       // if (!isCheckMacValid) {
       //   this.logger.error('[CALLBACK FAILED] CheckMacValue verification failed');
       //   return {
@@ -96,9 +98,10 @@ export class EcpayService {
       //     redirectUrl: `${this.ecpayConfig.clientDomain}/courses/order-error`,
       //   };
       // }
-      this.logger.log('[CALLBACK] CheckMacValue verification passed');
+      // this.logger.log('[CALLBACK STEP 1] ✓ CheckMacValue verification passed');
 
       // 驗證 MerchantID
+      this.logger.log(`[CALLBACK STEP 2] Verifying MerchantID (Expected: ${this.ecpayConfig.merchantId}, Received: ${notification.MerchantID})`);
       if (notification.MerchantID !== this.ecpayConfig.merchantId) {
         this.logger.error(`[CALLBACK FAILED] Invalid MerchantID: ${notification.MerchantID}`);
         return {
@@ -106,8 +109,10 @@ export class EcpayService {
           redirectUrl: `${this.ecpayConfig.clientDomain}/courses/order-error`,
         };
       }
+      this.logger.log('[CALLBACK STEP 2] ✓ MerchantID verification passed');
 
       // 建立支付結果
+      this.logger.log('[CALLBACK STEP 3] Building payment result object...');
       const paymentResult: PaymentResult = {
         orderId: notification.CustomField2 || notification.MerchantTradeNo,
         transactionId: notification.CustomField1 || '',
@@ -120,29 +125,36 @@ export class EcpayService {
       };
 
       this.logger.log(
-        `[CALLBACK SUCCESS] OrderId: ${paymentResult.orderId}, Amount: ${paymentResult.amount}, Status: ${paymentResult.status}`,
+        `[CALLBACK STEP 3] ✓ Payment result built - OrderId: ${paymentResult.orderId}, Amount: ${paymentResult.amount}, Status: ${paymentResult.status}`,
       );
+      this.logger.log(`[CALLBACK STEP 3] Payment result details: ${JSON.stringify(paymentResult)}`);
 
-      // 調用已註冊的 callbackUrl（如果有）
-      const callbackUrl = this.paymentCallbacks.get(notification.MerchantTradeNo);
-      if (callbackUrl) {
-        try {
-          this.logger.log(`[CALLBACK] Invoking callback URL: ${callbackUrl}`);
-          await this.invokeCallbackUrl(callbackUrl, paymentResult);
-          this.logger.log('[CALLBACK] Callback URL invoked successfully');
-        } catch (error) {
-          this.logger.error(`[CALLBACK FAILED] Callback invocation failed: ${error.message}`);
-        }
+      // 直接調用 TransactionsService 更新訂單狀態
+      this.logger.log('[CALLBACK STEP 4] Updating order payment status...');
+      try {
+        await this.transactionsService.payDepositByOrderNo(notification.MerchantTradeNo);
+        this.logger.log('[CALLBACK STEP 4] ✓ Order payment status updated successfully');
+      } catch (error) {
+        this.logger.error(`[CALLBACK STEP 4] ✗ Failed to update order status: ${error.message}`);
+        this.logger.error(`[CALLBACK STEP 4] Error stack: ${error.stack}`);
+        throw error; // 拋出錯誤，讓外層 catch 處理
       }
-      // 移除已使用的 callback
-      this.paymentCallbacks.delete(notification.MerchantTradeNo);
+
+      const redirectUrl = `${this.ecpayConfig.clientDomain}/courses/order-result`;
+      this.logger.log(`[CALLBACK SUCCESS] Payment callback processed successfully. Redirect URL: ${redirectUrl}`);
+      this.logger.log('========================================');
+      this.logger.log('[CALLBACK END] ECPay payment callback completed');
+      this.logger.log('========================================');
 
       return {
         success: true,
-        redirectUrl: `${this.ecpayConfig.clientDomain}/courses/order-result`,
+        redirectUrl,
       };
     } catch (error) {
-      this.logger.error(`[CALLBACK FAILED] Payment callback processing error: ${error.message}`, error.stack);
+      this.logger.error('========================================');
+      this.logger.error(`[CALLBACK FAILED] Payment callback processing error: ${error.message}`);
+      this.logger.error(`[CALLBACK FAILED] Error stack: ${error.stack}`);
+      this.logger.error('========================================');
       return {
         success: false,
         redirectUrl: `${this.ecpayConfig.clientDomain}/courses/order-error`,
@@ -150,47 +162,6 @@ export class EcpayService {
     }
   }
 
-  /**
-   * 調用 callback URL
-   */
-  private async invokeCallbackUrl(
-    callbackUrl: string,
-    paymentResult: PaymentResult,
-  ): Promise<void> {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 秒超時
-
-      const response = await fetch(callbackUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(paymentResult),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (response.status < 200 || response.status >= 300) {
-        throw new Error(
-          `Callback URL returned status ${response.status}`,
-        );
-      }
-
-      this.logger.log(
-        `Callback URL returned: ${response.status}`,
-      );
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          throw new Error(`Callback URL timeout after 10 seconds`);
-        }
-        throw new Error(`Callback URL failed: ${error.message}`);
-      }
-      throw error;
-    }
-  }
 
   /**
    * 取得當前時間戳，格式: yyyy/MM/dd HH:mm:ss

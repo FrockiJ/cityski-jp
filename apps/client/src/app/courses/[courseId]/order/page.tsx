@@ -26,6 +26,13 @@ function OrderConfirmationPage() {
 	const [timestamp, setTimestamp] = useState<number>();
 	const [paymentMethod, setPaymentMethod] = useState<'credit' | 'atm'>('credit');
 
+	// 支付輪詢相關狀態
+	const [isPolling, setIsPolling] = useState(false);
+	const [pollCount, setPollCount] = useState(0);
+	const [orderNo, setOrderNo] = useState<string | null>(null);
+	const MAX_POLL_COUNT = 30 * 15; // 15 分鐘
+	const POLL_INTERVAL = 2000; // 2 秒
+
 	const authToken = useSelector(selectToken);
 	const discount = useSelector(selectDiscount);
 
@@ -48,12 +55,10 @@ function OrderConfirmationPage() {
 			const { courseId, formData, timestamp } = JSON.parse(courseOrderData);
 			setFormData(formData);
 			setTimestamp(timestamp);
-			console.log(courseId, formData, timestamp);
 			const getCourseDetail = async (id: string) => {
 				const response = await axios.get<ResponseWrapper<GetCourseDetailResponseDTO>>(
 					`/api/courses/client/${id}/detail`,
 				);
-				// console.log('response courses', response);
 				if (response.status === 200 && response.data?.result) {
 					setCourseDetail(response.data.result);
 					if (formData?.plan) {
@@ -68,19 +73,84 @@ function OrderConfirmationPage() {
 	}, [router, departmentFromRedux]);
 
 	useEffect(() => {
-		if (courseDetail) {
-			console.log('courseDetail updated:', courseDetail);
-		}
-	}, [courseDetail]);
-
-	console.log('department', department);
-
-	useEffect(() => {
 		// Cleanup function to clear discount when leaving the page
 		return () => {
 			dispatch(setDiscount(null));
 		};
 	}, [dispatch]);
+
+	// 輪詢支付狀態
+	useEffect(() => {
+		if (!orderNo || !isPolling) {
+			return;
+		}
+
+		let timeoutId: NodeJS.Timeout;
+		let isMounted = true;
+		let currentPollCount = 0;
+
+		const checkPaymentStatus = async () => {
+			if (!isMounted) {
+				return;
+			}
+
+			currentPollCount++;
+
+			try {
+				const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4040'}/api/orders/${orderNo}/payment-status`;
+				const response = await fetch(apiUrl);
+				const result = await response.json();
+
+				// Handle NestJS global interceptor wrapper
+				const paymentData = result.result || result;
+
+				if (paymentData.success && paymentData.data) {
+					const { depositPaid, orderStatus } = paymentData.data;
+
+					// 支付成功
+					if (depositPaid) {
+						setIsPolling(false);
+						router.push('/courses/order-success');
+						return;
+					}
+
+					// 訂單被取消
+					if (orderStatus === OrderStatus.ORDER_CANCELED) {
+						setIsPolling(false);
+						alert('訂單已取消');
+						return;
+					}
+				}
+			} catch (error) {
+				console.error('Payment polling error:', error);
+			}
+
+			// 檢查是否達到最大輪詢次數
+			if (currentPollCount >= MAX_POLL_COUNT) {
+				setIsPolling(false);
+				setPollCount(currentPollCount);
+				alert('支付驗證超時，請稍後查看訂單狀態');
+				return;
+			}
+
+			// 繼續輪詢
+			setPollCount(currentPollCount);
+			timeoutId = setTimeout(() => {
+				if (isMounted) {
+					checkPaymentStatus();
+				}
+			}, POLL_INTERVAL);
+		};
+
+		checkPaymentStatus();
+
+		return () => {
+			isMounted = false;
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+			}
+		};
+	}, [orderNo, isPolling, router]);
 
 	const handleSubmit = async () => {
 		const body = {
@@ -132,11 +202,13 @@ function OrderConfirmationPage() {
 
 				// 根據付款方式判斷流程
 				if (paymentMethod === 'credit') {
-					console.log('Credit card payment - orderId:', orderId, 'totalAmount:', totalAmount);
+					// 設定訂單號並開始輪詢
+					setOrderNo(orderId);
+					setIsPolling(true);
+
 					// 跳轉到 ECPay 支付頁面
 					await initiateCreditCardPayment(orderId, totalAmount);
 				} else if (paymentMethod === 'atm') {
-					console.log('使用ATM轉帳付款 - 直接跳轉到成功頁面');
 					// ATM 轉帳直接跳轉到成功頁面
 					router.push(`/courses/order-success`);
 				}

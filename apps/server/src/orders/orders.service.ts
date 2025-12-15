@@ -119,7 +119,7 @@ export class OrdersService {
         (order) => ({
           ...order,
           courseName: order.coursePlan?.name || '課程名稱',
-          price: order.coursePlan?.price || 0,
+          price: order.transaction?.totalAmt || 0,
           paymentStatus: order.transaction?.status || 0,
           number: order.planNumber,
           people: order.adultCount + order.childCount,
@@ -284,7 +284,7 @@ export class OrdersService {
         id: order.id,
         no: order.no,
         courseName: order.coursePlan?.name || '課程名稱',
-        price: order.coursePlan?.price || 0,
+        price: order.transaction?.totalAmt || 0,
         status: order.status,
         paymentStatus: order.transaction?.status || 0,
         number: order.planNumber,

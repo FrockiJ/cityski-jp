@@ -113,6 +113,8 @@ export class EcpayService {
 
       // 建立支付結果
       this.logger.log('[CALLBACK STEP 3] Building payment result object...');
+      this.logger.log(`[CALLBACK STEP 3] RtnCode type: ${typeof notification.RtnCode}, value: ${notification.RtnCode}`);
+
       const paymentResult: PaymentResult = {
         orderId: notification.CustomField2 || notification.MerchantTradeNo,
         transactionId: notification.CustomField1 || '',
@@ -120,7 +122,7 @@ export class EcpayService {
         amount: notification.TradeAmt,
         paymentMethod: 'Credit',
         paymentDate: notification.PaymentDate,
-        status: notification.RtnCode === 1 ? 'success' : 'failure',
+        status: Number(notification.RtnCode) === 1 ? 'success' : 'failure',
         merchantTradeNo: notification.MerchantTradeNo,
       };
 
@@ -131,7 +133,7 @@ export class EcpayService {
 
       // 根據 RtnCode 決定是否更新訂單狀態
       this.logger.log('[CALLBACK STEP 4] Processing payment result based on RtnCode...');
-      if (notification.RtnCode === 1) {
+      if (Number(notification.RtnCode) === 1) {
         // 支付成功：更新訂單狀態
         try {
           await this.transactionsService.payDepositByOrderNo(notification.MerchantTradeNo);

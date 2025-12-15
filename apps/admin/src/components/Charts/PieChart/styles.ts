@@ -2,8 +2,8 @@ import { Box, Card, Select } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
 export const StyledCard = styled(Card)({
-	maxWidth: 420,
 	width: '100%',
+	height: '100%',
 	borderRadius: 16,
 });
 

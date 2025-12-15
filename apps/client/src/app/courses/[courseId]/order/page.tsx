@@ -105,7 +105,7 @@ function OrderConfirmationPage() {
 				const paymentData = result.result || result;
 
 				if (paymentData.success && paymentData.data) {
-					const { depositPaid, orderStatus } = paymentData.data;
+					const { depositPaid, orderStatus, isPaymentFailed } = paymentData.data;
 
 					// 支付成功
 					if (depositPaid) {
@@ -114,10 +114,17 @@ function OrderConfirmationPage() {
 						return;
 					}
 
+					// 支付失敗（訂單超過 10 分鐘仍未支付）
+					if (isPaymentFailed) {
+						setIsPolling(false);
+						router.push('/courses/order-error?reason=payment_failed');
+						return;
+					}
+
 					// 訂單被取消
 					if (orderStatus === OrderStatus.ORDER_CANCELED) {
 						setIsPolling(false);
-						alert('訂單已取消');
+						router.push('/courses/order-error?reason=cancelled');
 						return;
 					}
 				}
@@ -129,7 +136,7 @@ function OrderConfirmationPage() {
 			if (currentPollCount >= MAX_POLL_COUNT) {
 				setIsPolling(false);
 				setPollCount(currentPollCount);
-				alert('支付驗證超時，請稍後查看訂單狀態');
+				router.push('/courses/order-error?reason=timeout');
 				return;
 			}
 

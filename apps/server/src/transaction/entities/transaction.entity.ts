@@ -61,4 +61,15 @@ export class Transaction extends UserDate {
 
   @Column({ name: 'balance_invoice', type: 'varchar', length: 50, nullable: true })
   balanceInvoice: string;
-} 
+
+  @CreateDateColumn({
+    type: 'timestamp',
+    name: 'last_payment_attempt_date',
+    default: () => 'CURRENT_TIMESTAMP(6)',
+    nullable: true,
+  })
+  lastPaymentAttemptDate: Date;
+
+  @Column({ name: 'last_payment_attempt_result', type: 'varchar', length: 20, nullable: true })
+  lastPaymentAttemptResult: string;
+}

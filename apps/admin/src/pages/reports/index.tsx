@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Box, Stack, Typography, Button } from '@mui/material';
 import { FileDownload } from '@mui/icons-material';
 
@@ -5,8 +6,37 @@ import MonthlyClassesCard from '@/components/Project/report/MonthlyClassesCard';
 import MonthlyQuotaCard from '@/components/Project/report/MonthlyQuotaCard';
 import AnnualCourseStatsCard from '@/components/Project/report/AnnualCourseStatsCard';
 import DepartmentPerformanceCard from '@/components/Project/report/DepartmentPerformanceCard';
+import ExportReportModal from '@/components/ExportReportModal';
+import InstructorScheduleModal from '@/components/InstructorScheduleModal';
+import { exportGroupList, exportInstructorSchedule } from '@/utils/http/api/reports';
 
 export default function CourseStatistics() {
+	const [exportModalOpen, setExportModalOpen] = useState(false);
+	const [instructorScheduleModalOpen, setInstructorScheduleModalOpen] = useState(false);
+
+	const handleExportConfirm = async (reportType: string) => {
+		try {
+			if (reportType === 'group-list') {
+				await exportGroupList();
+			}
+		} catch (error) {
+			console.error('匯出報表失敗:', error);
+			// 可以在這裡添加錯誤提示
+		}
+	};
+
+	const handleInstructorScheduleSelect = () => {
+		setInstructorScheduleModalOpen(true);
+	};
+
+	const handleInstructorScheduleConfirm = async (year: number, month: number) => {
+		try {
+			await exportInstructorSchedule(year, month);
+		} catch (error) {
+			console.error('匯出教練總排堂表失敗:', error);
+			// 可以在這裡添加錯誤提示
+		}
+	};
 	return (
 		<Box
 			sx={{
@@ -35,6 +65,7 @@ export default function CourseStatistics() {
 				<Button
 					variant="contained"
 					startIcon={<FileDownload />}
+					onClick={() => setExportModalOpen(true)}
 					sx={{
 						px: 2,
 						py: 0.75,
@@ -69,6 +100,21 @@ export default function CourseStatistics() {
 				<AnnualCourseStatsCard />
 				<DepartmentPerformanceCard />
 			</Stack>
+
+			{/* Export Modal */}
+			<ExportReportModal
+				open={exportModalOpen}
+				onClose={() => setExportModalOpen(false)}
+				onConfirm={handleExportConfirm}
+				onInstructorScheduleSelect={handleInstructorScheduleSelect}
+			/>
+
+			{/* Instructor Schedule Modal */}
+			<InstructorScheduleModal
+				open={instructorScheduleModalOpen}
+				onClose={() => setInstructorScheduleModalOpen(false)}
+				onConfirm={handleInstructorScheduleConfirm}
+			/>
 		</Box>
 	);
 }

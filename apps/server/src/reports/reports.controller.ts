@@ -1,6 +1,7 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Res } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { AuthGuard } from 'src/guards/auth.guard';
+import { Response } from 'express';
 
 export interface MonthlyStatsResponse {
   classesCount: number;
@@ -61,6 +62,34 @@ export class ReportsController {
     } catch (error) {
       console.error('Error in getDepartmentPerformance controller:', error);
       throw error;
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('export/group-list')
+  async exportGroupList(@Res() res: Response) {
+    console.log('GET /reports/export/group-list called');
+    try {
+      await this.reportsService.exportGroupList(res);
+    } catch (error) {
+      console.error('Error in exportGroupList controller:', error);
+      res.status(500).json({ error: 'Failed to export group list' });
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('export/instructor-schedule')
+  async exportInstructorSchedule(
+    @Res() res: Response,
+    @Query('year') year?: number,
+    @Query('month') month?: number
+  ) {
+    console.log('GET /reports/export/instructor-schedule called with:', { year, month });
+    try {
+      await this.reportsService.exportInstructorSchedule(res, year, month);
+    } catch (error) {
+      console.error('Error in exportInstructorSchedule controller:', error);
+      res.status(500).json({ error: 'Failed to export instructor schedule' });
     }
   }
 }

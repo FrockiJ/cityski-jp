@@ -10,6 +10,7 @@ export enum NavIconName {
 	PROMOTION_SETTINGS = 7,
 	CONTENT_MANAGEMENT = 8,
 	REPORTS = 9,
+	INVENTORY = 10,
 }
 
 export enum DemoNavIconName {

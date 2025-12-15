@@ -7,6 +7,7 @@ import ContentManagementIcon from '@/Icon/Nav/ContentManagementIcon';
 import CourseProductsIcon from '@/Icon/Nav/CourseProductsIcon';
 import DashboardIcon from '@/Icon/Nav/DashboardIcon';
 import FrontendMemberManagementIcon from '@/Icon/Nav/FrontendMemberManagementIcon';
+import InventoryIcon from '@/Icon/Nav/InventoryIcon';
 import NoteIcon from '@/Icon/Nav/NoteIcon';
 import OrderManagementIcon from '@/Icon/Nav/OrderManagementIcon';
 import PermissionsPersonnelIcon from '@/Icon/Nav/PermissionsPersonnelIcon';
@@ -88,6 +89,9 @@ const NavItem = ({ name, path, icon, hasSubNav, subNavItem, isExpanded, onClick 
 			}
 			case NavIconName.REPORTS: {
 				return <ReportsIcon color={activeParentNav ? 'primary' : 'inherit'} />;
+			}
+			case NavIconName.INVENTORY: {
+				return <InventoryIcon color={activeParentNav ? 'primary' : 'inherit'} />;
 			}
 			default: {
 				if (subNavItem) return null;

@@ -153,4 +153,12 @@ export const menuItems = [
     status: MenuStatus.ACTIVE,
     icon: 9,
   },
+  {
+    groupName: '管理者設定',
+    name: '清冊', // Inventory/List
+    path: '/inventory',
+    sequence: 10,
+    status: MenuStatus.ACTIVE,
+    icon: 10,
+  },
 ];

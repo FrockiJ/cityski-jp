@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Reservation, ReservationStatus } from 'src/reservations/entities/reservation.entity';
 import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
+import * as ExcelJS from 'exceljs';
+import { Response } from 'express';
 
 @Injectable()
 export class ReportsService {
@@ -297,6 +299,177 @@ export class ReportsService {
         },
         months: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
       };
+    }
+  }
+
+  async exportGroupList(res: Response) {
+    try {
+      // Get reservations with available spaces (group classes with remaining capacity)
+      const reservations = await this.reservationRepository
+        .createQueryBuilder('reservation')
+        .leftJoinAndSelect('reservation.department', 'department')
+        .leftJoinAndSelect('reservation.course', 'course')
+        .leftJoinAndSelect('reservation.orderReservations', 'orderReservation')
+        .leftJoinAndSelect('orderReservation.order', 'order')
+        .leftJoinAndSelect('order.coursePlan', 'coursePlan')
+        .where('reservation.reservationStatus = :status', { 
+          status: ReservationStatus.SCHEDULED 
+        })
+        .getMany();
+
+      // Create Excel workbook
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('湊班名單');
+
+      // Add headers
+      worksheet.columns = [
+        { header: '課程名稱', key: 'courseName', width: 20 },
+        { header: '上課時間', key: 'classTime', width: 20 },
+        { header: '地點', key: 'department', width: 15 },
+        { header: '最大容量', key: 'maxCapacity', width: 10 },
+        { header: '目前人數', key: 'currentCapacity', width: 10 },
+        { header: '剩餘名額', key: 'remaining', width: 10 },
+        { header: '價格', key: 'price', width: 15 }
+      ];
+
+      // Add data
+      reservations.forEach(reservation => {
+        const coursePlan = reservation.orderReservations?.[0]?.order?.coursePlan;
+        const course = coursePlan?.course;
+        const memberCount = reservation.reservationMembers?.length || 0;
+        worksheet.addRow({
+          courseName: course?.name || coursePlan?.name || '未指定',
+          classTime: reservation.classTime?.toLocaleString() || '',
+          department: reservation.department?.name || '未指定',
+          maxCapacity: 10, // 假設最大容量為 10，實際應根據業務邏輯調整
+          currentCapacity: memberCount,
+          remaining: Math.max(0, 10 - memberCount),
+          price: coursePlan?.price || 0
+        });
+      });
+
+      // Style the headers
+      worksheet.getRow(1).font = { bold: true };
+
+      // Set response headers
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="group-list-${new Date().toISOString().split('T')[0]}.xlsx"`
+      );
+
+      // Send the file
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Error exporting group list:', error);
+      throw error;
+    }
+  }
+
+  async exportInstructorSchedule(res: Response, year?: number, month?: number) {
+    try {
+      const currentDate = new Date();
+      const targetYear = year || currentDate.getFullYear();
+      const targetMonth = month || currentDate.getMonth() + 1;
+      
+      // Calculate start and end dates for the target month
+      const monthStart = new Date(targetYear, targetMonth - 1, 1);
+      const monthEnd = new Date(targetYear, targetMonth, 0, 23, 59, 59);
+
+      // Get all reservations with instructor information for the specified month
+      const reservations = await this.reservationRepository
+        .createQueryBuilder('reservation')
+        .leftJoinAndSelect('reservation.department', 'department')
+        .leftJoinAndSelect('reservation.orderReservations', 'orderReservation')
+        .leftJoinAndSelect('orderReservation.order', 'order')
+        .leftJoinAndSelect('order.coursePlan', 'coursePlan')
+        .leftJoinAndSelect('coursePlan.course', 'course')
+        .where('reservation.reservationStatus != :canceledStatus', { 
+          canceledStatus: ReservationStatus.CANCELED 
+        })
+        .andWhere('reservation.classTime >= :monthStart', { monthStart })
+        .andWhere('reservation.classTime <= :monthEnd', { monthEnd })
+        .orderBy('instructor.username', 'ASC')
+        .addOrderBy('reservation.classTime', 'ASC')
+        .getMany();
+
+      // Create Excel workbook
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('教練總排堂表');
+
+      // Add headers
+      worksheet.columns = [
+        { header: '教練姓名', key: 'instructorName', width: 15 },
+        { header: '課程名稱', key: 'courseName', width: 20 },
+        { header: '上課時間', key: 'classTime', width: 20 },
+        { header: '地點', key: 'department', width: 15 },
+        { header: '課程類型', key: 'courseType', width: 15 },
+        { header: '學員人數', key: 'studentCount', width: 10 },
+        { header: '課程時長', key: 'duration', width: 10 },
+        { header: '狀態', key: 'status', width: 10 }
+      ];
+
+      // Add data
+      reservations.forEach(reservation => {
+        const coursePlan = reservation.orderReservations?.[0]?.order?.coursePlan;
+        const course = coursePlan?.course;
+        const memberCount = reservation.reservationMembers?.length || 0;
+        
+        worksheet.addRow({
+          instructorName: reservation.instructor || '未指定',
+          courseName: course?.name || coursePlan?.name || '未指定',
+          classTime: reservation.classTime?.toLocaleString() || '',
+          department: reservation.department?.name || '未指定',
+          courseType: this.getCourseTypeText(coursePlan?.type),
+          studentCount: memberCount,
+          duration: coursePlan?.number || 0,
+          status: this.getStatusText(reservation.reservationStatus)
+        });
+      });
+
+      // Style the headers
+      worksheet.getRow(1).font = { bold: true };
+
+      // Set response headers
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="instructor-schedule-${targetYear}-${targetMonth.toString().padStart(2, '0')}.xlsx"`
+      );
+
+      // Send the file
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Error exporting instructor schedule:', error);
+      throw error;
+    }
+  }
+
+  private getCourseTypeText(type?: number): string {
+    switch (type) {
+      case 1: return '單堂體驗';
+      case 2: return '固定堂數';
+      case 3: return '共用堂數';
+      case 4: return '一般私人課';
+      default: return '其他';
+    }
+  }
+
+  private getStatusText(status: ReservationStatus): string {
+    switch (status) {
+      case ReservationStatus.SCHEDULED: return '已排定';
+      case ReservationStatus.PENDING_REVIEW: return '待紀錄';
+      case ReservationStatus.COMPLETED: return '已完成';
+      case ReservationStatus.CANCELED: return '已取消';
+      default: return '未知';
     }
   }
 }

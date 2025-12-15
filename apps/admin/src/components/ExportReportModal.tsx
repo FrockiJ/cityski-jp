@@ -20,17 +20,25 @@ interface ExportReportModalProps {
   open: boolean;
   onClose: () => void;
   onConfirm: (reportType: string) => void;
+  onInstructorScheduleSelect: () => void;
 }
 
 const ExportReportModal: React.FC<ExportReportModalProps> = ({
   open,
   onClose,
   onConfirm,
+  onInstructorScheduleSelect,
 }) => {
   const [selectedReport, setSelectedReport] = useState('group-list');
 
   const handleConfirm = () => {
-    onConfirm(selectedReport);
+    if (selectedReport === 'instructor-schedule') {
+      // 如果選擇教練總排堂表，則打開日期選擇modal
+      onInstructorScheduleSelect();
+    } else {
+      // 其他報表類型直接匯出
+      onConfirm(selectedReport);
+    }
     onClose();
   };
 
@@ -77,7 +85,7 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 3 }}>
+      <DialogContent sx={{ p: 3,    mt: 2 }}>
         <FormControl component="fieldset" sx={{ width: '100%' }}>
           <RadioGroup
             value={selectedReport}
@@ -87,6 +95,7 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
             <Paper
               elevation={0}
               sx={{
+            
                 p: 2,
                 border: '1px solid rgba(0, 0, 0, 0.12)',
                 borderRadius: 3,

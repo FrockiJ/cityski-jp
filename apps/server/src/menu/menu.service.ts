@@ -6,11 +6,13 @@ import { menuItems } from 'src/shared/data/menu';
 import { UsersService } from 'src/users/users.service';
 import { RolesService } from 'src/roles/roles.service';
 import { DepartmentsService } from 'src/departments/departments.service';
+import { Role } from 'src/roles/entities/role.entity';
 
 @Injectable()
 export class MenuService {
   constructor(
     @InjectRepository(Menu) private readonly menuRepository: Repository<Menu>,
+    @InjectRepository(Role) private readonly roleRepository: Repository<Role>,
     @Inject(forwardRef(() => RolesService))
     private readonly rolesService: RolesService,
     @Inject(forwardRef(() => UsersService))
@@ -27,6 +29,8 @@ export class MenuService {
     setTimeout(async () => {
       await this.rolesService.initialize();
       await this.usersService.initialize();
+      // 在角色初始化後，同步選單到超級管理員
+      await this.syncMenusToSuperAdmin();
     }, 2000);
   };
   /**
@@ -101,6 +105,52 @@ export class MenuService {
       return menus;
     } catch (err) {
       throw new HttpException(err.message, 500);
+    }
+  };
+
+  /**
+   * Syncs all menus to Super Admin role automatically
+   * This ensures new menus are always available to Super Admin
+   */
+  syncMenusToSuperAdmin = async () => {
+    try {
+      // Find Super Admin role
+      const superAdminRole = await this.roleRepository.findOne({
+        where: { superAdm: 1 },
+        relations: ['menus'],
+      });
+
+      if (!superAdminRole) {
+        console.log('⚠ Super Admin role not found, skipping menu sync');
+        return;
+      }
+
+      // Get all menus (both parent and child menus)
+      const allMenus = await this.menuRepository.find();
+
+      // Get currently assigned menu IDs
+      const currentMenuIds = new Set(
+        superAdminRole.menus.map((menu) => menu.id),
+      );
+
+      // Find new menus that are not yet assigned
+      const newMenus = allMenus.filter((menu) => !currentMenuIds.has(menu.id));
+
+      if (newMenus.length === 0) {
+        console.log('✓ All menus already assigned to Super Admin');
+        return;
+      }
+
+      // Add new menus to Super Admin
+      superAdminRole.menus = [...superAdminRole.menus, ...newMenus];
+      await this.roleRepository.save(superAdminRole);
+
+      console.log(
+        `✓ Synced ${newMenus.length} new menu(s) to Super Admin:`,
+        newMenus.map((m) => m.name),
+      );
+    } catch (err) {
+      console.log('Error syncing menus to Super Admin:', err.message);
     }
   };
 }

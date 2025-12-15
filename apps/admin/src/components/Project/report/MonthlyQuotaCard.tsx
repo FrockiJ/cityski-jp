@@ -67,9 +67,11 @@ export default function MonthlyQuotaCard() {
           <Box
             sx={{
               p: 0.5,
-              bgcolor: data.quotaGrowthRate >= 0 
-                ? "rgba(34,197,94,0.16)" 
-                : "rgba(255,86,48,0.16)",
+              bgcolor: data.quotaGrowthRate === null 
+                ? "rgba(156, 163, 175, 0.16)" 
+                : data.quotaGrowthRate >= 0 
+                  ? "rgba(34,197,94,0.16)" 
+                  : "rgba(255,86,48,0.16)",
               borderRadius: "50px",
               display: "flex",
               alignItems: "center",
@@ -80,19 +82,29 @@ export default function MonthlyQuotaCard() {
               sx={{
                 width: 12,
                 height: 8,
-                bgcolor: data.quotaGrowthRate >= 0 ? "success.main" : "error.main",
+                bgcolor: data.quotaGrowthRate === null 
+                  ? "grey.400" 
+                  : data.quotaGrowthRate >= 0 ? "success.main" : "error.main",
               }}
             />
           </Box>
 
           {/* Text */}
           <Stack direction="row" spacing={0.5} alignItems="center">
-            <Typography fontSize={14} fontWeight={600}>
-              {data.quotaGrowthRate >= 0 ? "+" : ""}
-            </Typography>
-            <Typography fontSize={14} fontWeight={600}>
-              {Math.abs(data.quotaGrowthRate)}%
-            </Typography>
+            {data.quotaGrowthRate === null ? (
+              <Typography fontSize={14} fontWeight={600}>
+                NA
+              </Typography>
+            ) : (
+              <>
+                <Typography fontSize={14} fontWeight={600}>
+                  {data.quotaGrowthRate >= 0 ? "+" : ""}
+                </Typography>
+                <Typography fontSize={14} fontWeight={600}>
+                  {Math.abs(data.quotaGrowthRate)}%
+                </Typography>
+              </>
+            )}
             <Typography
               fontSize={14}
               fontWeight={400}

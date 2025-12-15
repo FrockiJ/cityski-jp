@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import { Box, CardContent, MenuItem, SelectChangeEvent, Typography } from '@mui/material';
+import { Box, CardContent, MenuItem, SelectChangeEvent, Typography, CircularProgress } from '@mui/material';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { ChartContainer, LegendContainer, LegendDot, LegendItem, StyledCard, StyledSelect } from './styles';
@@ -60,13 +60,49 @@ const stores = [
 
 const YEARS = ['2024', '2023', '2022'];
 
-export default function CustomLineChart() {
-	const [year, setYear] = useState('2024');
+interface ChartDataItem {
+	month: string;
+	[key: string]: string | number;
+}
 
-	const data = dataByYear[year];
+interface StoreConfig {
+	key: string;
+	color: string;
+}
+
+interface CustomLineChartProps {
+	data?: ChartDataItem[];
+	stores?: StoreConfig[];
+	year?: string;
+	loading?: boolean;
+	error?: boolean;
+	onYearChange?: (year: string) => void;
+}
+
+export default function CustomLineChart({ 
+	data: propData, 
+	stores: propStores, 
+	year: propYear, 
+	loading = false, 
+	error = false,
+	onYearChange 
+}: CustomLineChartProps) {
+	const [internalYear, setInternalYear] = useState('2024');
+	
+	// Use external year if provided, otherwise use internal year
+	const currentYear = propYear !== undefined ? propYear : internalYear;
+	
+	// Use external data if provided, otherwise use internal data
+	const data = propData || dataByYear[currentYear];
+	const storeConfigs = propStores || stores;
 
 	const handleYearChange = (event: SelectChangeEvent<unknown>) => {
-		setYear(event.target.value as string);
+		const newYear = event.target.value as string;
+		if (propYear === undefined) {
+			// If external year control is not provided, use internal state
+			setInternalYear(newYear);
+		}
+		onYearChange?.(newYear);
 	};
 
 	return (
@@ -78,7 +114,7 @@ export default function CustomLineChart() {
 						各部門業績
 					</Typography>
 
-					<StyledSelect value={year} onChange={handleYearChange} size='small' IconComponent={KeyboardArrowDownIcon}>
+					<StyledSelect value={currentYear} onChange={handleYearChange} size='small' IconComponent={KeyboardArrowDownIcon}>
 						{YEARS.map((y) => (
 							<MenuItem key={y} value={y}>
 								{y}
@@ -89,7 +125,7 @@ export default function CustomLineChart() {
 
 				{/* Legend */}
 				<LegendContainer>
-					{stores.map((store) => (
+					{storeConfigs.map((store) => (
 						<LegendItem key={store.key}>
 							<LegendDot dotColor={store.color} />
 							<Typography variant='body2' color='text.secondary'>
@@ -101,57 +137,68 @@ export default function CustomLineChart() {
 
 				{/* Chart */}
 				<ChartContainer>
-					<ResponsiveContainer width='100%' height='100%'>
-						<AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-							<defs>
-								{stores.map((store) => (
-									<linearGradient key={store.key} id={`gradient${store.key}`} x1='0' y1='0' x2='0' y2='1'>
-										<stop offset='5%' stopColor={store.color} stopOpacity={0.4} />
-										<stop offset='95%' stopColor={store.color} stopOpacity={0.1} />
-									</linearGradient>
-								))}
-							</defs>
-							<XAxis
-								dataKey='month'
-								axisLine={false}
-								tickLine={false}
-								tick={{ fill: '#9e9e9e', fontSize: 13 }}
-								dy={10}
-							/>
-							<YAxis
-								axisLine={false}
-								tickLine={false}
-								tick={{ fill: '#9e9e9e', fontSize: 13 }}
-								domain={[0, 100]}
-								ticks={[0, 20, 40, 60, 80, 100]}
-								dx={-10}
-							/>
-							<Tooltip
-								contentStyle={{
-									backgroundColor: '#fff',
-									border: 'none',
-									borderRadius: '8px',
-									boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-									padding: '12px 16px',
-								}}
-								labelStyle={{ color: '#424242', fontWeight: 600, marginBottom: '8px' }}
-								itemStyle={{ color: '#616161', padding: '2px 0' }}
-							/>
-
-							{stores.map((store) => (
-								<Area
-									key={store.key}
-									type='monotone'
-									dataKey={store.key}
-									stroke={store.color}
-									strokeWidth={3}
-									fill={`url(#gradient${store.key})`}
-									animationDuration={1000}
-									animationEasing='ease-out'
+					{loading ? (
+						<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+							<CircularProgress />
+						</Box>
+					) : error ? (
+						<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+							<Typography fontSize={14} color="error.main">
+								載入失敗
+							</Typography>
+						</Box>
+					) : (
+						<ResponsiveContainer width='100%' height='100%'>
+							<AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+								<defs>
+									{storeConfigs.map((store) => (
+										<linearGradient key={store.key} id={`gradient${store.key}`} x1='0' y1='0' x2='0' y2='1'>
+											<stop offset='5%' stopColor={store.color} stopOpacity={0.4} />
+											<stop offset='95%' stopColor={store.color} stopOpacity={0.1} />
+										</linearGradient>
+									))}
+								</defs>
+								<XAxis
+									dataKey='month'
+									axisLine={false}
+									tickLine={false}
+									tick={{ fill: '#9e9e9e', fontSize: 13 }}
+									dy={10}
 								/>
-							))}
-						</AreaChart>
-					</ResponsiveContainer>
+								<YAxis
+									axisLine={false}
+									tickLine={false}
+									tick={{ fill: '#9e9e9e', fontSize: 13 }}
+									domain={[0, 'dataMax + 20']}
+									dx={-10}
+								/>
+								<Tooltip
+									contentStyle={{
+										backgroundColor: '#fff',
+										border: 'none',
+										borderRadius: '8px',
+										boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+										padding: '12px 16px',
+									}}
+									labelStyle={{ color: '#424242', fontWeight: 600, marginBottom: '8px' }}
+									itemStyle={{ color: '#616161', padding: '2px 0' }}
+								/>
+
+								{storeConfigs.map((store) => (
+									<Area
+										key={store.key}
+										type='monotone'
+										dataKey={store.key}
+										stroke={store.color}
+										strokeWidth={3}
+										fill={`url(#gradient${store.key})`}
+										animationDuration={1000}
+										animationEasing='ease-out'
+									/>
+								))}
+							</AreaChart>
+						</ResponsiveContainer>
+					)}
 				</ChartContainer>
 			</CardContent>
 		</StyledCard>

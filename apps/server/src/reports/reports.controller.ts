@@ -5,8 +5,8 @@ import { AuthGuard } from 'src/guards/auth.guard';
 export interface MonthlyStatsResponse {
   classesCount: number;
   quotaAmount: number;
-  classesGrowthRate: number;
-  quotaGrowthRate: number;
+  classesGrowthRate: number | null;
+  quotaGrowthRate: number | null;
 }
 
 @Controller('reports')
@@ -28,6 +28,38 @@ export class ReportsController {
       return result;
     } catch (error) {
       console.error('Error in getMonthlyStats controller:', error);
+      throw error;
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('annual-course-stats')
+  async getAnnualCourseStats(
+    @Query('year') year?: number,
+  ) {
+    console.log('GET /reports/annual-course-stats called with:', { year });
+    try {
+      const result = await this.reportsService.getAnnualCourseStats(year);
+      console.log('Annual course stats returned:', result);
+      return result;
+    } catch (error) {
+      console.error('Error in getAnnualCourseStats controller:', error);
+      throw error;
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('department-performance')
+  async getDepartmentPerformance(
+    @Query('year') year?: number,
+  ) {
+    console.log('GET /reports/department-performance called with:', { year });
+    try {
+      const result = await this.reportsService.getDepartmentPerformance(year);
+      console.log('Department performance returned:', result);
+      return result;
+    } catch (error) {
+      console.error('Error in getDepartmentPerformance controller:', error);
       throw error;
     }
   }

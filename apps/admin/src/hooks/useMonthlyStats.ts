@@ -4,8 +4,8 @@ import { getMonthlyStats } from '@/utils/http/api/reports';
 export interface MonthlyStatsData {
   classesCount: number;
   quotaAmount: number;
-  classesGrowthRate: number;
-  quotaGrowthRate: number;
+  classesGrowthRate: number | null;
+  quotaGrowthRate: number | null;
 }
 
 interface UseMonthlyStatsReturn {

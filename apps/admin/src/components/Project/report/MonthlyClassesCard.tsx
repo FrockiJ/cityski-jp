@@ -70,9 +70,11 @@ export default function MonthlyClassesCard() {
           <Box
             sx={{
               p: 0.5,
-              bgcolor: data.classesGrowthRate >= 0 
-                ? "rgba(34,197,94,0.16)" 
-                : "rgba(255,86,48,0.16)",
+              bgcolor: data.classesGrowthRate === null 
+                ? "rgba(156, 163, 175, 0.16)" 
+                : data.classesGrowthRate >= 0 
+                  ? "rgba(34,197,94,0.16)" 
+                  : "rgba(255,86,48,0.16)",
               borderRadius: "50px",
               display: "flex",
               alignItems: "center",
@@ -83,19 +85,29 @@ export default function MonthlyClassesCard() {
               sx={{
                 width: 12,
                 height: 8,
-                bgcolor: data.classesGrowthRate >= 0 ? "success.main" : "error.main",
+                bgcolor: data.classesGrowthRate === null 
+                  ? "grey.400" 
+                  : data.classesGrowthRate >= 0 ? "success.main" : "error.main",
               }}
             />
           </Box>
 
           {/* Text */}
           <Stack direction="row" spacing={0.5} alignItems="center">
-            <Typography fontSize={14} fontWeight={600}>
-              {data.classesGrowthRate >= 0 ? "+" : ""}
-            </Typography>
-            <Typography fontSize={14} fontWeight={600}>
-              {Math.abs(data.classesGrowthRate)}%
-            </Typography>
+            {data.classesGrowthRate === null ? (
+              <Typography fontSize={14} fontWeight={600}>
+                NA
+              </Typography>
+            ) : (
+              <>
+                <Typography fontSize={14} fontWeight={600}>
+                  {data.classesGrowthRate >= 0 ? "+" : ""}
+                </Typography>
+                <Typography fontSize={14} fontWeight={600}>
+                  {Math.abs(data.classesGrowthRate)}%
+                </Typography>
+              </>
+            )}
             <Typography
               fontSize={14}
               fontWeight={400}

@@ -3,8 +3,8 @@ import { FileDownload } from '@mui/icons-material';
 
 import MonthlyClassesCard from '@/components/Project/report/MonthlyClassesCard';
 import MonthlyQuotaCard from '@/components/Project/report/MonthlyQuotaCard';
-import CustomLineChart from '@/components/Charts/LineChart';
-import CustomPieChart from '@/components/Charts/PieChart';
+import AnnualCourseStatsCard from '@/components/Project/report/AnnualCourseStatsCard';
+import DepartmentPerformanceCard from '@/components/Project/report/DepartmentPerformanceCard';
 
 export default function CourseStatistics() {
 	return (
@@ -66,12 +66,8 @@ export default function CourseStatistics() {
 
 			{/* Bottom Row - Charts */}
 			<Stack direction="row" spacing={2.5} sx={{ width: '100%' }}>
-				<Box sx={{ flex: 1 }}>
-					<CustomPieChart />
-				</Box>
-				<Box sx={{ flex: 1 }}>
-					<CustomLineChart />
-				</Box>
+				<AnnualCourseStatsCard />
+				<DepartmentPerformanceCard />
 			</Stack>
 		</Box>
 	);

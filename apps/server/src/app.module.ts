@@ -60,6 +60,7 @@ import { OrderHistory } from './order-history/entities/order-history.entity';
 import { OrderHistoryModule } from './order-history/order-history.module';
 import { OrderInvitation } from './order-invitations/entities/order-invitation.entity';
 import { OrderInvitationsModule } from './order-invitations/order-invitations.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -149,6 +150,7 @@ import { OrderInvitationsModule } from './order-invitations/order-invitations.mo
     ReservationHistoryModule,
     OrderHistoryModule,
     OrderInvitationsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
 })

@@ -1,6 +1,11 @@
-import { Box, Typography, Stack } from "@mui/material";
+import { Box, Typography, Stack, CircularProgress } from "@mui/material";
+import { useMonthlyStats } from "@/hooks/useMonthlyStats";
 
 export default function MonthlyClassesCard() {
+  const { data, loading, error } = useMonthlyStats();
+  
+  console.log('MonthlyClassesCard state:', { data, loading, error });
+  
   return (
     <Box
       sx={{
@@ -27,66 +32,80 @@ export default function MonthlyClassesCard() {
       </Typography>
 
       {/* Number */}
-      <Box sx={{ pt: 1, pb: 0.5 }}>
-        <Typography
-          component="span"
-          fontSize={30}
-          fontWeight={700}
-          lineHeight="48px"
-          color="text.primary"
-        >
-          146{" "}
-        </Typography>
-        <Typography
-          component="span"
-          fontSize={16}
-          fontWeight={600}
-          lineHeight="24px"
-          color="text.primary"
-        >
-          堂
-        </Typography>
+      <Box sx={{ pt: 1, pb: 0.5, minHeight: 60, display: 'flex', alignItems: 'center' }}>
+        {loading ? (
+          <CircularProgress size={24} />
+        ) : error ? (
+          <Typography fontSize={14} color="error.main">
+            載入失敗
+          </Typography>
+        ) : (
+          <>
+            <Typography
+              component="span"
+              fontSize={30}
+              fontWeight={700}
+              lineHeight="48px"
+              color="text.primary"
+            >
+              {data?.classesCount || 0}{" "}
+            </Typography>
+            <Typography
+              component="span"
+              fontSize={16}
+              fontWeight={600}
+              lineHeight="24px"
+              color="text.primary"
+            >
+              堂
+            </Typography>
+          </>
+        )}
       </Box>
 
       {/* Comparison */}
-      <Stack direction="row" spacing={1} alignItems="center">
-        {/* Icon */}
-        <Box
-          sx={{
-            p: 0.5,
-            bgcolor: "rgba(34,197,94,0.16)", // Success 16%
-            borderRadius: "50px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+      {!loading && !error && data && (
+        <Stack direction="row" spacing={1} alignItems="center">
+          {/* Icon */}
           <Box
             sx={{
-              width: 12,
-              height: 8,
-              bgcolor: "success.main",
+              p: 0.5,
+              bgcolor: data.classesGrowthRate >= 0 
+                ? "rgba(34,197,94,0.16)" 
+                : "rgba(255,86,48,0.16)",
+              borderRadius: "50px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
-          />
-        </Box>
-
-        {/* Text */}
-        <Stack direction="row" spacing={0.5} alignItems="center">
-          <Typography fontSize={14} fontWeight={600}>
-            +
-          </Typography>
-          <Typography fontSize={14} fontWeight={600}>
-            66.3%
-          </Typography>
-          <Typography
-            fontSize={14}
-            fontWeight={400}
-            color="text.secondary"
           >
-            相較於去年同月
-          </Typography>
+            <Box
+              sx={{
+                width: 12,
+                height: 8,
+                bgcolor: data.classesGrowthRate >= 0 ? "success.main" : "error.main",
+              }}
+            />
+          </Box>
+
+          {/* Text */}
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Typography fontSize={14} fontWeight={600}>
+              {data.classesGrowthRate >= 0 ? "+" : ""}
+            </Typography>
+            <Typography fontSize={14} fontWeight={600}>
+              {Math.abs(data.classesGrowthRate)}%
+            </Typography>
+            <Typography
+              fontSize={14}
+              fontWeight={400}
+              color="text.secondary"
+            >
+              相較於去年同月
+            </Typography>
+          </Stack>
         </Stack>
-      </Stack>
+      )}
     </Box>
   );
 }

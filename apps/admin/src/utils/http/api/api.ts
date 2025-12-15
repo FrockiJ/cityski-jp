@@ -10,3 +10,4 @@ export * from './course';
 export * from './order';
 export * from './order-member';
 export * from './reservation';
+export * from './reports';

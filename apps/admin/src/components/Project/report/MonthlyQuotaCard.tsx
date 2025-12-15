@@ -1,6 +1,8 @@
-import { Box, Typography, Stack } from "@mui/material";
+import { Box, Typography, Stack, CircularProgress } from "@mui/material";
+import { useMonthlyStats } from "@/hooks/useMonthlyStats";
 
 export default function MonthlyQuotaCard() {
+  const { data, loading, error } = useMonthlyStats();
   return (
     <Box
       sx={{
@@ -27,66 +29,80 @@ export default function MonthlyQuotaCard() {
       </Typography>
 
       {/* Number */}
-      <Box sx={{ pt: 1, pb: 0.5 }}>
-        <Typography
-          component="span"
-          fontSize={30}
-          fontWeight={700}
-          lineHeight="48px"
-          color="text.primary"
-        >
-          120,480{" "}
-        </Typography>
-        <Typography
-          component="span"
-          fontSize={16}
-          fontWeight={600}
-          lineHeight="24px"
-          color="text.primary"
-        >
-          元
-        </Typography>
+      <Box sx={{ pt: 1, pb: 0.5, minHeight: 60, display: 'flex', alignItems: 'center' }}>
+        {loading ? (
+          <CircularProgress size={24} />
+        ) : error ? (
+          <Typography fontSize={14} color="error.main">
+            載入失敗
+          </Typography>
+        ) : (
+          <>
+            <Typography
+              component="span"
+              fontSize={30}
+              fontWeight={700}
+              lineHeight="48px"
+              color="text.primary"
+            >
+              {data?.quotaAmount?.toLocaleString() || 0}{" "}
+            </Typography>
+            <Typography
+              component="span"
+              fontSize={16}
+              fontWeight={600}
+              lineHeight="24px"
+              color="text.primary"
+            >
+              元
+            </Typography>
+          </>
+        )}
       </Box>
 
       {/* Comparison */}
-      <Stack direction="row" spacing={1} alignItems="center">
-        {/* Icon */}
-        <Box
-          sx={{
-            p: 0.5,
-            bgcolor: "rgba(255,86,48,0.16)", // Error 16%
-            borderRadius: "50px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+      {!loading && !error && data && (
+        <Stack direction="row" spacing={1} alignItems="center">
+          {/* Icon */}
           <Box
             sx={{
-              width: 12,
-              height: 8,
-              bgcolor: "error.main",
+              p: 0.5,
+              bgcolor: data.quotaGrowthRate >= 0 
+                ? "rgba(34,197,94,0.16)" 
+                : "rgba(255,86,48,0.16)",
+              borderRadius: "50px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
-          />
-        </Box>
-
-        {/* Text */}
-        <Stack direction="row" spacing={0.5} alignItems="center">
-          <Typography fontSize={14} fontWeight={600}>
-            -
-          </Typography>
-          <Typography fontSize={14} fontWeight={600}>
-            20.6%
-          </Typography>
-          <Typography
-            fontSize={14}
-            fontWeight={400}
-            color="text.secondary"
           >
-            相較於去年同月
-          </Typography>
+            <Box
+              sx={{
+                width: 12,
+                height: 8,
+                bgcolor: data.quotaGrowthRate >= 0 ? "success.main" : "error.main",
+              }}
+            />
+          </Box>
+
+          {/* Text */}
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Typography fontSize={14} fontWeight={600}>
+              {data.quotaGrowthRate >= 0 ? "+" : ""}
+            </Typography>
+            <Typography fontSize={14} fontWeight={600}>
+              {Math.abs(data.quotaGrowthRate)}%
+            </Typography>
+            <Typography
+              fontSize={14}
+              fontWeight={400}
+              color="text.secondary"
+            >
+              相較於去年同月
+            </Typography>
+          </Stack>
         </Stack>
-      </Stack>
+      )}
     </Box>
   );
 }

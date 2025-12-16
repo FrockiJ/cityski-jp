@@ -2,7 +2,7 @@ import React from 'react';
 
 import { Button } from '@/components/Common/CIBase/CoreDynamicTable/CoreFilter/styles';
 import FormikModalTable from '@/components/Common/CIBase/Formik/FormikModalTable';
-import { OrderReservationResponseDto, ReservationResponseDto, CourseSkiType } from '@repo/shared';
+import { OrderReservationResponseDto, ReservationResponseDto, CourseSkiType, ReservationStatus } from '@repo/shared';
 
 interface OrderMember {
 	id: string;
@@ -36,12 +36,10 @@ const JoinedMembersBlock = ({ members = [], reservations = [], skiType }: Props)
 	const getUsedReservations = (member: OrderMember): number => {
 		let count = 0;
 
-		reservations.forEach((reservation) => {
-			if (reservation?.reservation?.reservationMembers && reservation.reservation.reservationMembers.some((m) => m.orderMemberId === member.id)) {
-				count++;
-			}
-		});
-
+		count = reservations.filter((reservation) => 
+			reservation?.reservation?.reservationMembers?.some((m) => m.orderMemberId === member.id ) && reservation.reservation?.reservationStatus !== ReservationStatus.CANCELED
+		).length;
+		console.log('Used reservations for member', member.memberName, ':', count);
 		return count;
 	};
 	// Format board type and level based on skiType

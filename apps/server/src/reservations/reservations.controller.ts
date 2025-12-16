@@ -95,10 +95,14 @@ export class ReservationsController {
     @Req() request: CustomRequest,
   ): Promise<GetReservationDetailResponseDto> {
     const userId = request['user']?.sub;
+    const userType = request['userType'];
+    
+
     const result = await this.reservationsService.updateReservation(
       id,
       body,
       userId,
+      userType
     );
     return plainToInstance(GetReservationDetailResponseDto, result, {
       excludeExtraneousValues: true,
@@ -128,6 +132,7 @@ export class ReservationsController {
     @Req() request: CustomRequest,
   ): Promise<GetReservationDetailResponseDto> {
     const userId = request['user']?.sub;
+    const userType = request['userType'];
     const result = await this.reservationsService.cancelReservation(
       id,
       body.reason,

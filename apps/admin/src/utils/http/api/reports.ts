@@ -119,21 +119,21 @@ export const exportGroupList = async (): Promise<void> => {
 
 export const exportInstructorSchedule = async (year?: number, month?: number): Promise<void> => {
   console.log('Calling exportInstructorSchedule with:', { year, month });
-  
+
   try {
     // 從 Redux store 獲取 access token
     const { store } = await import('@/state/store');
     const { BASE_URL } = await import('@/utils/http/config');
     const accessToken = store.getState().auth.accessToken;
     const baseURL = BASE_URL[process.env.NODE_ENV as keyof typeof BASE_URL];
-    
+
     // 準備查詢參數
     const queryParams = new URLSearchParams();
     if (year) queryParams.append('year', year.toString());
     if (month) queryParams.append('month', month.toString());
-    
+
     const url = `${baseURL}/api/reports/export/instructor-schedule${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -141,16 +141,16 @@ export const exportInstructorSchedule = async (year?: number, month?: number): P
         'Content-Type': 'application/json',
       },
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const blob = await response.blob();
     const downloadUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = downloadUrl;
-    const fileName = year && month 
+    const fileName = year && month
       ? `instructor-schedule-${year}-${month.toString().padStart(2, '0')}.xlsx`
       : `instructor-schedule-${new Date().toISOString().split('T')[0]}.xlsx`;
     link.download = fileName;
@@ -160,6 +160,89 @@ export const exportInstructorSchedule = async (year?: number, month?: number): P
     window.URL.revokeObjectURL(downloadUrl);
   } catch (error) {
     console.error('Error calling export instructor schedule API:', error);
+    throw error;
+  }
+};
+
+export const exportCoachScheduleSummary = async (year?: number, month?: number): Promise<void> => {
+  console.log('Calling exportCoachScheduleSummary with:', { year, month });
+
+  try {
+    // 從 Redux store 獲取 access token
+    const { store } = await import('@/state/store');
+    const { BASE_URL } = await import('@/utils/http/config');
+    const accessToken = store.getState().auth.accessToken;
+    const baseURL = BASE_URL[process.env.NODE_ENV as keyof typeof BASE_URL];
+
+    // 準備查詢參數
+    const queryParams = new URLSearchParams();
+    if (year) queryParams.append('year', year.toString());
+    if (month) queryParams.append('month', month.toString());
+
+    const url = `${baseURL}/api/reports/export/coach-schedule-summary${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    const fileName = year && month
+      ? `coach-schedule-summary-${year}-${month.toString().padStart(2, '0')}.xlsx`
+      : `coach-schedule-summary-${new Date().toISOString().split('T')[0]}.xlsx`;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+  } catch (error) {
+    console.error('Error calling export coach schedule summary API:', error);
+    throw error;
+  }
+};
+
+export const exportOrderClassList = async (): Promise<void> => {
+  console.log('Calling exportOrderClassList');
+
+  try {
+    const { store } = await import('@/state/store');
+    const { BASE_URL } = await import('@/utils/http/config');
+    const accessToken = store.getState().auth.accessToken;
+    const baseURL = BASE_URL[process.env.NODE_ENV as keyof typeof BASE_URL];
+
+    const response = await fetch(`${baseURL}/api/reports/export/order-class-list`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `order-class-list-${new Date().toISOString().split('T')[0]}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error calling export order class list API:', error);
     throw error;
   }
 };

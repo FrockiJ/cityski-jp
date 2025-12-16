@@ -109,7 +109,7 @@ const CourseReservation = ({
 
 	// 將預約數據轉換為表格行格式
 	const tableRows = new Array(size).fill(null).map((_, index) => {
-		const orderReservation = reservations.find((res) => res.index == index);
+		const orderReservation = reservations.filter(res=> res.reservation?.reservationStatus !== ReservationStatus.CANCELED).find((res) => res.index == index);
 		// 檢查是否為已取消的預約
 		const isCanceled = orderReservation?.reservation?.reservationStatus === ReservationStatus.CANCELED;
 		// 已取消的預約視為未預約

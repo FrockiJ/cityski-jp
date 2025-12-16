@@ -92,4 +92,32 @@ export class ReportsController {
       res.status(500).json({ error: 'Failed to export instructor schedule' });
     }
   }
+
+  @UseGuards(AuthGuard)
+  @Get('export/coach-schedule-summary')
+  async exportCoachScheduleSummary(
+    @Res() res: Response,
+    @Query('year') year?: number,
+    @Query('month') month?: number
+  ) {
+    console.log('GET /reports/export/coach-schedule-summary called with:', { year, month });
+    try {
+      await this.reportsService.exportCoachScheduleSummary(res, year, month);
+    } catch (error) {
+      console.error('Error in exportCoachScheduleSummary controller:', error);
+      res.status(500).json({ error: 'Failed to export coach schedule summary' });
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('export/order-class-list')
+  async exportOrderClassList(@Res() res: Response) {
+    console.log('GET /reports/export/order-class-list called');
+    try {
+      await this.reportsService.exportOrderClassList(res);
+    } catch (error) {
+      console.error('Error in exportOrderClassList controller:', error);
+      res.status(500).json({ error: 'Failed to export order class list' });
+    }
+  }
 }

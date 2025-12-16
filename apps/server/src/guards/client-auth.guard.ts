@@ -32,7 +32,7 @@ export class ClientAuthGuard implements CanActivate {
     try {
       // Verify the token and extract the payload
       const payload = await this.jwtService.verifyAsync(token, {
-        secret: this.configService.get('JWT_SECRET'),
+        secret: this.configService.get('JWT_ACCESS_SECRET'),
       });
 
       // Find the member using the ID from the token payload (assuming it's in the 'sub' field)

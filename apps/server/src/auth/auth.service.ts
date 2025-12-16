@@ -156,7 +156,7 @@ export class AuthService {
   async checkResetToken(token: string) {
     try {
       await this.jwtService.verifyAsync(token, {
-        secret: this.configService.get('JWT_SECRET'),
+        secret: this.configService.get('JWT_ACCESS_SECRET'),
       });
     } catch (err) {
       if (err instanceof CustomException) {

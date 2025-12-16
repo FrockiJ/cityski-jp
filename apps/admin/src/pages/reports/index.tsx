@@ -8,16 +8,19 @@ import AnnualCourseStatsCard from '@/components/Project/report/AnnualCourseStats
 import DepartmentPerformanceCard from '@/components/Project/report/DepartmentPerformanceCard';
 import ExportReportModal from '@/components/ExportReportModal';
 import InstructorScheduleModal from '@/components/InstructorScheduleModal';
-import { exportGroupList, exportInstructorSchedule } from '@/utils/http/api/reports';
+import { exportGroupList, exportInstructorSchedule, exportCoachScheduleSummary, exportOrderClassList } from '@/utils/http/api/reports';
 
 export default function CourseStatistics() {
 	const [exportModalOpen, setExportModalOpen] = useState(false);
 	const [instructorScheduleModalOpen, setInstructorScheduleModalOpen] = useState(false);
+	const [coachScheduleSummaryModalOpen, setCoachScheduleSummaryModalOpen] = useState(false);
 
 	const handleExportConfirm = async (reportType: string) => {
 		try {
 			if (reportType === 'group-list') {
 				await exportGroupList();
+			} else if (reportType === 'order-class-list') {
+				await exportOrderClassList();
 			}
 		} catch (error) {
 			console.error('匯出報表失敗:', error);
@@ -34,6 +37,19 @@ export default function CourseStatistics() {
 			await exportInstructorSchedule(year, month);
 		} catch (error) {
 			console.error('匯出教練總排堂表失敗:', error);
+			// 可以在這裡添加錯誤提示
+		}
+	};
+
+	const handleCoachScheduleSummarySelect = () => {
+		setCoachScheduleSummaryModalOpen(true);
+	};
+
+	const handleCoachScheduleSummaryConfirm = async (year: number, month: number) => {
+		try {
+			await exportCoachScheduleSummary(year, month);
+		} catch (error) {
+			console.error('匯出教練總排堂表(統計)失敗:', error);
 			// 可以在這裡添加錯誤提示
 		}
 	};
@@ -107,6 +123,7 @@ export default function CourseStatistics() {
 				onClose={() => setExportModalOpen(false)}
 				onConfirm={handleExportConfirm}
 				onInstructorScheduleSelect={handleInstructorScheduleSelect}
+				onCoachScheduleSummarySelect={handleCoachScheduleSummarySelect}
 			/>
 
 			{/* Instructor Schedule Modal */}
@@ -114,6 +131,13 @@ export default function CourseStatistics() {
 				open={instructorScheduleModalOpen}
 				onClose={() => setInstructorScheduleModalOpen(false)}
 				onConfirm={handleInstructorScheduleConfirm}
+			/>
+
+			{/* Coach Schedule Summary Modal */}
+			<InstructorScheduleModal
+				open={coachScheduleSummaryModalOpen}
+				onClose={() => setCoachScheduleSummaryModalOpen(false)}
+				onConfirm={handleCoachScheduleSummaryConfirm}
 			/>
 		</Box>
 	);

@@ -21,6 +21,7 @@ interface ExportReportModalProps {
   onClose: () => void;
   onConfirm: (reportType: string) => void;
   onInstructorScheduleSelect: () => void;
+  onCoachScheduleSummarySelect: () => void;
 }
 
 const ExportReportModal: React.FC<ExportReportModalProps> = ({
@@ -28,6 +29,7 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
   onClose,
   onConfirm,
   onInstructorScheduleSelect,
+  onCoachScheduleSummarySelect,
 }) => {
   const [selectedReport, setSelectedReport] = useState('group-list');
 
@@ -35,6 +37,9 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
     if (selectedReport === 'instructor-schedule') {
       // 如果選擇教練總排堂表，則打開日期選擇modal
       onInstructorScheduleSelect();
+    } else if (selectedReport === 'coach-schedule-summary') {
+      // 如果選擇教練總排堂表(統計)，則打開日期選擇modal
+      onCoachScheduleSummarySelect();
     } else {
       // 其他報表類型直接匯出
       onConfirm(selectedReport);
@@ -92,23 +97,22 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
             onChange={handleChange}
             sx={{ gap: 1 }}
           >
-            <Paper
+                        <Paper
               elevation={0}
               sx={{
-            
                 p: 2,
                 border: '1px solid rgba(0, 0, 0, 0.12)',
                 borderRadius: 3,
-                backgroundColor: selectedReport === 'group-list' 
-                  ? 'rgba(25, 118, 210, 0.08)' 
+                backgroundColor: selectedReport === 'order-class-list'
+                  ? 'rgba(25, 118, 210, 0.08)'
                   : 'transparent',
-                borderColor: selectedReport === 'group-list' 
-                  ? 'primary.main' 
+                borderColor: selectedReport === 'order-class-list'
+                  ? 'primary.main'
                   : 'rgba(0, 0, 0, 0.12)',
               }}
             >
               <FormControlLabel
-                value="group-list"
+                value="order-class-list"
                 control={
                   <Radio
                     sx={{
@@ -121,9 +125,9 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
                 }
                 label={
                   <Box>
-                    <Typography 
-                      variant="body1" 
-                      sx={{ 
+                    <Typography
+                      variant="body1"
+                      sx={{
                         fontWeight: 400,
                         fontSize: '16px',
                         lineHeight: '24px',
@@ -132,9 +136,9 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
                     >
                       湊班名單
                     </Typography>
-                    <Typography 
-                      variant="caption" 
-                      sx={{ 
+                    <Typography
+                      variant="caption"
+                      sx={{
                         fontSize: '12px',
                         lineHeight: '16px',
                         color: 'text.disabled',
@@ -145,8 +149,8 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
                     </Typography>
                   </Box>
                 }
-                sx={{ 
-                  m: 0, 
+                sx={{
+                  m: 0,
                   width: '100%',
                   alignItems: 'flex-start',
                   '& .MuiFormControlLabel-label': {
@@ -157,17 +161,19 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
               />
             </Paper>
 
+
+
             <Paper
               elevation={0}
               sx={{
                 p: 2,
                 border: '1px solid rgba(0, 0, 0, 0.12)',
                 borderRadius: 3,
-                backgroundColor: selectedReport === 'instructor-schedule' 
-                  ? 'rgba(25, 118, 210, 0.08)' 
+                backgroundColor: selectedReport === 'instructor-schedule'
+                  ? 'rgba(25, 118, 210, 0.08)'
                   : 'transparent',
-                borderColor: selectedReport === 'instructor-schedule' 
-                  ? 'primary.main' 
+                borderColor: selectedReport === 'instructor-schedule'
+                  ? 'primary.main'
                   : 'rgba(0, 0, 0, 0.12)',
               }}
             >
@@ -185,9 +191,9 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
                 }
                 label={
                   <Box>
-                    <Typography 
-                      variant="body1" 
-                      sx={{ 
+                    <Typography
+                      variant="body1"
+                      sx={{
                         fontWeight: 400,
                         fontSize: '16px',
                         lineHeight: '24px',
@@ -196,9 +202,9 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
                     >
                       教練總排堂表
                     </Typography>
-                    <Typography 
-                      variant="caption" 
-                      sx={{ 
+                    <Typography
+                      variant="caption"
+                      sx={{
                         fontSize: '12px',
                         lineHeight: '16px',
                         color: 'text.disabled',
@@ -209,8 +215,8 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
                     </Typography>
                   </Box>
                 }
-                sx={{ 
-                  m: 0, 
+                sx={{
+                  m: 0,
                   width: '100%',
                   alignItems: 'flex-start',
                   '& .MuiFormControlLabel-label': {
@@ -220,6 +226,72 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
                 }}
               />
             </Paper>
+
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                border: '1px solid rgba(0, 0, 0, 0.12)',
+                borderRadius: 3,
+                backgroundColor: selectedReport === 'coach-schedule-summary'
+                  ? 'rgba(25, 118, 210, 0.08)'
+                  : 'transparent',
+                borderColor: selectedReport === 'coach-schedule-summary'
+                  ? 'primary.main'
+                  : 'rgba(0, 0, 0, 0.12)',
+              }}
+            >
+              <FormControlLabel
+                value="coach-schedule-summary"
+                control={
+                  <Radio
+                    sx={{
+                      color: 'rgba(0, 0, 0, 0.6)',
+                      '&.Mui-checked': {
+                        color: 'primary.main',
+                      },
+                    }}
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        fontWeight: 400,
+                        fontSize: '16px',
+                        lineHeight: '24px',
+                        color: 'text.primary',
+                      }}
+                    >
+                      教練總排堂表(統計)
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: '12px',
+                        lineHeight: '16px',
+                        color: 'text.disabled',
+                        display: 'block',
+                      }}
+                    >
+                      教練堂數統計及指定課程匯總
+                    </Typography>
+                  </Box>
+                }
+                sx={{
+                  m: 0,
+                  width: '100%',
+                  alignItems: 'flex-start',
+                  '& .MuiFormControlLabel-label': {
+                    flex: 1,
+                    ml: 1,
+                  }
+                }}
+              />
+            </Paper>
+
+
           </RadioGroup>
         </FormControl>
       </DialogContent>

@@ -3,6 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Reservation, ReservationStatus } from 'src/reservations/entities/reservation.entity';
 import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
+import { Order } from 'src/orders/entities/order.entity';
+import { OrderMember } from 'src/order-members/entities/order-member.entity';
+import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
 import * as ExcelJS from 'exceljs';
 import { Response } from 'express';
 
@@ -13,6 +16,12 @@ export class ReportsService {
     private reservationRepository: Repository<Reservation>,
     @InjectRepository(OrderReservation)
     private orderReservationRepository: Repository<OrderReservation>,
+    @InjectRepository(Order)
+    private orderRepository: Repository<Order>,
+    @InjectRepository(OrderMember)
+    private orderMemberRepository: Repository<OrderMember>,
+    @InjectRepository(ReservationMember)
+    private reservationMemberRepository: Repository<ReservationMember>,
   ) {}
 
   async getMonthlyStats(year?: number, month?: number) {
@@ -470,6 +479,314 @@ export class ReportsService {
       case ReservationStatus.COMPLETED: return '已完成';
       case ReservationStatus.CANCELED: return '已取消';
       default: return '未知';
+    }
+  }
+
+  async exportCoachScheduleSummary(res: Response, year?: number, month?: number) {
+    try {
+      const currentDate = new Date();
+      const targetYear = year || currentDate.getFullYear();
+      const targetMonth = month || currentDate.getMonth() + 1;
+
+      // Calculate start and end dates for the target month
+      const monthStart = new Date(targetYear, targetMonth - 1, 1);
+      const monthEnd = new Date(targetYear, targetMonth, 0, 23, 59, 59);
+
+      console.log('Exporting coach schedule summary for:', targetYear, targetMonth);
+
+      // Query all reservations for the month with order information
+      const reservations = await this.reservationRepository
+        .createQueryBuilder('reservation')
+        .leftJoinAndSelect('reservation.orderReservations', 'orderReservation')
+        .leftJoinAndSelect('orderReservation.order', 'order')
+        .where('reservation.classTime >= :monthStart', { monthStart })
+        .andWhere('reservation.classTime <= :monthEnd', { monthEnd })
+        .andWhere('reservation.reservationStatus IN (:...statuses)', {
+          statuses: [ReservationStatus.SCHEDULED, ReservationStatus.COMPLETED]
+        })
+        .andWhere('reservation.instructor IS NOT NULL')
+        .orderBy('reservation.instructor', 'ASC')
+        .addOrderBy('reservation.classTime', 'ASC')
+        .getMany();
+
+      console.log('Found reservations:', reservations.length);
+
+      // Group by instructor and calculate stats
+      interface CoachStats {
+        instructorName: string;
+        totalSessions: number;
+        designatedSessions: number;
+        designatedDates: Date[];
+      }
+
+      const coachMap = new Map<string, CoachStats>();
+
+      for (const reservation of reservations) {
+        const instructor = reservation.instructor;
+
+        if (!coachMap.has(instructor)) {
+          coachMap.set(instructor, {
+            instructorName: instructor,
+            totalSessions: 0,
+            designatedSessions: 0,
+            designatedDates: [],
+          });
+        }
+
+        const stats = coachMap.get(instructor)!;
+        stats.totalSessions++;
+
+        // Check if this reservation is from a designated order (bkgType = 2)
+        let isDesignated = false;
+        for (const orderReservation of reservation.orderReservations || []) {
+          if (orderReservation.order && orderReservation.order.bkgType === 2) {
+            isDesignated = true;
+            break;
+          }
+        }
+
+        if (isDesignated) {
+          stats.designatedSessions++;
+          stats.designatedDates.push(reservation.classTime);
+        }
+      }
+
+      const coachStats = Array.from(coachMap.values());
+
+      // Create Excel workbook
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('教練總排堂表');
+
+      // Define columns
+      worksheet.columns = [
+        { header: '教練姓名', key: 'instructorName', width: 20 },
+        { header: '總堂數', key: 'totalSessions', width: 12 },
+        { header: '指定', key: 'designatedSessions', width: 12 },
+        { header: '指定日期', key: 'designatedDates', width: 50 },
+      ];
+
+      // Add data rows
+      coachStats.forEach(coach => {
+        worksheet.addRow({
+          instructorName: coach.instructorName,
+          totalSessions: coach.totalSessions,
+          designatedSessions: coach.designatedSessions,
+          designatedDates: coach.designatedDates
+            .map(date => new Date(date).toLocaleDateString('zh-TW', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit'
+            }))
+            .join(', '),
+        });
+      });
+
+      // Add summary row
+      const totalSessions = coachStats.reduce((sum, coach) => sum + coach.totalSessions, 0);
+      const totalDesignated = coachStats.reduce((sum, coach) => sum + coach.designatedSessions, 0);
+
+      const summaryRow = worksheet.addRow({
+        instructorName: '合計',
+        totalSessions: totalSessions,
+        designatedSessions: totalDesignated,
+        designatedDates: '',
+      });
+
+      // Style headers
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' },
+      };
+
+      // Style summary row
+      summaryRow.font = { bold: true };
+      summaryRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFF2CC' },
+      };
+
+      // Set response headers
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="coach-schedule-summary-${targetYear}-${targetMonth.toString().padStart(2, '0')}.xlsx"`
+      );
+
+      // Send file
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Error exporting coach schedule summary:', error);
+      throw error;
+    }
+  }
+
+  async exportOrderClassList(res: Response) {
+    try {
+      // Helper function for date formatting
+      const formatDate = (date: Date | null): string => {
+        if (!date) return '';
+        return new Date(date).toLocaleDateString('zh-TW', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+      };
+
+      // STEP 1: Query orders with members and reservations
+      // Filter: Group course (type='G') and Flexible booking (bkgType=1)
+      const ordersWithMembers = await this.orderRepository
+        .createQueryBuilder('order')
+        .leftJoinAndSelect('order.orderMembers', 'orderMember')
+        .leftJoinAndSelect('orderMember.member', 'member')
+        .leftJoinAndSelect('order.orderReservations', 'orderReservation')
+        .leftJoinAndSelect('orderReservation.reservation', 'reservation')
+        .where('orderMember.active = :active', { active: true })
+        .andWhere('order.type = :courseType', { courseType: 'G' }) // Group course only
+        .andWhere('order.bkgType = :bkgType', { bkgType: 1 }) // Flexible booking only
+        .andWhere('order.skiType IN (:...skiTypes)', { skiTypes: [1, 2] }) // Exclude BOTH (0)
+        .getMany();
+
+      // STEP 2: Filter orders by criteria
+      const filteredOrders = ordersWithMembers.filter(order => {
+        const totalParticipants = (order.adultCount || 0) + (order.childCount || 0);
+        if (totalParticipants > 2 || totalParticipants === 0) return false;
+
+        const validReservations = order.orderReservations.filter(
+          or => or.reservation?.reservationStatus !== ReservationStatus.CANCELED
+        );
+        const remainingSlots = order.planNumber - validReservations.length;
+        return remainingSlots > 0;
+      });
+
+      // STEP 3: Collect orderMember IDs and query class history
+      const orderMemberIds = filteredOrders.flatMap(order =>
+        order.orderMembers.map(om => om.id)
+      );
+
+      // Handle empty result case
+      if (orderMemberIds.length === 0) {
+        // Create empty Excel file
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('湊班名單');
+        worksheet.columns = [
+          { header: '板類', key: 'boardType', width: 10 },
+          { header: '人數', key: 'participantCount', width: 10 },
+          { header: '姓名', key: 'customerName', width: 20 },
+          { header: 'Line ID', key: 'lineId', width: 25 },
+          { header: '會員備註', key: 'memberNotes', width: 30 },
+          { header: '最新上課紀錄', key: 'latestClass', width: 20 },
+        ];
+        worksheet.getRow(1).font = { bold: true };
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition',
+          `attachment; filename="order-class-list-${new Date().toISOString().split('T')[0]}.xlsx"`
+        );
+        await workbook.xlsx.write(res);
+        res.end();
+        return;
+      }
+
+      const classHistoryRecords = await this.reservationMemberRepository
+        .createQueryBuilder('rm')
+        .leftJoinAndSelect('rm.reservation', 'reservation')
+        .where('rm.orderMemberId IN (:...orderMemberIds)', { orderMemberIds })
+        .andWhere('rm.attended = :attended', { attended: true })
+        .andWhere('reservation.reservationStatus = :status', {
+          status: ReservationStatus.COMPLETED
+        })
+        .orderBy('reservation.classTime', 'DESC')
+        .getMany();
+
+      // STEP 4: Group history by member
+      const historyByMember = classHistoryRecords.reduce((acc, rm) => {
+        if (!acc[rm.orderMemberId]) acc[rm.orderMemberId] = [];
+        acc[rm.orderMemberId].push(rm.reservation.classTime);
+        return acc;
+      }, {} as Record<string, Date[]>);
+
+      // STEP 5: Transform to data rows
+      const dataRows = filteredOrders.flatMap(order =>
+        order.orderMembers.map(om => {
+          const history = historyByMember[om.id] || [];
+          const row: any = {
+            boardType: order.skiType === 1 ? 'SB' : 'SKI',
+            participantCount: (order.adultCount || 0) + (order.childCount || 0),
+            customerName: om.member.name,
+            lineId: om.member.lineId || '',
+            memberNotes: om.member.note || '',
+            latestClass: history.length > 0 ? formatDate(history[0]) : ''
+          };
+
+          // Add history columns dynamically
+          history.forEach((classDate, idx) => {
+            row[`classHistory${idx + 1}`] = formatDate(classDate);
+          });
+
+          return row;
+        })
+      );
+
+      // STEP 6: Sort data
+      dataRows.sort((a, b) => {
+        const boardCompare = (a.boardType === 'SB' ? 1 : 2) - (b.boardType === 'SB' ? 1 : 2);
+        if (boardCompare !== 0) return boardCompare;
+
+        const countCompare = b.participantCount - a.participantCount;
+        if (countCompare !== 0) return countCompare;
+
+        return a.customerName.localeCompare(b.customerName, 'zh-TW');
+      });
+
+      // STEP 7: Determine max history columns
+      const maxHistoryCount = Math.max(...dataRows.map(row =>
+        Object.keys(row).filter(k => k.startsWith('classHistory')).length
+      ), 0);
+
+      // STEP 8: Create Excel workbook
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('湊班名單');
+
+      // STEP 9: Build dynamic columns
+      const columns: any[] = [
+        { header: '板類', key: 'boardType', width: 10 },
+        { header: '人數', key: 'participantCount', width: 10 },
+        { header: '姓名', key: 'customerName', width: 20 },
+        { header: 'Line ID', key: 'lineId', width: 25 },
+        { header: '會員備註', key: 'memberNotes', width: 30 },
+        { header: '最新上課紀錄', key: 'latestClass', width: 20 },
+      ];
+
+      for (let i = 1; i <= maxHistoryCount; i++) {
+        columns.push({ header: i.toString(), key: `classHistory${i}`, width: 15 });
+      }
+
+      worksheet.columns = columns;
+
+      // STEP 10: Add rows
+      dataRows.forEach(row => worksheet.addRow(row));
+
+      // STEP 11: Style headers
+      worksheet.getRow(1).font = { bold: true };
+
+      // STEP 12: Set response headers and send
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition',
+        `attachment; filename="order-class-list-${new Date().toISOString().split('T')[0]}.xlsx"`
+      );
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Error exporting order class list:', error);
+      throw error;
     }
   }
 }

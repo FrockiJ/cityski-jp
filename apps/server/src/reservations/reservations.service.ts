@@ -425,6 +425,7 @@ export class ReservationsService {
     id: string,
     body: UpdateReservationRequestDto,
     userId?: string,
+    userType?: string,
   ) {
     try {
       const reservation = await this.reservationsRepo.findOne({
@@ -441,7 +442,7 @@ export class ReservationsService {
 
       // 驗證 member 權限：只有預約參與者才能修改
       // 檢查該 member 是否為此預約的參與者
-      if (userId) {
+      if (userType != "admin" && userId) {
         const isMemberOfReservation = reservation.reservationMembers?.some(
           (rm) => rm.orderMember?.memberId === userId,
         );

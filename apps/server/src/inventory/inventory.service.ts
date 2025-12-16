@@ -8,8 +8,8 @@ import {
   GetInventoryRequestDTO,
   GetInventoryResponseDTO,
   InventoryItemDTO,
-  OrderStatusEnum,
-  TransactionStatusEnum,
+  OrderStatus,
+  TransactionStatus,
 } from '@repo/shared';
 
 @Injectable()
@@ -38,14 +38,14 @@ export class InventoryService {
       ? new Date(toDate)
       : new Date(new Date().setMonth(new Date().getMonth() + 3));
 
-    // Find all valid orders (待結清 or 已結清, not 已完成)
+    // Find all valid orders (等待確認 or 訂購成功, not 已完成)
     const orders = await this.orderRepository.find({
       where: {
-        status: In([OrderStatusEnum.PENDING_SETTLEMENT, OrderStatusEnum.SETTLED]),
+        status: In([OrderStatus.WAITING_FOR_CONFIRMATION, OrderStatus.ORDER_SUCCESSFUL]),
         transaction: {
           status: In([
-            TransactionStatusEnum.DEPOSIT_PAID,
-            TransactionStatusEnum.BALANCE_PAID,
+            TransactionStatus.DEPOSIT_PAID,
+            TransactionStatus.FULLY_PAID,
           ]),
         },
       },
@@ -63,7 +63,7 @@ export class InventoryService {
 
     for (const order of orders) {
       const memberId = order.member.id;
-      const memberKey = `${order.member.name}-${order.member.phoneNumber}`;
+      const memberKey = `${order.member.name}-${order.member.phone}`;
 
       if (!inventoryMap.has(memberKey)) {
         inventoryMap.set(memberKey, []);
@@ -119,7 +119,7 @@ export class InventoryService {
       // Create inventory item
       const inventoryItem: InventoryItemDTO = {
         customerName: order.member.name,
-        customerPhone: order.member.phoneNumber,
+        customerPhone: order.member.phone,
         orderId: order.id,
         orderNo: order.no,
         courseName: order.coursePlan?.name || '',

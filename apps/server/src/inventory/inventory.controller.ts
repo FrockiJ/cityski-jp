@@ -27,8 +27,10 @@ export class InventoryController {
   ): Promise<ResponseWrapper<GetInventoryResponseDTO>> {
     const result = await this.inventoryService.getInventory(request);
     return {
-      success: true,
-      data: plainToInstance(GetInventoryResponseDTO, result, {
+      statusCode: 200,
+      status: 'success',
+      message: 'Inventory retrieved successfully',
+      result: plainToInstance(GetInventoryResponseDTO, result, {
         excludeExtraneousValues: true,
       }),
     };

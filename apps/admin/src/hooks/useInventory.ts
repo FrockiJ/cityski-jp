@@ -37,10 +37,10 @@ export const useInventory = (initialParams?: GetInventoryRequestDTO): UseInvento
     setError(null);
     try {
       const response = await getInventory(params);
-      if (response.data.success && response.data.data) {
-        setData(response.data.data.items);
-        setSummary(response.data.data.summary);
-        setDateRange(response.data.data.dateRange);
+      if (response && response.result) {
+        setData(response.result.items);
+        setSummary(response.result.summary);
+        setDateRange(response.result.dateRange);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch inventory data');

@@ -181,7 +181,7 @@ const FixedPaymentBlock = ({ orderDetail, handleRefresh }: Props) => {
 						訂金支付日期
 					</Typography>
 					<Typography variant='body1'>
-						{transaction?.depositDate ? dayjs(transaction.depositDate).format('YYYY/MM/DD') : '--'}
+						{transaction?.status > TransactionStatus.PENDING_DEPOSIT && transaction?.depositDate ? dayjs(transaction.depositDate).format('YYYY/MM/DD') : '--'}
 					</Typography>
 				</Stack>
 				<Stack direction='row' justifyContent='space-between' mt={0.5}>
@@ -189,7 +189,7 @@ const FixedPaymentBlock = ({ orderDetail, handleRefresh }: Props) => {
 						訂金支付方式
 					</Typography>
 					<Typography variant='body1'>
-						{isPendingDeposit ? '--' : '線上ATM'}
+						{transaction?.status > TransactionStatus.PENDING_DEPOSIT  ?  '--' : '--'}
 					</Typography>
 				</Stack>
 				<Stack direction='row' justifyContent='space-between' mt={0.5}>
@@ -197,7 +197,7 @@ const FixedPaymentBlock = ({ orderDetail, handleRefresh }: Props) => {
 						訂金支付金額
 					</Typography>
 					<Typography variant='body1'>
-						{formatAmount(transaction?.depositAmt)}
+						{transaction?.status > TransactionStatus.PENDING_DEPOSIT  ? formatAmount(transaction?.depositAmt) : '--'}
 					</Typography>
 				</Stack>
 				<Stack direction='row' justifyContent='space-between' mt={0.5}>
@@ -205,7 +205,7 @@ const FixedPaymentBlock = ({ orderDetail, handleRefresh }: Props) => {
 						訂金發票號碼
 					</Typography>
 					<Typography variant='body1'>
-						{isPendingDeposit ? '--' : '--'}
+						{transaction?.status > TransactionStatus.PENDING_DEPOSIT  ? '--' : '--'}
 					</Typography>
 				</Stack>
 				<Divider orientation='horizontal' sx={{ margin: '16px 0' }} />
@@ -214,7 +214,7 @@ const FixedPaymentBlock = ({ orderDetail, handleRefresh }: Props) => {
 						尾款支付日期
 					</Typography>
 					<Typography variant='body1'>
-						{transaction?.balanceDate ? dayjs(transaction.balanceDate).format('YYYY/MM/DD') : '--'}
+						{transaction?.status > TransactionStatus.PENDING_FULL_PAYMENT && transaction?.balanceDate ?  dayjs(transaction.balanceDate).format('YYYY/MM/DD') : '--'}
 					</Typography>
 				</Stack>
 				<Stack direction='row' justifyContent='space-between' mt={0.5}>
@@ -222,7 +222,7 @@ const FixedPaymentBlock = ({ orderDetail, handleRefresh }: Props) => {
 						尾款支付方式
 					</Typography>
 					<Typography variant='body1'>
-						{transaction?.balancePaymentMethod === 'CREDIT' ? '刷卡' : transaction?.balancePaymentMethod === 'CASH' ? '付現' : '--'}
+						{transaction?.status > TransactionStatus.PENDING_FULL_PAYMENT  ? (transaction?.balancePaymentMethod === 'CREDIT' ? '刷卡' : transaction?.balancePaymentMethod === 'CASH' ? '付現' : '--') : '--'}
 					</Typography>
 				</Stack>
 				<Stack direction='row' justifyContent='space-between' mt={0.5}>
@@ -230,7 +230,7 @@ const FixedPaymentBlock = ({ orderDetail, handleRefresh }: Props) => {
 						尾款支付金額
 					</Typography>
 					<Typography variant='body1'>
-						{formatAmount(transaction?.balanceAmt)}
+						{transaction?.status > TransactionStatus.PENDING_FULL_PAYMENT  ? formatAmount(transaction?.balanceAmt) : '--'}
 					</Typography>
 				</Stack>
 				<Stack direction='row' justifyContent='space-between' mt={0.5}>
@@ -238,7 +238,7 @@ const FixedPaymentBlock = ({ orderDetail, handleRefresh }: Props) => {
 						尾款發票號碼
 					</Typography>
 					<Typography variant='body1'>
-						{transaction?.balanceInvoice || '--'}
+						{transaction?.status > TransactionStatus.PENDING_FULL_PAYMENT  ? transaction?.balanceInvoice || '--' : '--'}
 					</Typography>
 				</Stack>
 			</Stack>

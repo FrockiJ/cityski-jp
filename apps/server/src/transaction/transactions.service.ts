@@ -44,13 +44,17 @@ export class TransactionsService {
 
       // 計算總金額（扣除折扣後）
       const totalAmt = originalPrice - discountFee;
-
-      // 不預先計算訂金和尾款金額，這些將在實際付款時才設定
+      // 計算訂金（總金額的 50%）
+      const depositAmt = Math.round(totalAmt * 0.5);
+      // 計算尾款
+      const balanceAmt = totalAmt - depositAmt;
 
       const savedTransaction = this.transactionsRepo.create({
         ...new Transaction(),
         totalAmt,
         discountFee,
+        depositAmt,
+        balanceAmt,
         status: TransactionStatus.PENDING_DEPOSIT,
         order: order,
       });
@@ -59,6 +63,8 @@ export class TransactionsService {
         originalPrice,
         discountFee,
         totalAmt,
+        depositAmt,
+        balanceAmt,
       });
 
       await this.transactionsRepo.save(savedTransaction);

@@ -3,9 +3,11 @@ import {
   Get,
   Logger,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
+import { Response } from 'express';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { InventoryService } from './inventory.service';
 import {
@@ -34,5 +36,19 @@ export class InventoryController {
         excludeExtraneousValues: true,
       }),
     };
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('/export')
+  async exportInventory(
+    @Res() res: Response,
+    @Query() request: GetInventoryRequestDTO,
+  ): Promise<void> {
+    try {
+      await this.inventoryService.exportInventory(res, request);
+    } catch (error) {
+      this.logger.error('Error exporting inventory:', error);
+      res.status(500).json({ error: 'Failed to export inventory' });
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
 	Box,
 	Typography,
@@ -22,24 +22,28 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import CloseIcon from '@mui/icons-material/Close';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ClearIcon from '@mui/icons-material/Clear';
+import dayjs, { Dayjs } from 'dayjs';
 import { useInventory } from '@/hooks/useInventory';
+import CoreDatePicker from '@/CIBase/CoreDatePicker';
+import { exportInventory } from '@/utils/http/api/inventory';
 
 export default function Inventory() {
 	const [filterOpen, setFilterOpen] = useState(false);
-	const [fromDate, setFromDate] = useState('');
-	const [toDate, setToDate] = useState('');
+	const [fromDate, setFromDate] = useState<Dayjs | null>(null);
+	const [toDate, setToDate] = useState<Dayjs | null>(null);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [sortBy, setSortBy] = useState<string>('totalAmount');
 	const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+	const [exporting, setExporting] = useState(false);
 
 	// Fetch inventory data
 	const { data, loading, summary, dateRange, refetch } = useInventory({
-		fromDate,
-		toDate,
+		fromDate: fromDate ? fromDate.format('YYYY-MM-DD') : undefined,
+		toDate: toDate ? toDate.format('YYYY-MM-DD') : undefined,
 		sortBy,
 		sortOrder,
+		search: searchQuery,
 	});
 
 	// Get unique month columns from data
@@ -53,18 +57,26 @@ export default function Inventory() {
 		return Array.from(months).sort();
 	}, [data]);
 
-	// Filter data based on search query
+	// Refetch when search query changes
+	useEffect(() => {
+		const timeoutId = setTimeout(() => {
+			refetch({
+				fromDate: fromDate ? fromDate.format('YYYY-MM-DD') : undefined,
+				toDate: toDate ? toDate.format('YYYY-MM-DD') : undefined,
+				sortBy,
+				sortOrder,
+				search: searchQuery
+			});
+		}, 300); // Debounce search by 300ms
+
+		return () => clearTimeout(timeoutId);
+	}, [searchQuery]);
+
+	// Data is already filtered by backend, no need for client-side filtering
 	const filteredData = useMemo(() => {
 		if (!data || !Array.isArray(data)) return [];
-		if (!searchQuery) return data;
-		const query = searchQuery.toLowerCase();
-		return data.filter(
-			(item) =>
-				item.customerName.toLowerCase().includes(query) ||
-				item.customerPhone.includes(query) ||
-				item.orderNo.toLowerCase().includes(query)
-		);
-	}, [data, searchQuery]);
+		return data;
+	}, [data]);
 
 	// Map course type code to display label
 	const getCourseTypeLabel = (courseType: string) => {
@@ -103,13 +115,19 @@ export default function Inventory() {
 	}, [filteredData]);
 
 	const handleClearFilters = () => {
-		setFromDate('');
-		setToDate('');
-		refetch({ sortBy, sortOrder });
+		setFromDate(null);
+		setToDate(null);
+		refetch({ sortBy, sortOrder, search: searchQuery });
 	};
 
 	const handleApplyFilters = () => {
-		refetch({ fromDate, toDate, sortBy, sortOrder });
+		refetch({
+			fromDate: fromDate ? fromDate.format('YYYY-MM-DD') : undefined,
+			toDate: toDate ? toDate.format('YYYY-MM-DD') : undefined,
+			sortBy,
+			sortOrder,
+			search: searchQuery
+		});
 		setFilterOpen(false);
 	};
 
@@ -117,11 +135,34 @@ export default function Inventory() {
 		const newOrder = sortBy === column && sortOrder === 'desc' ? 'asc' : 'desc';
 		setSortBy(column);
 		setSortOrder(newOrder);
-		refetch({ fromDate, toDate, sortBy: column, sortOrder: newOrder });
+		refetch({
+			fromDate: fromDate ? fromDate.format('YYYY-MM-DD') : undefined,
+			toDate: toDate ? toDate.format('YYYY-MM-DD') : undefined,
+			sortBy: column,
+			sortOrder: newOrder,
+			search: searchQuery
+		});
 	};
 
 	const formatCurrency = (amount: number) => {
 		return `$${amount.toLocaleString()}`;
+	};
+
+	const handleExport = async () => {
+		setExporting(true);
+		try {
+			await exportInventory({
+				fromDate: fromDate ? fromDate.format('YYYY-MM-DD') : undefined,
+				toDate: toDate ? toDate.format('YYYY-MM-DD') : undefined,
+				sortBy,
+				sortOrder,
+				search: searchQuery,
+			});
+		} catch (error) {
+			console.error('Failed to export inventory:', error);
+		} finally {
+			setExporting(false);
+		}
 	};
 
 	return (
@@ -153,7 +194,9 @@ export default function Inventory() {
 				<Button
 					variant="contained"
 					color="primary"
-					startIcon={<FileDownloadIcon />}
+					startIcon={exporting ? <CircularProgress size={20} color="inherit" /> : <FileDownloadIcon />}
+					onClick={handleExport}
+					disabled={exporting || loading}
 					sx={{
 						borderRadius: 2,
 						textTransform: 'none',
@@ -161,7 +204,7 @@ export default function Inventory() {
 						fontFamily: 'Public Sans',
 					}}
 				>
-					匯出顯示清冊
+					{exporting ? '匯出中...' : '匯出顯示清冊'}
 				</Button>
 			</Box>
 
@@ -563,61 +606,30 @@ export default function Inventory() {
 							顯示區間
 						</Typography>
 
-						{/* From Date */}
+						{/* Date Pickers */}
 						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-							<TextField
-								label="從"
-								placeholder="yyyy/mm"
+							<CoreDatePicker
+								title="從"
+								placeholder="YYYY/MM"
 								size="small"
+								width="100%"
 								value={fromDate}
-								onChange={(e) => setFromDate(e.target.value)}
-								sx={{
-									'& .MuiOutlinedInput-root': {
-										borderRadius: 2,
-										fontFamily: 'Public Sans',
-									},
-									'& .MuiInputLabel-root': {
-										fontFamily: 'Public Sans',
-										fontSize: 14,
-									},
-								}}
-								InputProps={{
-									endAdornment: (
-										<InputAdornment position="end">
-											<IconButton edge="end" size="small">
-												<CalendarMonthIcon />
-											</IconButton>
-										</InputAdornment>
-									),
-								}}
+								onChange={setFromDate}
+								format="YYYY/MM"
+								views={['year', 'month']}
+								openTo="month"
 							/>
 
-							{/* To Date */}
-							<TextField
-								label="到"
-								placeholder="yyyy/mm"
+							<CoreDatePicker
+								title="到"
+								placeholder="YYYY/MM"
 								size="small"
+								width="100%"
 								value={toDate}
-								onChange={(e) => setToDate(e.target.value)}
-								sx={{
-									'& .MuiOutlinedInput-root': {
-										borderRadius: 2,
-										fontFamily: 'Public Sans',
-									},
-									'& .MuiInputLabel-root': {
-										fontFamily: 'Public Sans',
-										fontSize: 14,
-									},
-								}}
-								InputProps={{
-									endAdornment: (
-										<InputAdornment position="end">
-											<IconButton edge="end" size="small">
-												<CalendarMonthIcon />
-											</IconButton>
-										</InputAdornment>
-									),
-								}}
+								onChange={setToDate}
+								format="YYYY/MM"
+								views={['year', 'month']}
+								openTo="month"
 							/>
 						</Box>
 					</Box>

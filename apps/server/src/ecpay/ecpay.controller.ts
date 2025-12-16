@@ -49,17 +49,32 @@ export class EcpayController {
         throw new BadRequestException(`Order ${request.orderId} not found`);
       }
 
-      // 驗證金額是否等於訂金
+      // 驗證交易是否存在
       if (!order.transaction) {
         throw new BadRequestException(`Transaction not found for order ${request.orderId}`);
       }
 
-      if (request.amount !== order.transaction.depositAmt) {
+      const transaction = order.transaction;
+
+      // 根據交易狀態判斷應該支付的金額類型
+      let expectedAmount: number;
+      let paymentType: string;
+
+      if (transaction.status === 0) {
+        // TransactionStatus.PENDING_DEPOSIT: 應支付訂金
+        expectedAmount = transaction.depositAmt;
+        paymentType = '訂金';
+      } else if (transaction.status === 2) {
+        // TransactionStatus.PENDING_FULL_PAYMENT: 應支付尾款
+        expectedAmount = transaction.balanceAmt;
+        paymentType = '尾款';
+      } else {
+        // 其他狀態不允許支付
         this.logger.error(
-          `Amount mismatch: expected ${order.transaction.depositAmt}, received ${request.amount}`,
+          `Order ${request.orderId} is not in a payable state. Current status: ${transaction.status}`,
         );
         throw new BadRequestException(
-          `Invalid payment amount. Expected ${order.transaction.depositAmt}, but received ${request.amount}`,
+          `Order is not in a payable state. Current transaction status: ${transaction.status}`,
         );
       }
 
@@ -67,6 +82,20 @@ export class EcpayController {
       order.transaction.paymentInitiatedAt = new Date();
       await this.transactionsRepo.save(order.transaction);
       this.logger.log(`Payment initiated at ${order.transaction.paymentInitiatedAt} for order ${request.orderId}`);
+
+      // 驗證金額是否正確
+      if (request.amount !== expectedAmount) {
+        this.logger.error(
+          `Amount mismatch for ${paymentType}: expected ${expectedAmount}, received ${request.amount}`,
+        );
+        throw new BadRequestException(
+          `Invalid payment amount for ${paymentType}. Expected ${expectedAmount}, but received ${request.amount}`,
+        );
+      }
+
+      this.logger.log(
+        `Payment validation passed: ${paymentType} amount ${expectedAmount} for order ${request.orderId}`,
+      );
 
       // 初始化支付
       const result = await this.ecpayService.initializeCreditCardPayment(request);

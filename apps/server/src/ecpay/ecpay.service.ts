@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { EcpayConfig } from './ecpay.config';
 import { EcpayCryptoService } from './ecpay-crypto.service';
 import { TransactionsService } from '../transaction/transactions.service';
+import { Order } from '../orders/entities/order.entity';
 import {
   CreditCardPaymentInitializeRequest,
   CreditCardPaymentInitializeResponse,
@@ -17,6 +20,8 @@ export class EcpayService {
     private ecpayConfig: EcpayConfig,
     private cryptoService: EcpayCryptoService,
     private transactionsService: TransactionsService,
+    @InjectRepository(Order)
+    private ordersRepo: Repository<Order>,
   ) {}
 
   /**
@@ -134,10 +139,36 @@ export class EcpayService {
       // 根據 RtnCode 決定是否更新訂單狀態
       this.logger.log('[CALLBACK STEP 4] Processing payment result based on RtnCode...');
       if (Number(notification.RtnCode) === 1) {
-        // 支付成功：更新訂單狀態
+        // 支付成功：智能路由訂金/尾款支付
         try {
-          await this.transactionsService.payDepositByOrderNo(notification.MerchantTradeNo);
-          this.logger.log('[CALLBACK STEP 4] ✓ Payment successful - Order payment status updated successfully');
+          // 查詢訂單以獲取交易狀態
+          const order = await this.ordersRepo.findOne({
+            where: { no: notification.MerchantTradeNo },
+            relations: ['transaction'],
+          });
+
+          if (!order || !order.transaction) {
+            this.logger.error(`[CALLBACK STEP 4] ✗ Order or transaction not found: ${notification.MerchantTradeNo}`);
+            throw new Error('Order or transaction not found');
+          }
+
+          const transactionStatus = order.transaction.status;
+          this.logger.log(`[CALLBACK STEP 4] Current transaction status: ${transactionStatus}`);
+
+          if (transactionStatus === 0) {
+            // TransactionStatus.PENDING_DEPOSIT: 訂金支付
+            this.logger.log('[CALLBACK STEP 4] Routing to deposit payment handler...');
+            await this.transactionsService.payDepositByOrderNo(notification.MerchantTradeNo);
+            this.logger.log('[CALLBACK STEP 4] ✓ Deposit payment successful - Order status updated');
+          } else if (transactionStatus === 2) {
+            // TransactionStatus.PENDING_FULL_PAYMENT: 尾款支付
+            this.logger.log('[CALLBACK STEP 4] Routing to balance payment handler...');
+            await this.transactionsService.payBalanceByOrderNo(notification.MerchantTradeNo);
+            this.logger.log('[CALLBACK STEP 4] ✓ Balance payment successful - Order completed');
+          } else {
+            this.logger.warn(`[CALLBACK STEP 4] ⚠ Unexpected transaction status: ${transactionStatus}`);
+            throw new Error(`Unexpected transaction status: ${transactionStatus}`);
+          }
         } catch (error) {
           this.logger.error(`[CALLBACK STEP 4] ✗ Failed to update order status: ${error.message}`);
           this.logger.error(`[CALLBACK STEP 4] Error stack: ${error.stack}`);

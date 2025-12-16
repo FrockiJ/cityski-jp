@@ -311,4 +311,57 @@ export class TransactionsService {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+  // pay balance by order number (called by ECPay callback)
+  async payBalanceByOrderNo(orderNo: string) {
+    try {
+      const order = await this.ordersRepo.findOne({
+        where: { no: orderNo },
+        relations: ['transaction'],
+      });
+
+      if (!order) {
+        throw new CustomException('Order not found', HttpStatus.NOT_FOUND);
+      }
+
+      if (!order.transaction) {
+        throw new CustomException('Transaction not found', HttpStatus.NOT_FOUND);
+      }
+
+      const transaction = order.transaction;
+
+      // Validate current status - must be PENDING_FULL_PAYMENT
+      if (transaction.status !== TransactionStatus.PENDING_FULL_PAYMENT) {
+        throw new CustomException(
+          'Balance payment is not applicable for this order',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Update transaction status to FULLY_PAID
+      transaction.status = TransactionStatus.FULLY_PAID;
+      transaction.balanceDate = new Date();
+
+      await this.transactionsRepo.save(transaction);
+
+      // Update order status to ORDER_COMPLETED (3)
+      order.status = 3;
+      await this.ordersRepo.save(order);
+
+      return {
+        success: true,
+        message: 'Balance paid successfully',
+        data: {
+          transactionId: transaction.id,
+          status: transaction.status,
+          balanceDate: transaction.balanceDate,
+        },
+      };
+    } catch (err) {
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }

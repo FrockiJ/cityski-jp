@@ -18,7 +18,7 @@ export class TransactionsService {
     private readonly discountsRepo: Repository<Discount>,
   ) {}
 
-  async createTransaction(order: Order) {
+  async createTransaction(order: Order): Promise<Transaction> {
     try {
       // 計算原價：單價 × 購買堂數 × 人數
       const totalPeople = (order.adultCount || 0) + (order.childCount || 0);
@@ -70,6 +70,7 @@ export class TransactionsService {
       });
 
       await this.transactionsRepo.save(savedTransaction);
+      return savedTransaction;
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;

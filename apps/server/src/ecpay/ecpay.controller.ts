@@ -7,9 +7,11 @@ import {
   InternalServerErrorException,
   Response,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { EcpayService } from './ecpay.service';
 import { CreditCardPaymentInitializeRequest } from './interfaces/payment.interface';
-import { OrdersService } from 'src/orders/orders.service';
+import { Order } from 'src/orders/entities/order.entity';
 
 @Controller('payments')
 export class EcpayController {
@@ -17,7 +19,8 @@ export class EcpayController {
 
   constructor(
     private ecpayService: EcpayService,
-    private ordersService: OrdersService,
+    @InjectRepository(Order)
+    private ordersRepo: Repository<Order>,
   ) {}
 
   /**
@@ -33,8 +36,29 @@ export class EcpayController {
         `Initializing credit card payment for orderId: ${request.orderId}`,
       );
 
-      // TODO:
-      // 驗證訂單? 驗證金額?
+      // 驗證訂單與金額
+      const order = await this.ordersRepo.findOne({
+        where: { no: request.orderId },
+        relations: ['transaction'],
+      });
+
+      if (!order) {
+        throw new BadRequestException(`Order ${request.orderId} not found`);
+      }
+
+      // 驗證金額是否等於訂金
+      if (!order.transaction) {
+        throw new BadRequestException(`Transaction not found for order ${request.orderId}`);
+      }
+
+      if (request.amount !== order.transaction.depositAmt) {
+        this.logger.error(
+          `Amount mismatch: expected ${order.transaction.depositAmt}, received ${request.amount}`,
+        );
+        throw new BadRequestException(
+          `Invalid payment amount. Expected ${order.transaction.depositAmt}, but received ${request.amount}`,
+        );
+      }
 
       // 初始化支付
       const result = await this.ecpayService.initializeCreditCardPayment(request);

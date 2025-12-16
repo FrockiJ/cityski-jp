@@ -698,12 +698,22 @@ export class OrdersService {
           }
         }
 
-        // todo: 創order同時要創交易資料 尚未完成
-        this.transactionsService.createTransaction(savedOrder);
+        // 創建交易資料並等待完成
+        await this.transactionsService.createTransaction(savedOrder);
       }
 
-      return savedOrder;
-      
+      // 重新查詢訂單以包含 transaction 關聯
+      const orderWithTransaction = await this.ordersRepo.findOne({
+        where: { id: savedOrder.id },
+        relations: ['transaction'],
+      });
+
+      // 將 depositAmt 加入訂單物件頂層以供 DTO 使用
+      return {
+        ...orderWithTransaction,
+        depositAmt: orderWithTransaction.transaction?.depositAmt,
+      } as any;
+
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;

@@ -188,6 +188,14 @@ function OrderConfirmationPage() {
 			if (response.status === 201) {
 				const orderData = await response.json();
 				const orderId = orderData?.result?.no;
+				const depositAmount = orderData?.result?.depositAmt;
+
+				// 驗證訂金金額
+				if (!depositAmount || depositAmount <= 0) {
+					console.error('Invalid deposit amount:', depositAmount);
+					alert('訂單建立失敗：訂金金額無效，請重試');
+					return;
+				}
 
 				// Save form data to localStorage before navigating
 				localStorage.removeItem('courseOrderData');
@@ -203,18 +211,14 @@ function OrderConfirmationPage() {
 					}),
 				);
 
-				// 計算總金額（包含所有參與者和堂數）
-				const totalAmount = plan.price * (plan.number || 1) * formData.participants.adult +
-				                   plan.price * (plan.number || 1) * formData.participants.minor;
-
 				// 根據付款方式判斷流程
 				if (paymentMethod === 'credit') {
 					// 設定訂單號並開始輪詢
 					setOrderNo(orderId);
 					setIsPolling(true);
 
-					// 跳轉到 ECPay 支付頁面
-					await initiateCreditCardPayment(orderId, totalAmount);
+					// 使用後端計算的訂金金額（總金額的 50%）
+					await initiateCreditCardPayment(orderId, depositAmount);
 				} else if (paymentMethod === 'atm') {
 					// ATM 轉帳直接跳轉到成功頁面
 					router.push(`/courses/order-success`);

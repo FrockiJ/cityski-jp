@@ -80,12 +80,11 @@ export class InventoryService {
       const totalAmount = order.transaction?.totalAmt || 0;
       const totalSessions = order.planNumber || 0;
       const unitPrice = totalSessions > 0 ? totalAmount / totalSessions : 0;
-
       // Count RESERVED sessions (all orderReservations with non-null reservationId)
       const reservedCount = orderReservations.filter(or => or.reservationId !== null).length;
 
-      // Calculate correct balance
-      const balance = totalAmount - (reservedCount * unitPrice);
+
+
 
       // Calculate monthly usage for display (only within date range)
       const monthlyUsage: { [key: string]: number } = {};
@@ -99,10 +98,12 @@ export class InventoryService {
         return (
           classTime >= from &&
           classTime <= to &&
-          reservation.reservationStatus !== ReservationStatus.COMPLETED &&
           reservation.reservationStatus !== ReservationStatus.CANCELED
         );
       });
+      // Calculate correct balance
+      const balance = totalAmount - (validReservations.length * unitPrice);
+      console.log(`Order ${order.id} - Total Amount: ${totalAmount}, Unit Price: ${unitPrice}, Reserved Count: ${reservedCount}, validReservations: ${validReservations.length}`);
 
       // Allocate unit price to months for display
       for (const or of validReservations) {

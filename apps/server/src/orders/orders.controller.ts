@@ -98,9 +98,16 @@ export class OrdersController {
   ): Promise<CreateOrderResponseDTO> {
     const memberId = request['user'].sub;
     const result = await this.ordersService.createOrder(body, memberId);
-    return plainToInstance(CreateOrderResponseDTO, result, {
+
+    // 手動構建回應以確保 depositAmt 被包含
+    const response = plainToInstance(CreateOrderResponseDTO, result, {
       excludeExtraneousValues: true,
     });
+
+    // 明確設置 depositAmt
+    response.depositAmt = result.depositAmt;
+
+    return response;
   }
 
   /**

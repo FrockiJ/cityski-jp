@@ -113,7 +113,7 @@ export default function OrderDetail() {
 
 	const coursePlan = courseDetail?.coursePlans.find((plan) => plan.name === orderDetail.coursePlanName);
 	const price = coursePlan?.price || 0;
-	const deposit = Math.floor(price * 0.5);
+	const deposit = orderDetail.transaction?.depositAmt || Math.floor(price * 0.5);
 
 	const handleCancelOrder = async (reason: string) => {
 		try {
@@ -811,11 +811,13 @@ export default function OrderDetail() {
 										付款資料
 									</div>
 									<div
-										data-property-1='Orange'
-										className='px-2.5 py-1.5 rounded-3xl outline outline-1 outline-offset-[-1px] outline-red-400 flex justify-start items-center gap-1'
+										className={
+											'px-2.5 py-1.5 rounded-3xl outline outline-1 outline-offset-[-1px] flex justify-start items-center gap-1 ' +
+											orderStatusMapper[orderDetail.status].headerStyle
+										}
 									>
-										<div className="text-center justify-center text-red-400 text-xs font-medium font-['Noto_Sans_TC'] leading-5">
-											待付訂金
+										<div className={"text-center justify-center text-xs font-medium font-['Noto_Sans_TC'] leading-5"}>
+											{orderStatusMapper[orderDetail.status].headerLabel}
 										</div>
 									</div>
 								</div>
@@ -830,7 +832,7 @@ export default function OrderDetail() {
 												</div>
 												<div className='flex justify-start items-center gap-0.5'>
 													<div className="justify-start text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
-														20,400
+														{orderDetail.transaction?.totalAmt.toLocaleString() || price.toLocaleString()}
 													</div>
 													<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 														元
@@ -838,23 +840,25 @@ export default function OrderDetail() {
 												</div>
 											</div>
 										</div>
-										<div className='self-stretch flex flex-col justify-start items-start gap-2'>
-											<div className='self-stretch inline-flex justify-between items-end'>
-												<div className='inline-flex flex-col justify-center items-start gap-0.5'>
-													<div className="justify-start text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
-														優惠折扣
+										{(orderDetail.transaction?.discountFee || 0) > 0 && (
+											<div className='self-stretch flex flex-col justify-start items-start gap-2'>
+												<div className='self-stretch inline-flex justify-between items-end'>
+													<div className='inline-flex flex-col justify-center items-start gap-0.5'>
+														<div className="justify-start text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
+															優惠折扣
+														</div>
 													</div>
-												</div>
-												<div className='flex justify-start items-center gap-0.5'>
-													<div className="justify-start text-emerald-600 text-base font-medium font-['Poppins'] leading-6">
-														-100
-													</div>
-													<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
-														元
+													<div className='flex justify-start items-center gap-0.5'>
+														<div className="justify-start text-emerald-600 text-base font-medium font-['Poppins'] leading-6">
+															-{orderDetail.transaction?.discountFee.toLocaleString()}
+														</div>
+														<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+															元
+														</div>
 													</div>
 												</div>
 											</div>
-										</div>
+										)}
 									</div>
 									<div className='self-stretch flex flex-col justify-start items-start gap-5'>
 										<div className='self-stretch pt-4 border-t border-gray-200 inline-flex justify-end items-center gap-2'>
@@ -864,7 +868,7 @@ export default function OrderDetail() {
 												</div>
 												<div className='flex justify-start items-center gap-0.5'>
 													<div className="justify-start text-zinc-800 text-2xl font-semibold font-['Poppins'] leading-7">
-														20,300
+														{((orderDetail.transaction?.totalAmt || price) - (orderDetail.transaction?.discountFee || 0)).toLocaleString()}
 													</div>
 													<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
 														元

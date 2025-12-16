@@ -13,4 +13,7 @@ export class CreateOrderResponseDTO {
 
   @Expose()
   expDate: Date;
+
+  @Expose()
+  depositAmt: number;
 }

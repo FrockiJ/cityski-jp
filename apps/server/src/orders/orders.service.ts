@@ -330,18 +330,20 @@ export class OrdersService {
     queryRunner?: QueryRunner,
   ): Promise<string> {
     try {
-      // 查詢當前 type 的最大編號
+      // 查詢當前 type 的最大編號（包含所有狀態的訂單，包括已取消的）
       let lastItem = null;
       if (queryRunner) {
-        lastItem = await queryRunner.manager.findOne(Order, {
-          where: { type },
-          order: { no: 'DESC' }, // 取第一筆
-        });
+        lastItem = await queryRunner.manager
+          .createQueryBuilder(Order, 'order')
+          .where('order.type = :type', { type })
+          .orderBy('order.no', 'DESC')
+          .getOne();
       } else {
-        lastItem = await this.ordersRepo.findOne({
-          where: { type },
-          order: { no: 'DESC' }, // 取第一筆
-        });
+        lastItem = await this.ordersRepo
+          .createQueryBuilder('order')
+          .where('order.type = :type', { type })
+          .orderBy('order.no', 'DESC')
+          .getOne();
       }
       const toDay = new Date();
       const year = toDay.getFullYear();
@@ -480,9 +482,41 @@ export class OrdersService {
 
       // coursePlanId: request.coursePlanId,
       // discountCode
+
+      // 生成訂單編號，如果重複則重試（最多 3 次）
+      let orderNo: string;
+      let retryCount = 0;
+      const MAX_RETRIES = 3;
+
+      while (retryCount < MAX_RETRIES) {
+        orderNo = await this.generateOrderNo(body.type, body.skiType, body.bkgType);
+
+        // 檢查訂單號是否已存在
+        const existingOrder = await this.ordersRepo.findOne({
+          where: { no: orderNo },
+        });
+
+        if (!existingOrder) {
+          break; // 訂單號可用，跳出循環
+        }
+
+        retryCount++;
+        console.warn(`Order number ${orderNo} already exists, retrying... (${retryCount}/${MAX_RETRIES})`);
+
+        // 等待一小段時間再重試
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      if (retryCount === MAX_RETRIES) {
+        throw new CustomException(
+          'Failed to generate unique order number after multiple attempts',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
       const savedOrder = this.ordersRepo.create({
         ...new Order(),
-        no: await this.generateOrderNo(body.type, body.skiType, body.bkgType),
+        no: orderNo,
         orderer: memberId,
         type: body.type,
         skiType: body.skiType,
@@ -698,12 +732,22 @@ export class OrdersService {
           }
         }
 
-        // todo: 創order同時要創交易資料 尚未完成
-        this.transactionsService.createTransaction(savedOrder);
+        // 創建交易資料並等待完成
+        await this.transactionsService.createTransaction(savedOrder);
       }
 
-      return savedOrder;
-      
+      // 重新查詢訂單以包含 transaction 關聯
+      const orderWithTransaction = await this.ordersRepo.findOne({
+        where: { id: savedOrder.id },
+        relations: ['transaction'],
+      });
+
+      // 將 depositAmt 加入訂單物件頂層以供 DTO 使用
+      return {
+        ...orderWithTransaction,
+        depositAmt: orderWithTransaction.transaction?.depositAmt,
+      } as any;
+
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;

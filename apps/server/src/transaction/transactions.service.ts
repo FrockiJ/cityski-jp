@@ -18,7 +18,7 @@ export class TransactionsService {
     private readonly discountsRepo: Repository<Discount>,
   ) {}
 
-  async createTransaction(order: Order) {
+  async createTransaction(order: Order): Promise<Transaction> {
     try {
       // 計算原價：單價 × 購買堂數 × 人數
       const totalPeople = (order.adultCount || 0) + (order.childCount || 0);
@@ -70,6 +70,7 @@ export class TransactionsService {
       });
 
       await this.transactionsRepo.save(savedTransaction);
+      return savedTransaction;
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;
@@ -256,6 +257,52 @@ export class TransactionsService {
           transactionId: transaction.id,
           lastPaymentAttemptResult: transaction.lastPaymentAttemptResult,
           lastPaymentAttemptDate: transaction.lastPaymentAttemptDate,
+        },
+      };
+    } catch (err) {
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  // Cancel order by order number (called by ECPay callback when payment fails)
+  async cancelOrderByOrderNo(orderNo: string, failureReason: string) {
+    try {
+      const order = await this.ordersRepo.findOne({
+        where: { no: orderNo },
+        relations: ['transaction'],
+      });
+
+      if (!order) {
+        throw new CustomException('Order not found', HttpStatus.NOT_FOUND);
+      }
+
+      if (!order.transaction) {
+        throw new CustomException('Transaction not found', HttpStatus.NOT_FOUND);
+      }
+
+      const transaction = order.transaction;
+
+      // 更新訂單狀態為已取消
+      order.status = 9; // ORDER_CANCELED
+
+      // 記錄支付失敗原因
+      transaction.lastPaymentAttemptDate = new Date();
+      transaction.lastPaymentAttemptResult = failureReason;
+
+      await this.ordersRepo.save(order);
+      await this.transactionsRepo.save(transaction);
+
+      return {
+        success: true,
+        message: 'Order cancelled successfully',
+        data: {
+          orderId: order.id,
+          orderNo: order.no,
+          status: order.status,
+          failureReason: transaction.lastPaymentAttemptResult,
         },
       };
     } catch (err) {

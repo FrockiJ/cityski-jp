@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
 	Box,
 	Typography,
@@ -14,118 +14,101 @@ import {
 	InputAdornment,
 	Drawer,
 	IconButton,
+	CircularProgress,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import CloseIcon from '@mui/icons-material/Close';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ClearIcon from '@mui/icons-material/Clear';
-
-interface InventoryRow {
-	customer: { name: string; phone: string };
-	orders: { name: string; id: string; count: number }[];
-	totalAmount: string;
-	balance: string;
-	monthly: { [key: string]: string };
-}
-
-const mockData: InventoryRow[] = [
-	{
-		customer: { name: '黃大名', phone: '0912345678' },
-		orders: [
-			{ name: '私人課教學', id: '00001', count: 3 },
-			{ name: '團體課教學', id: '00001', count: 3 },
-			{ name: '個人練習', id: '00001', count: 3 },
-		],
-		totalAmount: '$91,000',
-		balance: '$45,000',
-		monthly: {
-			'2024/01': '--',
-			'2024/02': '--',
-			'2024/03': '$3,200',
-			'2024/04': '$3,200',
-			'2024/05': '$3,200',
-			'2024/06': '$3,200',
-			'2024/07': '$3,200',
-		},
-	},
-	{
-		customer: { name: '林小美', phone: '0912345678' },
-		orders: [{ name: '團體課教學', id: '00001', count: 3 }],
-		totalAmount: '$91,000',
-		balance: '$45,000',
-		monthly: {
-			'2024/01': '--',
-			'2024/02': '--',
-			'2024/03': '$0',
-			'2024/04': '$0',
-			'2024/05': '$3,200',
-			'2024/06': '$3,200',
-			'2024/07': '$3,200',
-		},
-	},
-	{
-		customer: { name: '許淨淨', phone: '0912345678' },
-		orders: [
-			{ name: '團體課教學', id: '00001', count: 3 },
-			{ name: '個人練習', id: '00001', count: 3 },
-		],
-		totalAmount: '$91,000',
-		balance: '$0',
-		monthly: {
-			'2024/01': '$3,200',
-			'2024/02': '$3,200',
-			'2024/03': '$3,200',
-			'2024/04': '--',
-			'2024/05': '--',
-			'2024/06': '--',
-			'2024/07': '$3,200',
-		},
-	},
-	{
-		customer: { name: '陳大帥', phone: '0912345678' },
-		orders: [{ name: '團體課教學', id: '00001', count: 3 }],
-		totalAmount: '$91,000',
-		balance: '$45,000',
-		monthly: {
-			'2024/01': '$3,200',
-			'2024/02': '$3,200',
-			'2024/03': '$3,200',
-			'2024/04': '$3,200',
-			'2024/05': '$3,200',
-			'2024/06': '$3,200',
-			'2024/07': '$3,200',
-		},
-	},
-	{
-		customer: { name: '彭于晏', phone: '0912345678' },
-		orders: [{ name: '團體課教學', id: '00001', count: 3 }],
-		totalAmount: '$91,000',
-		balance: '$45,000',
-		monthly: {
-			'2024/01': '$3,200',
-			'2024/02': '$3,200',
-			'2024/03': '$3,200',
-			'2024/04': '$3,200',
-			'2024/05': '$3,200',
-			'2024/06': '$3,200',
-			'2024/07': '$3,200',
-		},
-	},
-];
-
-const monthColumns = ['2024/01', '2024/02', '2024/03', '2024/04', '2024/05', '2024/06', '2024/07'];
+import { useInventory } from '@/hooks/useInventory';
 
 export default function Inventory() {
 	const [filterOpen, setFilterOpen] = useState(false);
 	const [fromDate, setFromDate] = useState('');
 	const [toDate, setToDate] = useState('');
+	const [searchQuery, setSearchQuery] = useState('');
+	const [sortBy, setSortBy] = useState<string>('totalAmount');
+	const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+	// Fetch inventory data
+	const { data, loading, summary, dateRange, refetch } = useInventory({
+		fromDate,
+		toDate,
+		sortBy,
+		sortOrder,
+	});
+
+	// Get unique month columns from data
+	const monthColumns = useMemo(() => {
+		const months = new Set<string>();
+		data.forEach((item) => {
+			Object.keys(item.monthlyUsage).forEach((month) => months.add(month));
+		});
+		return Array.from(months).sort();
+	}, [data]);
+
+	// Filter data based on search query
+	const filteredData = useMemo(() => {
+		if (!searchQuery) return data;
+		const query = searchQuery.toLowerCase();
+		return data.filter(
+			(item) =>
+				item.customerName.toLowerCase().includes(query) ||
+				item.customerPhone.includes(query) ||
+				item.orderNo.toLowerCase().includes(query)
+		);
+	}, [data, searchQuery]);
+
+	// Group data by customer for display
+	const groupedData = useMemo(() => {
+		const groups = new Map<
+			string,
+			{
+				customerName: string;
+				customerPhone: string;
+				items: typeof filteredData;
+			}
+		>();
+
+		filteredData.forEach((item) => {
+			const key = `${item.customerName}-${item.customerPhone}`;
+			if (!groups.has(key)) {
+				groups.set(key, {
+					customerName: item.customerName,
+					customerPhone: item.customerPhone,
+					items: [],
+				});
+			}
+			groups.get(key)?.items.push(item);
+		});
+
+		return Array.from(groups.values());
+	}, [filteredData]);
 
 	const handleClearFilters = () => {
 		setFromDate('');
 		setToDate('');
+		refetch({ sortBy, sortOrder });
+	};
+
+	const handleApplyFilters = () => {
+		refetch({ fromDate, toDate, sortBy, sortOrder });
+		setFilterOpen(false);
+	};
+
+	const handleSort = (column: string) => {
+		const newOrder = sortBy === column && sortOrder === 'desc' ? 'asc' : 'desc';
+		setSortBy(column);
+		setSortOrder(newOrder);
+		refetch({ fromDate, toDate, sortBy: column, sortOrder: newOrder });
+	};
+
+	const formatCurrency = (amount: number) => {
+		return `$${amount.toLocaleString()}`;
 	};
 
 	return (
@@ -190,6 +173,8 @@ export default function Inventory() {
 					<TextField
 						placeholder="搜尋學員、手機或訂單編號"
 						size="small"
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
 						sx={{
 							width: 288,
 							'& .MuiOutlinedInput-root': {
@@ -249,6 +234,7 @@ export default function Inventory() {
 									訂單(人數)
 								</TableCell>
 								<TableCell
+									onClick={() => handleSort('totalAmount')}
 									sx={{
 										bgcolor: 'grey.100',
 										fontWeight: 600,
@@ -256,14 +242,22 @@ export default function Inventory() {
 										borderRight: '2px solid',
 										borderColor: 'grey.300',
 										minWidth: 96,
+										cursor: 'pointer',
+										userSelect: 'none',
 									}}
 								>
 									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
 										總金額
-										<ArrowDownwardIcon sx={{ fontSize: 16, color: 'grey.500' }} />
+										{sortBy === 'totalAmount' &&
+											(sortOrder === 'desc' ? (
+												<ArrowDownwardIcon sx={{ fontSize: 16, color: 'grey.500' }} />
+											) : (
+												<ArrowUpwardIcon sx={{ fontSize: 16, color: 'grey.500' }} />
+											))}
 									</Box>
 								</TableCell>
 								<TableCell
+									onClick={() => handleSort('balance')}
 									sx={{
 										bgcolor: 'grey.100',
 										fontWeight: 600,
@@ -271,13 +265,24 @@ export default function Inventory() {
 										borderRight: '2px solid',
 										borderColor: 'grey.300',
 										minWidth: 88,
+										cursor: 'pointer',
+										userSelect: 'none',
 									}}
 								>
-									餘額
+									<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+										餘額
+										{sortBy === 'balance' &&
+											(sortOrder === 'desc' ? (
+												<ArrowDownwardIcon sx={{ fontSize: 16, color: 'grey.500' }} />
+											) : (
+												<ArrowUpwardIcon sx={{ fontSize: 16, color: 'grey.500' }} />
+											))}
+									</Box>
 								</TableCell>
 								{monthColumns.map((month) => (
 									<TableCell
 										key={month}
+										onClick={() => handleSort(month)}
 										sx={{
 											bgcolor: 'grey.100',
 											fontWeight: 600,
@@ -285,37 +290,93 @@ export default function Inventory() {
 											borderRight: '2px solid',
 											borderColor: 'grey.300',
 											minWidth: 96,
+											cursor: 'pointer',
+											userSelect: 'none',
 										}}
 									>
-										{month}
+										<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+											{month}
+											{sortBy === month &&
+												(sortOrder === 'desc' ? (
+													<ArrowDownwardIcon sx={{ fontSize: 16, color: 'grey.500' }} />
+												) : (
+													<ArrowUpwardIcon sx={{ fontSize: 16, color: 'grey.500' }} />
+												))}
+										</Box>
 									</TableCell>
 								))}
 								<TableCell sx={{ bgcolor: 'grey.100' }} />
 							</TableRow>
 						</TableHead>
 						<TableBody>
-							{mockData.map((row, rowIndex) => {
-								const rows = row.orders.map((order, orderIndex) => (
-									<TableRow key={`${rowIndex}-${orderIndex}`}>
-										{orderIndex === 0 ? (
+							{loading ? (
+								<TableRow>
+									<TableCell colSpan={4 + monthColumns.length + 1} align="center" sx={{ py: 4 }}>
+										<CircularProgress />
+									</TableCell>
+								</TableRow>
+							) : groupedData.length === 0 ? (
+								<TableRow>
+									<TableCell colSpan={4 + monthColumns.length + 1} align="center" sx={{ py: 4 }}>
+										<Typography variant="body2" color="text.secondary">
+											無資料
+										</Typography>
+									</TableCell>
+								</TableRow>
+							) : (
+								groupedData.map((group, groupIndex) => {
+									return group.items.map((item, itemIndex) => (
+										<TableRow key={`${groupIndex}-${itemIndex}`}>
+											{itemIndex === 0 ? (
+												<TableCell
+													rowSpan={group.items.length}
+													sx={{
+														borderBottom: '1px solid',
+														borderColor: 'divider',
+														fontFamily: 'Public Sans',
+														verticalAlign: 'top',
+														py: 1.25,
+													}}
+												>
+													<Typography
+														variant="body2"
+														sx={{ fontFamily: 'Public Sans', lineHeight: '20px' }}
+													>
+														{group.customerName}
+													</Typography>
+													<Typography
+														variant="caption"
+														sx={{
+															fontFamily: 'Public Sans',
+															fontSize: 12,
+															lineHeight: '16px',
+															overflow: 'hidden',
+															textOverflow: 'ellipsis',
+															whiteSpace: 'nowrap',
+														}}
+													>
+														{group.customerPhone}
+													</Typography>
+												</TableCell>
+											) : null}
 											<TableCell
-												rowSpan={row.orders.length}
 												sx={{
 													borderBottom: '1px solid',
 													borderColor: 'divider',
 													fontFamily: 'Public Sans',
-													verticalAlign: 'top',
 													py: 1.25,
 												}}
 											>
 												<Typography
 													variant="body2"
+													color="primary"
 													sx={{ fontFamily: 'Public Sans', lineHeight: '20px' }}
 												>
-													{row.customer.name}
+													{item.courseName}({item.participantCount})
 												</Typography>
 												<Typography
 													variant="caption"
+													color="primary"
 													sx={{
 														fontFamily: 'Public Sans',
 														fontSize: 12,
@@ -325,104 +386,60 @@ export default function Inventory() {
 														whiteSpace: 'nowrap',
 													}}
 												>
-													{row.customer.phone}
+													{item.orderNo}
 												</Typography>
 											</TableCell>
-										) : null}
-										<TableCell
-											sx={{
-												borderBottom: '1px solid',
-												borderColor: 'divider',
-												fontFamily: 'Public Sans',
-												py: 1.25,
-											}}
-										>
-											<Typography
-												variant="body2"
-												color="primary"
-												sx={{ fontFamily: 'Public Sans', lineHeight: '20px' }}
-											>
-												{order.name}({order.count})
-											</Typography>
-											<Typography
-												variant="caption"
-												color="primary"
-												sx={{
-													fontFamily: 'Public Sans',
-													fontSize: 12,
-													lineHeight: '16px',
-													overflow: 'hidden',
-													textOverflow: 'ellipsis',
-													whiteSpace: 'nowrap',
-												}}
-											>
-												{order.id}
-											</Typography>
-										</TableCell>
-										{orderIndex === 0 ? (
 											<TableCell
-												rowSpan={row.orders.length}
 												sx={{
 													borderBottom: '1px solid',
 													borderColor: 'divider',
 													fontFamily: 'Public Sans',
-													verticalAlign: 'top',
 													py: 1.25,
 												}}
 											>
 												<Typography variant="body2" sx={{ fontFamily: 'Public Sans' }}>
-													{row.totalAmount}
+													{formatCurrency(item.totalAmount)}
 												</Typography>
 											</TableCell>
-										) : null}
-										{orderIndex === 0 ? (
 											<TableCell
-												rowSpan={row.orders.length}
 												sx={{
 													borderBottom: '1px solid',
 													borderColor: 'divider',
 													fontFamily: 'Public Sans',
-													verticalAlign: 'top',
 													py: 1.25,
 												}}
 											>
 												<Typography variant="body2" sx={{ fontFamily: 'Public Sans' }}>
-													{row.balance}
+													{formatCurrency(item.balance)}
 												</Typography>
 											</TableCell>
-										) : null}
-										{orderIndex === 0
-											? monthColumns.map((month) => (
-													<TableCell
-														key={month}
-														rowSpan={row.orders.length}
-														sx={{
-															borderBottom: '1px solid',
-															borderColor: 'divider',
-															fontFamily: 'Public Sans',
-															verticalAlign: 'top',
-															py: 1.25,
-														}}
-													>
-														<Typography variant="body2" sx={{ fontFamily: 'Public Sans' }}>
-															{row.monthly[month]}
-														</Typography>
-													</TableCell>
-											  ))
-											: null}
-										{orderIndex === 0 ? (
+											{monthColumns.map((month) => (
+												<TableCell
+													key={month}
+													sx={{
+														borderBottom: '1px solid',
+														borderColor: 'divider',
+														fontFamily: 'Public Sans',
+														py: 1.25,
+													}}
+												>
+													<Typography variant="body2" sx={{ fontFamily: 'Public Sans' }}>
+														{item.monthlyUsage[month]
+															? formatCurrency(item.monthlyUsage[month])
+															: '--'}
+													</Typography>
+												</TableCell>
+											))}
 											<TableCell
-												rowSpan={row.orders.length}
 												sx={{
 													borderBottom: '1px solid',
 													borderColor: 'divider',
 												}}
 											/>
-										) : null}
-									</TableRow>
-								));
-								return rows;
-							})}
+										</TableRow>
+									));
+								})
+							)}
 						</TableBody>
 					</Table>
 				</TableContainer>
@@ -445,7 +462,7 @@ export default function Inventory() {
 						fontWeight={600}
 						sx={{ fontFamily: 'Public Sans' }}
 					>
-						共500筆
+						共{summary.totalCount}筆
 					</Typography>
 					<Box sx={{ width: '2px', height: 16, bgcolor: 'grey.300' }} />
 					<Typography
@@ -453,7 +470,7 @@ export default function Inventory() {
 						fontWeight={600}
 						sx={{ fontFamily: 'Public Sans' }}
 					>
-						總金額$209,300
+						總金額{formatCurrency(summary.totalAmount)}
 					</Typography>
 					<Box sx={{ width: '2px', height: 16, bgcolor: 'grey.300' }} />
 					<Typography
@@ -461,7 +478,7 @@ export default function Inventory() {
 						fontWeight={600}
 						sx={{ fontFamily: 'Public Sans' }}
 					>
-						總餘額$98,400
+						總餘額{formatCurrency(summary.totalBalance)}
 					</Typography>
 				</Box>
 			</Paper>
@@ -603,6 +620,20 @@ export default function Inventory() {
 							gap: 1,
 						}}
 					>
+						<Button
+							variant="contained"
+							color="primary"
+							onClick={handleApplyFilters}
+							sx={{
+								width: 224,
+								borderRadius: 2,
+								textTransform: 'none',
+								fontWeight: 700,
+								fontFamily: 'Public Sans',
+							}}
+						>
+							套用
+						</Button>
 						<Button
 							variant="outlined"
 							startIcon={<ClearIcon />}

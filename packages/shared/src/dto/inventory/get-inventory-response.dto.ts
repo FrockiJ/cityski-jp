@@ -17,6 +17,9 @@ export class InventoryItemDTO {
   courseName: string;
 
   @Expose()
+  courseType: string;
+
+  @Expose()
   participantCount: number;
 
   @Expose()

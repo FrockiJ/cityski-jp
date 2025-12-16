@@ -53,6 +53,7 @@ export class InventoryService {
         'member',
         'transaction',
         'coursePlan',
+        'coursePlan.course',
         'orderReservations',
         'orderReservations.reservation',
       ],
@@ -69,20 +70,27 @@ export class InventoryService {
         inventoryMap.set(memberKey, []);
       }
 
-      // Calculate total sessions from plan
-      const totalSessions = order.planNumber || 0;
-
       // Get all reservations for this order
       const orderReservations = await this.orderReservationRepository.find({
         where: { orderId: order.id },
         relations: ['reservation'],
       });
 
-      // Calculate monthly usage
-      const monthlyUsage: { [key: string]: number } = {};
-      let usedAmount = 0;
+      // Calculate total amount and unit price
+      const totalAmount = order.transaction?.totalAmt || 0;
+      const totalSessions = order.planNumber || 0;
+      const unitPrice = totalSessions > 0 ? totalAmount / totalSessions : 0;
 
-      // Filter reservations within date range and not completed
+      // Count RESERVED sessions (all orderReservations with non-null reservationId)
+      const reservedCount = orderReservations.filter(or => or.reservationId !== null).length;
+
+      // Calculate correct balance
+      const balance = totalAmount - (reservedCount * unitPrice);
+
+      // Calculate monthly usage for display (only within date range)
+      const monthlyUsage: { [key: string]: number } = {};
+
+      // Filter reservations within date range and not completed/canceled
       const validReservations = orderReservations.filter((or) => {
         const reservation = or.reservation;
         if (!reservation) return false;
@@ -96,13 +104,7 @@ export class InventoryService {
         );
       });
 
-      // Calculate amount per session (with discount)
-      const totalAmount = order.transaction?.totalAmt || 0;
-      const discountFee = order.transaction?.discountFee || 0;
-      const actualAmount = totalAmount - discountFee;
-      const amountPerSession = totalSessions > 0 ? actualAmount / totalSessions : 0;
-
-      // Calculate monthly usage
+      // Allocate unit price to months for display
       for (const or of validReservations) {
         const reservation = or.reservation;
         const classTime = new Date(reservation.classTime);
@@ -112,9 +114,11 @@ export class InventoryService {
           monthlyUsage[monthKey] = 0;
         }
 
-        monthlyUsage[monthKey] += amountPerSession;
-        usedAmount += amountPerSession;
+        monthlyUsage[monthKey] += unitPrice;
       }
+
+      // Extract course type
+      const courseType = order.coursePlan?.course?.type || '';
 
       // Create inventory item
       const inventoryItem: InventoryItemDTO = {
@@ -123,9 +127,10 @@ export class InventoryService {
         orderId: order.id,
         orderNo: order.no,
         courseName: order.coursePlan?.name || '',
+        courseType: courseType,
         participantCount: (order.adultCount || 0) + (order.childCount || 0),
         totalAmount: totalAmount,
-        balance: totalAmount - usedAmount,
+        balance: balance,
         monthlyUsage,
       };
 

@@ -65,7 +65,7 @@ const FixedPaymentBlock = ({ orderDetail, handleRefresh }: Props) => {
 			marginBottom: true,
 			children: <CheckoutModal
 				orderId={orderDetail.id}
-				balanceAmt={transaction?.balanceAmt || 0}
+				balanceAmt={(transaction?.totalAmt || 0) - (transaction?.depositAmt || 0)}
 				handleRefresh={(result) => {
 					console.log('result: ', result);
 					setCheckoutValue(result);
@@ -101,7 +101,6 @@ const FixedPaymentBlock = ({ orderDetail, handleRefresh }: Props) => {
 		<>
 			<Stack
 				width='246px'
-				height={ isPendingDeposit ? '235px' : '287px'}
 				bgcolor='white'
 				borderRadius='16px'
 				p='24px'
@@ -144,15 +143,24 @@ const FixedPaymentBlock = ({ orderDetail, handleRefresh }: Props) => {
 					<Typography variant='body1'>
 						{isFullyPaid ? formatAmount(transaction?.totalAmt) : '--'}
 					</Typography>
+				
 				</Stack>
-
-				{
+				
+	{
 					!isPendingDeposit && !isFullyPaid
 						? <Stack direction='row' justifyContent='space-between' mt='22px'>
 								<CoreButton color='primary' variant='contained' width='100%' label='確認結清' onClick={() => handleCheckout()} />
 							</Stack>
 						: <></>
 				}
+				{
+					isPendingDeposit 
+						? <Stack direction='row' justifyContent='space-between' mt='22px'>
+								<CoreButton color='primary' variant='contained' width='100%' label='確認訂金' onClick={handlePayDepositForDev} />
+							</Stack>
+						: <></>
+				}
+				
 
 			</Stack>
 			<Stack
@@ -197,7 +205,7 @@ const FixedPaymentBlock = ({ orderDetail, handleRefresh }: Props) => {
 						訂金發票號碼
 					</Typography>
 					<Typography variant='body1'>
-						{isPendingDeposit ? '--' : '00123456'}
+						{isPendingDeposit ? '--' : '--'}
 					</Typography>
 				</Stack>
 				<Divider orientation='horizontal' sx={{ margin: '16px 0' }} />

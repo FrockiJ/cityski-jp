@@ -45,14 +45,17 @@ export default function Inventory() {
 	// Get unique month columns from data
 	const monthColumns = useMemo(() => {
 		const months = new Set<string>();
-		data.forEach((item) => {
-			Object.keys(item.monthlyUsage).forEach((month) => months.add(month));
-		});
+		if (data && Array.isArray(data)) {
+			data.forEach((item) => {
+				Object.keys(item.monthlyUsage).forEach((month) => months.add(month));
+			});
+		}
 		return Array.from(months).sort();
 	}, [data]);
 
 	// Filter data based on search query
 	const filteredData = useMemo(() => {
+		if (!data || !Array.isArray(data)) return [];
 		if (!searchQuery) return data;
 		const query = searchQuery.toLowerCase();
 		return data.filter(
@@ -62,6 +65,16 @@ export default function Inventory() {
 				item.orderNo.toLowerCase().includes(query)
 		);
 	}, [data, searchQuery]);
+
+	// Map course type code to display label
+	const getCourseTypeLabel = (courseType: string) => {
+		const courseTypeMap: Record<string, string> = {
+			'P': '私人課',
+			'G': '團體課',
+			'I': '個人練習',
+		};
+		return courseTypeMap[courseType] || '--';
+	};
 
 	// Group data by customer for display
 	const groupedData = useMemo(() => {
@@ -372,7 +385,7 @@ export default function Inventory() {
 													color="primary"
 													sx={{ fontFamily: 'Public Sans', lineHeight: '20px' }}
 												>
-													{item.courseName}({item.participantCount})
+													{getCourseTypeLabel(item.courseType)}({item.participantCount})
 												</Typography>
 												<Typography
 													variant="caption"

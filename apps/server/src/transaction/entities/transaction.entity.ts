@@ -25,24 +25,22 @@ export class Transaction extends UserDate {
   @Column({ name: 'discount_fee', type: 'int' })
   discountFee: number;
 
-  @Column({ name: 'deposit_amt', type: 'int' })
+  @Column({ name: 'deposit_amt', type: 'int', nullable: true })
   depositAmt: number;
 
   @CreateDateColumn({
     type: 'timestamp',
     name: 'deposit_date',
-    default: () => 'CURRENT_TIMESTAMP(6)',
     nullable: true,
   })
   depositDate: Date;
 
-  @Column({ name: 'balance_amt', type: 'int' })
+  @Column({ name: 'balance_amt', type: 'int', nullable: true })
   balanceAmt: number;
 
   @CreateDateColumn({
     type: 'timestamp',
-    name: 'balance_date',
-    default: () => 'CURRENT_TIMESTAMP(6)',
+    name: 'balance_date',      
     nullable: true,
   })
   balanceDate: Date;

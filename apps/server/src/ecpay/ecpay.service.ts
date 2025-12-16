@@ -144,19 +144,19 @@ export class EcpayService {
           throw error; // 拋出錯誤，讓外層 catch 處理
         }
       } else {
-        // 支付失敗：記錄失敗原因，不更新訂單狀態
+        // 支付失敗：取消訂單
         this.logger.warn(`[CALLBACK STEP 4] ✗ Payment failed with RtnCode: ${notification.RtnCode}, RtnMsg: ${notification.RtnMsg}`);
-        this.logger.warn(`[CALLBACK STEP 4] Order ${notification.MerchantTradeNo} remains in PENDING_DEPOSIT status`);
-        this.logger.warn(`[CALLBACK STEP 4] User can retry payment for this order`);
+        this.logger.warn(`[CALLBACK STEP 4] Cancelling order ${notification.MerchantTradeNo}`);
 
-        // 記錄支付失敗到資料庫
+        // 取消訂單
         try {
-          const failureReason = `RtnCode_${notification.RtnCode}`;
-          await this.transactionsService.recordPaymentFailure(notification.MerchantTradeNo, failureReason);
-          this.logger.log(`[CALLBACK STEP 4] ✓ Payment failure recorded in database`);
+          // 限制失敗原因長度為 20 字元
+          const failureReason = `RtnCode_${notification.RtnCode}`.substring(0, 20);
+          await this.transactionsService.cancelOrderByOrderNo(notification.MerchantTradeNo, failureReason);
+          this.logger.log(`[CALLBACK STEP 4] ✓ Order cancelled successfully`);
         } catch (error) {
-          this.logger.error(`[CALLBACK STEP 4] ✗ Failed to record payment failure: ${error.message}`);
-          // 不拋出錯誤，因為這不是關鍵操作
+          this.logger.error(`[CALLBACK STEP 4] ✗ Failed to cancel order: ${error.message}`);
+          // 不拋出錯誤，讓流程繼續
         }
       }
 

@@ -43,22 +43,18 @@ function OrderErrorContent() {
 	const [formData, setFormData] = useState<OrderFormData>();
 	const [plan, setPlan] = useState<CoursePlanResponseDTO>();
 	const [images, setImages] = useState<string[]>();
-	const [orderNo, setOrderNo] = useState<string | null>(null);
-	const [orderId, setOrderId] = useState<string | null>(null);
 
 	const errorInfo = errorMessages[reason] || errorMessages.default;
 
 	useEffect(() => {
 		const createOrderSuccess = localStorage.getItem('createOrderSuccess');
 		if (createOrderSuccess) {
-			const { courseDetail, order, department, plan, formData } = JSON.parse(createOrderSuccess);
+			const { courseDetail, department, plan, formData } = JSON.parse(createOrderSuccess);
 			setCourseDetail(courseDetail);
 			setDepartment(department);
 			setPlan(plan);
 			setFormData(formData);
 			setImages(courseDetail?.attachments.map((image: any) => process.env.NEXT_PUBLIC_AWS_S3_URL + image.key));
-			setOrderNo(order?.no || null);
-			setOrderId(order?.id || null);
 		}
 	}, []);
 
@@ -70,13 +66,6 @@ function OrderErrorContent() {
 				</div>
 				<h1 className='text-3xl mb-4 text-center'>{errorInfo.title}</h1>
 				<p className='text-center text-zinc-600 mb-10 px-4'>{errorInfo.description}</p>
-
-				{orderNo && (
-					<div className='mb-6 text-center'>
-						<p className='text-sm text-zinc-500'>訂單編號</p>
-						<p className='text-lg font-medium text-zinc-800'>{orderNo}</p>
-					</div>
-				)}
 
 				{courseDetail && (
 					<section className='flex items-center justify-center mb-10 w-full'>
@@ -142,13 +131,6 @@ function OrderErrorContent() {
 					<Button variant='secondary' onClick={() => router.push('/')} className='w-full' aria-label='回到首頁'>
 						回到首頁
 					</Button>
-					<button
-						className='overflow-hidden gap-2.5 self-stretch px-6 py-5 max-w-full text-base font-bold text-white whitespace-nowrap rounded-lg bg-[linear-gradient(99deg,#FE696C_0%,#FD8E4B_100%)] w-full max-xs:px-5 transition-all duration-300 hover:opacity-90 hover:shadow-lg'
-						onClick={() => orderId ? router.push(`/order/${orderId}`) : router.push('/member/orders')}
-						aria-label='查看訂單'
-					>
-						查看訂單
-					</button>
 				</div>
 			</div>
 		</div>

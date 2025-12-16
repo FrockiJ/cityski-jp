@@ -266,4 +266,50 @@ export class TransactionsService {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+  // Cancel order by order number (called by ECPay callback when payment fails)
+  async cancelOrderByOrderNo(orderNo: string, failureReason: string) {
+    try {
+      const order = await this.ordersRepo.findOne({
+        where: { no: orderNo },
+        relations: ['transaction'],
+      });
+
+      if (!order) {
+        throw new CustomException('Order not found', HttpStatus.NOT_FOUND);
+      }
+
+      if (!order.transaction) {
+        throw new CustomException('Transaction not found', HttpStatus.NOT_FOUND);
+      }
+
+      const transaction = order.transaction;
+
+      // 更新訂單狀態為已取消
+      order.status = 9; // ORDER_CANCELED
+
+      // 記錄支付失敗原因
+      transaction.lastPaymentAttemptDate = new Date();
+      transaction.lastPaymentAttemptResult = failureReason;
+
+      await this.ordersRepo.save(order);
+      await this.transactionsRepo.save(transaction);
+
+      return {
+        success: true,
+        message: 'Order cancelled successfully',
+        data: {
+          orderId: order.id,
+          orderNo: order.no,
+          status: order.status,
+          failureReason: transaction.lastPaymentAttemptResult,
+        },
+      };
+    } catch (err) {
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }

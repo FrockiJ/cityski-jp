@@ -121,6 +121,23 @@ export class OrdersController {
 
       const depositPaid = order.transaction?.status >= 1;
 
+      // 檢測支付失敗：
+      // 1. 如果有記錄最後一次支付嘗試且結果為失敗（RtnCode_開頭表示失敗）
+      // 2. 或者訂單建立超過 10 分鐘且仍在 PENDING_DEPOSIT 狀態
+      const hasFailureRecord =
+        order.transaction?.lastPaymentAttemptResult &&
+        order.transaction.lastPaymentAttemptResult.startsWith('RtnCode_') &&
+        order.transaction.lastPaymentAttemptResult !== 'RtnCode_1';
+
+      const orderCreatedAt = new Date(order.createdTime);
+      const now = new Date();
+      const minutesSinceCreation = (now.getTime() - orderCreatedAt.getTime()) / (1000 * 60);
+      const isTimeout =
+        order.transaction?.status === 0 && // TransactionStatus.PENDING_DEPOSIT
+        minutesSinceCreation > 10;
+
+      const isPaymentFailed = hasFailureRecord || isTimeout;
+
       return {
         success: true,
         data: {
@@ -129,6 +146,7 @@ export class OrdersController {
           orderStatus: order.status,
           transactionStatus: order.transaction?.status,
           depositPaid,
+          isPaymentFailed,
         },
       };
     } catch (error) {

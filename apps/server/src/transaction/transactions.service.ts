@@ -224,4 +224,45 @@ export class TransactionsService {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+  // Record payment failure (called by ECPay callback when payment fails)
+  async recordPaymentFailure(orderNo: string, failureReason: string) {
+    try {
+      const order = await this.ordersRepo.findOne({
+        where: { no: orderNo },
+        relations: ['transaction'],
+      });
+
+      if (!order) {
+        throw new CustomException('Order not found', HttpStatus.NOT_FOUND);
+      }
+
+      if (!order.transaction) {
+        throw new CustomException('Transaction not found', HttpStatus.NOT_FOUND);
+      }
+
+      const transaction = order.transaction;
+
+      // Record the failure
+      transaction.lastPaymentAttemptDate = new Date();
+      transaction.lastPaymentAttemptResult = failureReason;
+
+      await this.transactionsRepo.save(transaction);
+
+      return {
+        success: true,
+        message: 'Payment failure recorded',
+        data: {
+          transactionId: transaction.id,
+          lastPaymentAttemptResult: transaction.lastPaymentAttemptResult,
+          lastPaymentAttemptDate: transaction.lastPaymentAttemptDate,
+        },
+      };
+    } catch (err) {
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }

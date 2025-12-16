@@ -113,6 +113,8 @@ export class EcpayService {
 
       // 建立支付結果
       this.logger.log('[CALLBACK STEP 3] Building payment result object...');
+      this.logger.log(`[CALLBACK STEP 3] RtnCode type: ${typeof notification.RtnCode}, value: ${notification.RtnCode}`);
+
       const paymentResult: PaymentResult = {
         orderId: notification.CustomField2 || notification.MerchantTradeNo,
         transactionId: notification.CustomField1 || '',
@@ -120,7 +122,7 @@ export class EcpayService {
         amount: notification.TradeAmt,
         paymentMethod: 'Credit',
         paymentDate: notification.PaymentDate,
-        status: notification.RtnCode === 1 ? 'success' : 'failure',
+        status: Number(notification.RtnCode) === 1 ? 'success' : 'failure',
         merchantTradeNo: notification.MerchantTradeNo,
       };
 
@@ -129,15 +131,33 @@ export class EcpayService {
       );
       this.logger.log(`[CALLBACK STEP 3] Payment result details: ${JSON.stringify(paymentResult)}`);
 
-      // 直接調用 TransactionsService 更新訂單狀態
-      this.logger.log('[CALLBACK STEP 4] Updating order payment status...');
-      try {
-        await this.transactionsService.payDepositByOrderNo(notification.MerchantTradeNo);
-        this.logger.log('[CALLBACK STEP 4] ✓ Order payment status updated successfully');
-      } catch (error) {
-        this.logger.error(`[CALLBACK STEP 4] ✗ Failed to update order status: ${error.message}`);
-        this.logger.error(`[CALLBACK STEP 4] Error stack: ${error.stack}`);
-        throw error; // 拋出錯誤，讓外層 catch 處理
+      // 根據 RtnCode 決定是否更新訂單狀態
+      this.logger.log('[CALLBACK STEP 4] Processing payment result based on RtnCode...');
+      if (Number(notification.RtnCode) === 1) {
+        // 支付成功：更新訂單狀態
+        try {
+          await this.transactionsService.payDepositByOrderNo(notification.MerchantTradeNo);
+          this.logger.log('[CALLBACK STEP 4] ✓ Payment successful - Order payment status updated successfully');
+        } catch (error) {
+          this.logger.error(`[CALLBACK STEP 4] ✗ Failed to update order status: ${error.message}`);
+          this.logger.error(`[CALLBACK STEP 4] Error stack: ${error.stack}`);
+          throw error; // 拋出錯誤，讓外層 catch 處理
+        }
+      } else {
+        // 支付失敗：記錄失敗原因，不更新訂單狀態
+        this.logger.warn(`[CALLBACK STEP 4] ✗ Payment failed with RtnCode: ${notification.RtnCode}, RtnMsg: ${notification.RtnMsg}`);
+        this.logger.warn(`[CALLBACK STEP 4] Order ${notification.MerchantTradeNo} remains in PENDING_DEPOSIT status`);
+        this.logger.warn(`[CALLBACK STEP 4] User can retry payment for this order`);
+
+        // 記錄支付失敗到資料庫
+        try {
+          const failureReason = `RtnCode_${notification.RtnCode}`;
+          await this.transactionsService.recordPaymentFailure(notification.MerchantTradeNo, failureReason);
+          this.logger.log(`[CALLBACK STEP 4] ✓ Payment failure recorded in database`);
+        } catch (error) {
+          this.logger.error(`[CALLBACK STEP 4] ✗ Failed to record payment failure: ${error.message}`);
+          // 不拋出錯誤，因為這不是關鍵操作
+        }
       }
 
       const redirectUrl = `${this.ecpayConfig.clientDomain}/courses/order-result`;

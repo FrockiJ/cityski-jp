@@ -771,14 +771,12 @@ export class ReservationsService {
   // 獲取預約時段 - 基於 reservation 表
   async getReservationSlots(query: any): Promise<any> {
     try {
-      const { start_date, end_date, course_type, instructor_id } = query;
-      // TODO: 等前端的正確資料 - 暫時硬編碼使用測試的 department UUID
-      const branch_id = '2e050cd6-a1a2-485b-8f27-a50091a19e60';
+      const { branch_id, start_date, end_date, course_type } = query;
 
       // 驗證必要參數
-      if (!start_date || !end_date) {
+      if (!branch_id || !start_date || !end_date) {
         throw new HttpException(
-          `Missing required parameters. Got: start_date=${start_date}, end_date=${end_date}`,
+          `Missing required parameters. Got: branch_id=${branch_id}, start_date=${start_date}, end_date=${end_date}`,
           HttpStatus.BAD_REQUEST,
         );
       }
@@ -823,11 +821,6 @@ export class ReservationsService {
       // 根據課程類型篩選
       if (course_type !== undefined) {
         reservationsQuery.andWhere('course.type = :course_type', { course_type });
-      }
-
-      // 根據講師篩選
-      if (instructor_id !== undefined) {
-        reservationsQuery.andWhere('reservation.instructor = :instructor_id', { instructor_id });
       }
 
       const reservations = await reservationsQuery.getMany();

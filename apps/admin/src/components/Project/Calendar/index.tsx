@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from '@mui/icons-material';
 import { Alert, Box, Button, CircularProgress, IconButton, Paper, Stack, Typography } from '@mui/material';
 import dayjs from 'dayjs';
 
 import { CourseType } from '@repo/shared';
 import { useReservationSlots } from '@/hooks/useReservationSlots';
+import { useDepartments } from '@/hooks/useDepartments';
 
 import DayView from './DayView';
 import IndoorOverseasToggle from './IndoorOverseasToggle';
@@ -35,23 +36,23 @@ export default function Calendar() {
 
 	// 預約篩選狀態
 	const [filters, setFilters] = useState<FilterState>({
-		branchId: '1', // 預設分店 ID - 應該從用戶權限取得
+		branchId: '', // 將從 API 取得後設定第一個分店
 		startDate: dayjs().startOf('week'),
 		endDate: dayjs().endOf('week'),
 	});
 
-	// 模擬部門和教練資料 - 應該從 API 取得
-	const departments = [
-		{ id: '1', name: '台北分店' },
-		{ id: '2', name: '台中分店' },
-		{ id: '3', name: '高雄分店' },
-	];
+	// 使用部門資料 hook
+	const { departments, loading: departmentsLoading } = useDepartments();
 
-	const instructors = [
-		{ id: '1', name: '王教練' },
-		{ id: '2', name: '李教練' },
-		{ id: '3', name: '張教練' },
-	];
+	// 當部門資料載入完成後，設定第一個分店為預設值
+	useEffect(() => {
+		if (!filters.branchId && departments.length > 0) {
+			setFilters((prev) => ({
+				...prev,
+				branchId: departments[0].id,
+			}));
+		}
+	}, [departments, filters.branchId]);
 
 	// 使用預約時段 hook
 	const slotsParams = {
@@ -59,10 +60,33 @@ export default function Calendar() {
 		start_date: filters.startDate.format('YYYY-MM-DD'),
 		end_date: filters.endDate.format('YYYY-MM-DD'),
 		...(filters.courseType && { course_type: filters.courseType }),
-		...(filters.instructorId && { instructor_id: filters.instructorId }),
 	};
 
 	const { slots, loading, error, refetch } = useReservationSlots(slotsParams);
+
+	// 從 slots 中提取教練列表
+	const [coaches, setCoaches] = useState<Array<{ id: string; name: string }>>([]);
+
+	// 當篩選條件或 slots 改變時，重新計算 coaches
+	useEffect(() => {
+		if (!slots || slots.length === 0) {
+			setCoaches([]);
+			return;
+		}
+
+		// 從 slots 中提取所有唯一的教練
+		const uniqueCoaches = new Set<string>();
+
+		slots.forEach((slot) => {
+			if ( slot.instructorName) {
+				uniqueCoaches.add(slot.instructorName);
+			}
+		});
+
+		setCoaches(Array.from(uniqueCoaches).map((name) => ({ id: name, name })));
+	}, [slots, filters.branchId, filters.courseType, filters.startDate, filters.endDate]);
+
+
 
 	// 當檢視類型改變時，更新日期範圍
 	useEffect(() => {
@@ -137,6 +161,15 @@ export default function Calendar() {
 		setFilters(newFilters);
 	};
 
+	// 前端過濾：根據選擇的教練過濾時段
+	const filteredSlots = useMemo(() => {
+		if (!filters.instructorId) {
+			return slots;
+		}
+
+		return slots.filter((slot) => slot.instructorName === filters.instructorId);
+	}, [slots, filters.instructorId]);
+
 	return (
 		<Box
 			sx={{
@@ -167,7 +200,7 @@ export default function Calendar() {
 			<ReservationFilters
 				filters={filters}
 				departments={departments}
-				instructors={instructors}
+				instructors={coaches}
 				onFiltersChange={handleFiltersChange}
 			/>
 
@@ -252,16 +285,16 @@ export default function Calendar() {
 				>
 					{viewMode === 'list' ? (
 						<ListView
-							slots={slots.map((slot) => ({
+							slots={filteredSlots.map((slot) => ({
 								...slot,
 								courseType: slot.courseType as unknown as CourseType,
 							}))}
 							onSlotClick={handleSlotClick}
 						/>
 					) : viewType === 'week' ? (
-						<WeekView currentDate={currentDate} slots={slots} onSlotClick={handleSlotClick} />
+						<WeekView currentDate={currentDate} slots={filteredSlots} onSlotClick={handleSlotClick} />
 					) : (
-						<DayView currentDate={currentDate} slots={slots} onSlotClick={handleSlotClick} />
+						<DayView currentDate={currentDate} slots={filteredSlots} onSlotClick={handleSlotClick} />
 					)}
 				</Box>
 			)}

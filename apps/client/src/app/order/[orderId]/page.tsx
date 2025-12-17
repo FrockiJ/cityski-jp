@@ -149,8 +149,16 @@ export default function OrderDetail() {
 				// 檢查尾款是否已支付成功
 				if (updatedOrder.transaction?.balanceDate) {
 					stopPolling();
-					setOrderDetail(updatedOrder);
-					showToast('尾款支付成功！', 'success');
+
+					// 儲存訂單資料到 localStorage
+					const dataToStore = {
+						orderNo: updatedOrder.no,
+						orderId: updatedOrder.id,
+					};
+					localStorage.setItem('balancePaymentSuccess', JSON.stringify(dataToStore));
+
+					// 導向付款成功頁面
+					router.push('/courses/payment-success');
 					return;
 				}
 
@@ -165,7 +173,6 @@ export default function OrderDetail() {
 					return;
 				}
 			} catch (error) {
-				console.error('Polling error:', error);
 				stopPolling();
 			}
 		}, 2000); // 每 2 秒 polling 一次

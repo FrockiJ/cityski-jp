@@ -166,8 +166,11 @@ export class OrdersService {
   // get order detail by id
   async getOrderDetail(id: string): Promise<GetOrderDetailResponseDTO> {
     try {
+      // Check if the id is a UUID or an order number
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
       const order = await this.ordersRepo.findOne({
-        where: { id },
+        where: isUUID ? { id } : { no: id },
         relations: [
           'member',
           'coursePlan',
@@ -181,7 +184,7 @@ export class OrdersService {
 
       if (!order) {
         throw new CustomException(
-          `Order with id: ${id} not found`,
+          `Order with ${isUUID ? 'id' : 'order number'}: ${id} not found`,
           HttpStatus.NOT_FOUND,
         );
       }
@@ -192,7 +195,7 @@ export class OrdersService {
 
       // Get pending invitations for this order
       const pendingInvitations =
-        await this.orderInvitationsService.getPendingInvitationsByOrderId(id);
+        await this.orderInvitationsService.getPendingInvitationsByOrderId(order.id);
 
       const orderDetail: GetOrderDetailResponseDTO = {
         id: order.id,

@@ -8,8 +8,9 @@ export class CreateReservationRequestDto {
   @IsDateString()
   classTime: Date;
 
+  @IsOptional()
   @IsEnum(SkiAndSnowboardLevel)
-  teachingLevel: SkiAndSnowboardLevelEnum;
+  teachingLevel?: SkiAndSnowboardLevelEnum;
 
   @IsOptional()
   @IsString()

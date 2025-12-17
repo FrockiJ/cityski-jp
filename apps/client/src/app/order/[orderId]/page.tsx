@@ -408,6 +408,7 @@ export default function OrderDetail() {
 								orderId={orderId}
 								departmentId={courseDetail.departmentId}
 								accessToken={accessToken}
+								planNumber={orderDetail.planNumber}
 								onReservationCreated={async () => {
 									// 重新獲取訂單預約資訊
 									try {

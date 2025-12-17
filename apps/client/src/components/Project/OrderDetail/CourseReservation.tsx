@@ -15,6 +15,7 @@ interface CourseReservationProps {
 	orderId: string;
 	departmentId: string;
 	accessToken: string;
+	planNumber: number;
 	onReservationCreated?: () => void;
 }
 
@@ -34,6 +35,7 @@ export default function CourseReservation({
 	orderId,
 	departmentId,
 	accessToken,
+	planNumber,
 	onReservationCreated,
 }: CourseReservationProps) {
 	const [showMemberModal, setShowMemberModal] = useState(false);
@@ -52,6 +54,10 @@ export default function CourseReservation({
 	const minPeople = coursePeople.length > 0 ? Math.min(...coursePeople.map((cp) => cp.minPeople)) : 1;
 	// 訂單總人數
 	const totalOrderCount = adultCount + childCount;
+	// 計算當前 active 預約數量
+	const activeReservationCount = orderReservations.filter(
+		(or) => or.reservation && or.reservation.reservationStatus !== ReservationStatus.CANCELED
+	).length;
 
 	const toggleMemberSelection = (memberId: string) => {
 		const newSelected = new Set(selectedMembers);
@@ -102,17 +108,12 @@ export default function CourseReservation({
 
 		try {
 			// 確定 teachingLevel - 使用選中成員的最高技能等級
-			const selectedMemberDetails = orderMembers.filter((m) => selectedMembers.has(m.id));
-			const maxSkillLevel = Math.max(...selectedMemberDetails.map((m) => Math.max(m.skis || 0, m.snowboard || 0)));
-			const teachingLevel = maxSkillLevel > 0 ? String(maxSkillLevel) : '1';
-
 			// 調用創建預約 API
 			const response = await api.post(
 				'/api/reservations',
 				{
 					departmentId,
 					classTime: new Date(value).toISOString(),
-					teachingLevel,
 					orderId,
 					orderMemberIds: Array.from(selectedMembers),
 				},
@@ -425,21 +426,29 @@ export default function CourseReservation({
 					<div className="justify-start text-zinc-800 text-xl font-medium font-['Noto_Sans_TC'] leading-7">
 						課程預約
 					</div>
-					<button
-						onClick={() => setShowMemberModal(true)}
-						data-state='Active'
-						data-type='Stroke_Blue+Icon'
-						className='pl-1 pr-3 py-px rounded-[20px] outline outline-1 outline-offset-[-1px] outline-blue-600 flex justify-center items-center overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors'
-					>
-						<div data-svg-wrapper>
-							<svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
-								<path d='M7 12H17M12 7L12 17' stroke='#0F72ED' strokeWidth='1.4' strokeLinecap='round' />
-							</svg>
-						</div>
-						<div className="text-center justify-start text-blue-600 text-xs font-medium font-['Noto_Sans_TC'] leading-5">
-							預約課程
-						</div>
-					</button>
+					{activeReservationCount < planNumber && (
+						<button
+							onClick={() => {
+								if (orderMembers.length === 0) {
+									showToast('請先加入參加人員', 'error');
+									return;
+								}
+								setShowMemberModal(true);
+							}}
+							data-state='Active'
+							data-type='Stroke_Blue+Icon'
+							className='pl-1 pr-3 py-px rounded-[20px] outline outline-1 outline-offset-[-1px] outline-blue-600 flex justify-center items-center overflow-hidden cursor-pointer hover:bg-blue-50 transition-colors'
+						>
+							<div data-svg-wrapper>
+								<svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
+									<path d='M7 12H17M12 7L12 17' stroke='#0F72ED' strokeWidth='1.4' strokeLinecap='round' />
+								</svg>
+							</div>
+							<div className="text-center justify-start text-blue-600 text-xs font-medium font-['Noto_Sans_TC'] leading-5">
+								預約課程
+							</div>
+						</button>
+					)}
 				</div>
 
 				{orderReservations.length === 0 ? (

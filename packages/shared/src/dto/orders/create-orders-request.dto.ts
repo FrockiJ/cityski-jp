@@ -1,4 +1,4 @@
-import { IsNumber, IsString, IsUUID } from "class-validator";
+import { IsNumber, IsOptional, IsString, IsUUID } from "class-validator";
 import {
   CourseBkgType,
   CoursePlanTypeEnum,
@@ -6,6 +6,7 @@ import {
   CourseType,
   OrderChannelEnum,
   OrderStatusEnum,
+  SkiAndSnowboardLevelEnum,
 } from "src/constants/enums";
 
 export class CreateOrderRequestDTO {
@@ -44,4 +45,12 @@ export class CreateOrderRequestDTO {
 
   @IsNumber()
   status: OrderStatusEnum;
+
+  @IsOptional()
+  @IsString()
+  teachingLevel?: SkiAndSnowboardLevelEnum;
+
+  @IsOptional()
+  @IsString({ each: true })
+  memberIds?: string[];
 }

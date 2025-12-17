@@ -1,4 +1,4 @@
-import { IsString, IsDateString, IsEnum, IsOptional, IsUUID, IsArray, ArrayMinSize, IsInt, Min } from 'class-validator';
+import { IsString, IsDateString, IsEnum, IsOptional, IsUUID, IsArray, ArrayMinSize, IsInt, Min, IsBoolean } from 'class-validator';
 import { SkiAndSnowboardLevel, SkiAndSnowboardLevelEnum, ReservationStatus, ReservationStatusEnum } from '../../constants/enums';
 
 export class CreateReservationRequestDto {
@@ -14,6 +14,10 @@ export class CreateReservationRequestDto {
   @IsOptional()
   @IsString()
   instructor?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isDesignatedCoach?: boolean;
 
   @IsOptional()
   @IsEnum(ReservationStatus)

@@ -242,6 +242,7 @@ export class ReservationsService {
         classTime: reservation.classTime,
         teachingLevel: reservation.teachingLevel,
         instructor: reservation.instructor,
+        isDesignatedCoach: reservation.isDesignatedCoach,
         departmentName: reservation.department?.name || '',
         createdTime: reservation.createdTime,
         updatedTime: reservation.updatedTime,
@@ -321,6 +322,7 @@ export class ReservationsService {
         classTime: body.classTime,
         teachingLevel: body.teachingLevel,
         instructor: body.instructor || null,
+        isDesignatedCoach: body.isDesignatedCoach || false,
         createdUser: userId,
         updatedUser: userId,
         department: department,
@@ -490,6 +492,9 @@ export class ReservationsService {
       }
       if (body.instructor !== undefined) {
         reservation.instructor = body.instructor;
+      }
+      if (body.isDesignatedCoach !== undefined) {
+        reservation.isDesignatedCoach = body.isDesignatedCoach;
       }
       if (body.reservationStatus !== undefined) {
         reservation.reservationStatus =

@@ -286,7 +286,7 @@ const AddEditReservationIndoorModal = ({
 
 			// 更新表單初始值
 			setInitialValues({
-				pickTrainer: reservationDetail.instructor ? 'Y' : 'N',
+				pickTrainer: reservationDetail.isDesignatedCoach ? 'Y' : 'N',
 				trainerName: reservationDetail.instructor || '',
 				courseStartDate: dayjs(reservationDetail.classTime),
 				courseLevel: reservationDetail.teachingLevel,
@@ -338,9 +338,7 @@ const AddEditReservationIndoorModal = ({
 
 	const validationSchema = Yup.object().shape({
 		pickTrainer: Yup.string().required('必填欄位'),
-		trainerName: Yup.string().when('pickTrainer', ([pickTrainer], schema) => {
-			return pickTrainer === 'Y' ? schema.required('必填欄位') : schema.notRequired();
-		}),
+		trainerName: Yup.string().required('教練姓名為必填欄位'),
 		courseStartDate: Yup.date().nullable().required('必填'),
 		courseLevel: Yup.string().required('必填欄位'),
 		departmentId: Yup.string().required('必填欄位'),
@@ -527,7 +525,8 @@ const AddEditReservationIndoorModal = ({
 				departmentId: values.departmentId,
 				classTime: values.courseStartDate!.toDate(),
 				teachingLevel: values.courseLevel,
-				instructor: values.pickTrainer === 'Y' ? values.trainerName : undefined,
+				instructor: values.trainerName,
+				isDesignatedCoach: values.pickTrainer === 'Y',
 				orderId: reservationOrderId!,
 				orderMemberIds: reservationOrderMemberIds,
 				...(reservationIndex !== undefined && { index: reservationIndex }),
@@ -538,7 +537,8 @@ const AddEditReservationIndoorModal = ({
 				departmentId: values.departmentId,
 				classTime: values.courseStartDate!.toDate(),
 				teachingLevel: values.courseLevel,
-				instructor: values.pickTrainer === 'Y' ? values.trainerName : undefined,
+				instructor: values.trainerName,
+				isDesignatedCoach: values.pickTrainer === 'Y',
 				...(reason && { reason }),
 			};
 
@@ -809,7 +809,7 @@ const AddEditReservationIndoorModal = ({
 												name='trainerName'
 												title='教練'
 												width='320px'
-												isRequired={values.pickTrainer === 'Y'}
+												isRequired={true}
 												placeholder='請輸入教練名字'
 												disabled={isBasicInfoDisabled}
 											/>

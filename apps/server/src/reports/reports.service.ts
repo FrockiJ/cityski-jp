@@ -536,16 +536,8 @@ export class ReportsService {
         const stats = coachMap.get(instructor)!;
         stats.totalSessions++;
 
-        // Check if this reservation is from a designated order (bkgType = 2)
-        let isDesignated = false;
-        for (const orderReservation of reservation.orderReservations || []) {
-          if (orderReservation.order && orderReservation.order.bkgType === 2) {
-            isDesignated = true;
-            break;
-          }
-        }
-
-        if (isDesignated) {
+        // Check if this reservation has designated coach (isDesignatedCoach = true)
+        if (reservation.isDesignatedCoach) {
           stats.designatedSessions++;
           stats.designatedDates.push(reservation.classTime);
         }

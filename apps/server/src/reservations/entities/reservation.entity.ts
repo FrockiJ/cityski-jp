@@ -47,6 +47,9 @@ export class Reservation extends UserDate {
   @Column({ name: 'instructor', type: 'varchar', length: 100, nullable: true })
   instructor: string;
 
+  @Column({ name: 'is_designated_coach', type: 'boolean', default: false })
+  isDesignatedCoach: boolean;
+
   @OneToMany(
     () => ReservationMember,
     (reservationMember) => reservationMember.reservation,

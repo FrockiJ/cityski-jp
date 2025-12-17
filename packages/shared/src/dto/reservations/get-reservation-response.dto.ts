@@ -24,6 +24,9 @@ export class GetReservationDetailResponseDto {
   instructor: string | null;
 
   @Expose()
+  isDesignatedCoach: boolean;
+
+  @Expose()
   departmentName: string;
 
   @Expose()
@@ -101,6 +104,9 @@ export class ReservationResponseDto {
 
   @Expose()
   instructor: string | null;
+
+  @Expose()
+  isDesignatedCoach: boolean;
 
   @Expose()
   departmentId: string;

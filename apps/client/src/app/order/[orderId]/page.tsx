@@ -172,6 +172,12 @@ export default function OrderDetail() {
 		try {
 			const balanceAmt = orderDetail.transaction?.balanceAmt || 0;
 
+			console.log('Initializing payment:', {
+				orderId: orderDetail.no,
+				amount: balanceAmt,
+				paymentMethod: selectedPaymentMethod,
+			});
+
 			if (selectedPaymentMethod === 'credit') {
 				// 信用卡支付
 				const response = await api.post(
@@ -187,25 +193,38 @@ export default function OrderDetail() {
 					}
 				);
 
-				if (response.data.success && response.data.formHtml) {
+				console.log('Payment initialization response:', response.data);
+
+				// 後端返回格式: { statusCode, message, result: { success, formHtml, merchantTradeNo } }
+				const result = response.data.result;
+
+				if (result && result.success && result.formHtml) {
 					// 在新視窗中打開支付表單
 					const newWindow = window.open('', '_blank');
 					if (newWindow) {
-						newWindow.document.write(response.data.formHtml);
+						newWindow.document.write(result.formHtml);
 						newWindow.document.close();
 					}
+
+					setShowPaymentDialog(false);
 				} else {
-					throw new Error(response.data.error || 'Payment initialization failed');
+					const errorMsg = result?.error || response.data.message || 'Payment initialization failed';
+					console.error('Payment initialization failed:', errorMsg);
+					showToast(errorMsg, 'error');
 				}
 			} else if (selectedPaymentMethod === 'atm') {
 				// ATM 轉帳：顯示提示訊息
 				showToast('請使用 ATM 轉帳支付尾款', 'info');
+				setShowPaymentDialog(false);
 			}
-
-			setShowPaymentDialog(false);
 		} catch (error) {
 			console.error('Payment error:', error);
-			showToast('支付初始化失敗，請稍後再試', 'error');
+			if (error.response) {
+				console.error('Error response:', error.response.data);
+				showToast(error.response.data.message || '支付初始化失敗，請稍後再試', 'error');
+			} else {
+				showToast('支付初始化失敗，請稍後再試', 'error');
+			}
 		} finally {
 			setIsProcessingPayment(false);
 		}

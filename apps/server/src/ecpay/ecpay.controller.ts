@@ -97,8 +97,11 @@ export class EcpayController {
         `Payment validation passed: ${paymentType} amount ${expectedAmount} for order ${request.orderId}`,
       );
 
-      // 初始化支付
-      const result = await this.ecpayService.initializeCreditCardPayment(request);
+      // 初始化支付，傳遞交易狀態以生成唯一的 MerchantTradeNo
+      const result = await this.ecpayService.initializeCreditCardPayment(
+        request,
+        transaction.status,
+      );
 
       if (!result.success) {
         throw new InternalServerErrorException(result.error);

@@ -26,13 +26,26 @@ export class EcpayService {
 
   /**
    * 初始化信用卡支付
+   * @param request 支付請求
+   * @param transactionStatus 交易狀態 (0: 訂金, 2: 尾款)
    */
   async initializeCreditCardPayment(
     request: CreditCardPaymentInitializeRequest,
+    transactionStatus: number,
   ): Promise<CreditCardPaymentInitializeResponse> {
     try {
-      // 生成 MerchantTradeNo
-      const merchantTradeNo = request.orderId;
+      // 生成唯一的 MerchantTradeNo
+      // 訂金: 使用原始訂單號
+      // 尾款: 在訂單號後加上 B 後綴以避免重複 (B = Balance)
+      // 注意：綠界要求 MerchantTradeNo 只能包含數字和英文字母，不能有特殊字符
+      let merchantTradeNo = request.orderId;
+      if (transactionStatus === 2) {
+        // PENDING_FULL_PAYMENT: 尾款支付
+        merchantTradeNo = `${request.orderId}B`;
+        this.logger.log(`Generating balance payment MerchantTradeNo: ${merchantTradeNo}`);
+      } else {
+        this.logger.log(`Generating deposit payment MerchantTradeNo: ${merchantTradeNo}`);
+      }
 
       // 準備支付參數
       // 注意：所有參數值都必須是字符串類型以確保 CheckMacValue 計算正確
@@ -141,14 +154,22 @@ export class EcpayService {
       if (Number(notification.RtnCode) === 1) {
         // 支付成功：智能路由訂金/尾款支付
         try {
+          // 從 MerchantTradeNo 提取原始訂單號
+          // 訂金: P21202512160137
+          // 尾款: P21202512160137B
+          const orderNo = notification.MerchantTradeNo.endsWith('B')
+            ? notification.MerchantTradeNo.slice(0, -1)
+            : notification.MerchantTradeNo;
+          this.logger.log(`[CALLBACK STEP 4] Extracted order number: ${orderNo} from MerchantTradeNo: ${notification.MerchantTradeNo}`);
+
           // 查詢訂單以獲取交易狀態
           const order = await this.ordersRepo.findOne({
-            where: { no: notification.MerchantTradeNo },
+            where: { no: orderNo },
             relations: ['transaction'],
           });
 
           if (!order || !order.transaction) {
-            this.logger.error(`[CALLBACK STEP 4] ✗ Order or transaction not found: ${notification.MerchantTradeNo}`);
+            this.logger.error(`[CALLBACK STEP 4] ✗ Order or transaction not found: ${orderNo}`);
             throw new Error('Order or transaction not found');
           }
 
@@ -158,12 +179,12 @@ export class EcpayService {
           if (transactionStatus === 0) {
             // TransactionStatus.PENDING_DEPOSIT: 訂金支付
             this.logger.log('[CALLBACK STEP 4] Routing to deposit payment handler...');
-            await this.transactionsService.payDepositByOrderNo(notification.MerchantTradeNo);
+            await this.transactionsService.payDepositByOrderNo(orderNo);
             this.logger.log('[CALLBACK STEP 4] ✓ Deposit payment successful - Order status updated');
           } else if (transactionStatus === 2) {
             // TransactionStatus.PENDING_FULL_PAYMENT: 尾款支付
             this.logger.log('[CALLBACK STEP 4] Routing to balance payment handler...');
-            await this.transactionsService.payBalanceByOrderNo(notification.MerchantTradeNo);
+            await this.transactionsService.payBalanceByOrderNo(orderNo);
             this.logger.log('[CALLBACK STEP 4] ✓ Balance payment successful - Order completed');
           } else {
             this.logger.warn(`[CALLBACK STEP 4] ⚠ Unexpected transaction status: ${transactionStatus}`);
@@ -181,9 +202,13 @@ export class EcpayService {
 
         // 取消訂單
         try {
+          // 從 MerchantTradeNo 提取原始訂單號
+          const orderNo = notification.MerchantTradeNo.endsWith('B')
+            ? notification.MerchantTradeNo.slice(0, -1)
+            : notification.MerchantTradeNo;
           // 限制失敗原因長度為 20 字元
           const failureReason = `RtnCode_${notification.RtnCode}`.substring(0, 20);
-          await this.transactionsService.cancelOrderByOrderNo(notification.MerchantTradeNo, failureReason);
+          await this.transactionsService.cancelOrderByOrderNo(orderNo, failureReason);
           this.logger.log(`[CALLBACK STEP 4] ✓ Order cancelled successfully`);
         } catch (error) {
           this.logger.error(`[CALLBACK STEP 4] ✗ Failed to cancel order: ${error.message}`);

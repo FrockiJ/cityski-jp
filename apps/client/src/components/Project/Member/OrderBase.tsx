@@ -29,6 +29,17 @@ export default function OrderBase({ orderStatusMapper }: OrderBaseProps) {
 	// Transform API orders to UI format
 	const transformedOrders = (orders || [])
 		.filter(({ status }) => status in orderStatusMapper)
+		// 濾掉正在進行 ECPay 支付但還沒收到回覆的訂單
+		.filter((order) => {
+			// 如果不是待付訂金狀態，保留
+			if (order.status !== 0) return true;
+			// 如果是待付訂金，但沒有開始支付流程（paymentInitiatedAt 為 null），保留
+			if (!order.paymentInitiatedAt) return true;
+			// 如果已經收到付款（depositDate 不為 null），保留
+			if (order.depositDate) return true;
+			// 其他情況（正在支付中）過濾掉
+			return false;
+		})
 		.map((apiOrder) => ({
 			id: apiOrder.id,
 			status: apiOrder.status,

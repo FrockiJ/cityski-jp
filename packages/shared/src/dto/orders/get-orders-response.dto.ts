@@ -33,4 +33,10 @@ export class GetOrdersResponseDTO {
   @Expose()
   createdTime: Date;
 
+  @Expose()
+  paymentInitiatedAt: Date | null;
+
+  @Expose()
+  depositDate: Date | null;
+
 }

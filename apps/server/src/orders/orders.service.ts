@@ -124,6 +124,8 @@ export class OrdersService {
           courseName: order.coursePlan?.name || '課程名稱',
           price: order.transaction?.totalAmt || 0,
           paymentStatus: order.transaction?.status || 0,
+          paymentInitiatedAt: order.transaction?.paymentInitiatedAt || null,
+          depositDate: order.transaction?.depositDate || null,
           number: order.planNumber,
           people: order.adultCount + order.childCount,
           process: order.orderReservations?.filter(
@@ -294,6 +296,8 @@ export class OrdersService {
         people: order.adultCount + order.childCount,
         process: order.status,
         createdTime: order.createdTime,
+        paymentInitiatedAt: order.transaction?.paymentInitiatedAt || null,
+        depositDate: order.transaction?.depositDate || null,
       }));
 
       const res = {

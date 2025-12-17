@@ -46,6 +46,9 @@ export default function OrderDetail() {
 	const [orderReservations, setOrderReservations] = useState<OrderReservationResponseDto[]>([]);
 	const [pendingInvitations, setPendingInvitations] = useState(orderDetail?.pendingInvitations || []);
 	const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+	const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+	const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'credit' | 'atm' | null>(null);
+	const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
 	useEffect(() => {
 		if (!accessToken) return;
@@ -124,6 +127,87 @@ export default function OrderDetail() {
 		} catch (error) {
 			console.error('取消訂單失敗:', error);
 			showToast('取消訂單失敗，請重試', 'error');
+		}
+	};
+
+	// 根據交易狀態返回狀態標籤和樣式
+	const getTransactionStatusInfo = () => {
+		const transactionStatus = orderDetail?.transaction?.status;
+
+		if (transactionStatus === 0) {
+			return {
+				label: '待付訂金',
+				style: 'border-[#2B2B2B] text-[#2B2B2B]',
+			};
+		} else if (transactionStatus === 2) {
+			return {
+				label: '待結清',
+				style: 'border-[#2B2B2B] text-[#2B2B2B]',
+			};
+		} else if (transactionStatus === 3) {
+			return {
+				label: '已結清',
+				style: 'border-[#169B62] text-[#169B62]',
+			};
+		}
+
+		// 默認使用訂單狀態
+		return {
+			label: orderStatusMapper[orderDetail?.status || OrderStatus.PENDING_DEPOSIT].headerLabel,
+			style: orderStatusMapper[orderDetail?.status || OrderStatus.PENDING_DEPOSIT].headerStyle,
+		};
+	};
+
+	// 處理線上支付尾款
+	const handlePayBalanceClick = () => {
+		setShowPaymentDialog(true);
+		setSelectedPaymentMethod(null);
+	};
+
+	const handleConfirmPayment = async () => {
+		if (!selectedPaymentMethod || !orderDetail?.no) return;
+
+		setIsProcessingPayment(true);
+
+		try {
+			const balanceAmt = orderDetail.transaction?.balanceAmt || 0;
+
+			if (selectedPaymentMethod === 'credit') {
+				// 信用卡支付
+				const response = await api.post(
+					'/api/payments/credit-card/initialize',
+					{
+						orderId: orderDetail.no,
+						amount: balanceAmt,
+					},
+					{
+						headers: {
+							'Content-Type': 'application/json',
+						},
+					}
+				);
+
+				if (response.data.success && response.data.formHtml) {
+					// 在新視窗中打開支付表單
+					const newWindow = window.open('', '_blank');
+					if (newWindow) {
+						newWindow.document.write(response.data.formHtml);
+						newWindow.document.close();
+					}
+				} else {
+					throw new Error(response.data.error || 'Payment initialization failed');
+				}
+			} else if (selectedPaymentMethod === 'atm') {
+				// ATM 轉帳：顯示提示訊息
+				showToast('請使用 ATM 轉帳支付尾款', 'info');
+			}
+
+			setShowPaymentDialog(false);
+		} catch (error) {
+			console.error('Payment error:', error);
+			showToast('支付初始化失敗，請稍後再試', 'error');
+		} finally {
+			setIsProcessingPayment(false);
 		}
 	};
 
@@ -814,72 +898,99 @@ export default function OrderDetail() {
 									<div
 										className={
 											'px-2.5 py-1.5 rounded-3xl outline outline-1 outline-offset-[-1px] flex justify-start items-center gap-1 ' +
-											orderStatusMapper[orderDetail.status].headerStyle
+											getTransactionStatusInfo().style
 										}
 									>
 										<div className={"text-center justify-center text-xs font-medium font-['Noto_Sans_TC'] leading-5"}>
-											{orderStatusMapper[orderDetail.status].headerLabel}
+											{getTransactionStatusInfo().label}
 										</div>
 									</div>
 								</div>
-								<div className='self-stretch flex flex-col justify-start items-start gap-5'>
-									<div className='self-stretch flex flex-col justify-start items-start gap-2'>
-										<div className='self-stretch flex flex-col justify-start items-start gap-2'>
-											<div className='self-stretch inline-flex justify-between items-end'>
-												<div className='inline-flex flex-col justify-center items-start gap-0.5'>
-													<div className="justify-start text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
-														訂單金額
-													</div>
+								<div className='self-stretch flex flex-col justify-start items-start gap-2'>
+									{/* 訂單金額 */}
+									<div className='self-stretch inline-flex justify-between items-end'>
+										<div className="justify-start text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
+											訂單金額
+										</div>
+										<div className='flex justify-start items-center gap-0.5'>
+											<div className="justify-start text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
+												{(orderDetail.transaction?.totalAmt + (orderDetail.transaction?.discountFee || 0)).toLocaleString() || price.toLocaleString()}
+											</div>
+											<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+												元
+											</div>
+										</div>
+									</div>
+
+									{/* 優惠折扣 */}
+									{(orderDetail.transaction?.discountFee || 0) > 0 && (
+										<div className='self-stretch inline-flex justify-between items-end'>
+											<div className="justify-start text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
+												優惠折扣
+											</div>
+											<div className='flex justify-start items-center gap-0.5'>
+												<div className="justify-start text-emerald-600 text-base font-medium font-['Poppins'] leading-6">
+													-{orderDetail.transaction?.discountFee.toLocaleString()}
 												</div>
-												<div className='flex justify-start items-center gap-0.5'>
-													<div className="justify-start text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
-														{orderDetail.transaction?.totalAmt.toLocaleString() || price.toLocaleString()}
-													</div>
-													<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
-														元
-													</div>
+												<div className="justify-start text-emerald-600 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+													元
 												</div>
 											</div>
 										</div>
-										{(orderDetail.transaction?.discountFee || 0) > 0 && (
-											<div className='self-stretch flex flex-col justify-start items-start gap-2'>
-												<div className='self-stretch inline-flex justify-between items-end'>
-													<div className='inline-flex flex-col justify-center items-start gap-0.5'>
-														<div className="justify-start text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
-															優惠折扣
-														</div>
-													</div>
-													<div className='flex justify-start items-center gap-0.5'>
-														<div className="justify-start text-emerald-600 text-base font-medium font-['Poppins'] leading-6">
-															-{orderDetail.transaction?.discountFee.toLocaleString()}
-														</div>
-														<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
-															元
-														</div>
-													</div>
+									)}
+
+									{/* 已付訂金 - 僅在已支付訂金後顯示 */}
+									{orderDetail.transaction?.status >= 2 && (
+										<div className='self-stretch inline-flex justify-between items-end'>
+											<div className="justify-start text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
+												已付訂金
+											</div>
+											<div className='flex justify-start items-center gap-0.5'>
+												<div className="justify-start text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
+													-{orderDetail.transaction?.depositAmt.toLocaleString()}
+												</div>
+												<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+													元
 												</div>
 											</div>
-										)}
-									</div>
-									<div className='self-stretch flex flex-col justify-start items-start gap-5'>
+										</div>
+									)}
+
+									{/* 尾款 - 僅在待結清狀態時顯示 */}
+									{orderDetail.transaction?.status === 2 && (
 										<div className='self-stretch pt-4 border-t border-gray-200 inline-flex justify-end items-center gap-2'>
-											<div className='flex justify-start items-center gap-2'>
-												<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
-													總計
+											<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
+												尾款
+											</div>
+											<div className='flex justify-start items-center gap-1'>
+												<div className="justify-start text-zinc-800 text-2xl font-semibold font-['Poppins'] leading-7">
+													{orderDetail.transaction?.balanceAmt.toLocaleString()}
 												</div>
-												<div className='flex justify-start items-center gap-0.5'>
-													<div className="justify-start text-zinc-800 text-2xl font-semibold font-['Poppins'] leading-7">
-														{((orderDetail.transaction?.totalAmt || price) - (orderDetail.transaction?.discountFee || 0)).toLocaleString()}
-													</div>
-													<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
-														元
-													</div>
+												<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
+													元
 												</div>
 											</div>
 										</div>
-									</div>
+									)}
+
+									{/* 線上支付尾款按鈕 - 僅在待結清狀態時顯示 */}
+									{orderDetail.transaction?.status === 2 && (
+										<div className='self-stretch flex flex-col gap-3 pt-4'>
+											<button
+												className='self-stretch overflow-hidden gap-2.5 px-6 py-2 text-base font-bold text-white whitespace-nowrap rounded-lg bg-zinc-900 w-full transition-all duration-300 hover:bg-zinc-800 hover:shadow-lg'
+												onClick={handlePayBalanceClick}
+												aria-label='線上支付尾款'
+											>
+												線上支付尾款
+											</button>
+											<div className="text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-5">
+												您可以點擊上方按鈕線上刷卡/ATM轉帳，或至CitySki現場以現金/信用卡付款。
+											</div>
+										</div>
+									)}
 								</div>
 							</div>
+
 							<div className='self-stretch flex flex-col justify-start items-end gap-3'>
 								<div className='self-stretch p-6 bg-white rounded-2xl outline outline-1 outline-offset-[-1px] outline-zinc-300 flex flex-col justify-start items-start gap-4 overflow-hidden'>
 									<div className="self-stretch justify-start text-zinc-800 text-xl font-medium font-['Noto_Sans_TC'] leading-7">
@@ -928,6 +1039,88 @@ export default function OrderDetail() {
 				onClose={() => setIsCancelModalOpen(false)}
 				onConfirm={handleCancelOrder}
 			/>
+
+			{/* 支付方式選擇對話框 */}
+			{showPaymentDialog && (
+				<div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+					<div className='bg-white rounded-lg max-w-md w-full p-6'>
+						<h2 className='text-2xl font-bold mb-4 text-left'>線上支付尾款</h2>
+						<p className='text-sm text-zinc-600 mb-6'>選擇支付方式</p>
+
+						<div className='space-y-3 mb-6'>
+							{/* 信用卡選項 */}
+							<div
+								className={`border rounded-lg p-4 cursor-pointer transition-all ${
+									selectedPaymentMethod === 'credit'
+										? 'border-blue-500 bg-blue-50'
+										: 'border-zinc-300 hover:border-zinc-400'
+								}`}
+								onClick={() => setSelectedPaymentMethod('credit')}
+							>
+								<div className='flex items-center gap-3'>
+									<input
+										type='radio'
+										checked={selectedPaymentMethod === 'credit'}
+										onChange={() => setSelectedPaymentMethod('credit')}
+										className='w-5 h-5'
+									/>
+									<div>
+										<div className='font-medium text-lg'>信用卡</div>
+										<div className='text-sm text-zinc-600'>VISA / Mastercard / JCB</div>
+									</div>
+								</div>
+							</div>
+
+							{/* ATM 轉帳選項 */}
+							<div
+								className={`border rounded-lg p-4 cursor-pointer transition-all ${
+									selectedPaymentMethod === 'atm'
+										? 'border-blue-500 bg-blue-50'
+										: 'border-zinc-300 hover:border-zinc-400'
+								}`}
+								onClick={() => setSelectedPaymentMethod('atm')}
+							>
+								<div className='flex items-center gap-3'>
+									<input
+										type='radio'
+										checked={selectedPaymentMethod === 'atm'}
+										onChange={() => setSelectedPaymentMethod('atm')}
+										className='w-5 h-5'
+									/>
+									<div>
+										<div className='font-medium text-lg'>ATM 轉帳</div>
+										<div className='text-sm text-zinc-600'>ATM 虛擬銀行轉帳</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<div className='flex gap-3 justify-end'>
+							<button
+								onClick={() => {
+									setShowPaymentDialog(false);
+									setSelectedPaymentMethod(null);
+								}}
+								className='px-4 py-3 border border-zinc-300 rounded-lg hover:bg-zinc-50 font-medium'
+							>
+								取消
+							</button>
+							<button
+								className={`px-4 py-3 rounded-lg font-bold text-white transition-all duration-300 ${
+									selectedPaymentMethod && !isProcessingPayment
+										? 'bg-[linear-gradient(99deg,#FE696C_0%,#FD8E4B_100%)] hover:opacity-90 hover:shadow-lg'
+										: 'bg-zinc-300 cursor-not-allowed'
+								}`}
+								onClick={handleConfirmPayment}
+								disabled={!selectedPaymentMethod || isProcessingPayment}
+								aria-label='前往付款'
+							>
+								{isProcessingPayment ? '處理中...' : '前往付款'}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

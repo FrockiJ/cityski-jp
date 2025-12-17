@@ -7,10 +7,11 @@ import { EcpayCryptoService } from './ecpay-crypto.service';
 import { OrdersModule } from 'src/orders/orders.module';
 import { TransactionsModule } from 'src/transaction/transactions.module';
 import { Order } from 'src/orders/entities/order.entity';
+import { Transaction } from 'src/transaction/entities/transaction.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order]),
+    TypeOrmModule.forFeature([Order, Transaction]),
     OrdersModule,
     TransactionsModule,
   ],

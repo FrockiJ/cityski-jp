@@ -28,7 +28,7 @@ export class Transaction extends UserDate {
   @Column({ name: 'deposit_amt', type: 'int', nullable: true })
   depositAmt: number;
 
-  @CreateDateColumn({
+  @Column({
     type: 'timestamp',
     name: 'deposit_date',
     nullable: true,
@@ -38,9 +38,9 @@ export class Transaction extends UserDate {
   @Column({ name: 'balance_amt', type: 'int', nullable: true })
   balanceAmt: number;
 
-  @CreateDateColumn({
+  @Column({
     type: 'timestamp',
-    name: 'balance_date',      
+    name: 'balance_date',
     nullable: true,
   })
   balanceDate: Date;
@@ -70,4 +70,11 @@ export class Transaction extends UserDate {
 
   @Column({ name: 'last_payment_attempt_result', type: 'varchar', length: 20, nullable: true })
   lastPaymentAttemptResult: string;
+
+  @Column({
+    type: 'timestamp',
+    name: 'payment_initiated_at',
+    nullable: true,
+  })
+  paymentInitiatedAt: Date;
 }

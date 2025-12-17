@@ -12,6 +12,7 @@ import { Repository } from 'typeorm';
 import { EcpayService } from './ecpay.service';
 import { CreditCardPaymentInitializeRequest } from './interfaces/payment.interface';
 import { Order } from 'src/orders/entities/order.entity';
+import { Transaction } from 'src/transaction/entities/transaction.entity';
 
 @Controller('payments')
 export class EcpayController {
@@ -21,6 +22,8 @@ export class EcpayController {
     private ecpayService: EcpayService,
     @InjectRepository(Order)
     private ordersRepo: Repository<Order>,
+    @InjectRepository(Transaction)
+    private transactionsRepo: Repository<Transaction>,
   ) {}
 
   /**
@@ -59,6 +62,11 @@ export class EcpayController {
           `Invalid payment amount. Expected ${order.transaction.depositAmt}, but received ${request.amount}`,
         );
       }
+
+      // 記錄支付開始時間
+      order.transaction.paymentInitiatedAt = new Date();
+      await this.transactionsRepo.save(order.transaction);
+      this.logger.log(`Payment initiated at ${order.transaction.paymentInitiatedAt} for order ${request.orderId}`);
 
       // 初始化支付
       const result = await this.ecpayService.initializeCreditCardPayment(request);

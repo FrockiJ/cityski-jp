@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from 'src/users/users.module';
 import { Order } from './entities/order.entity';
 import { OrdersService } from './orders.service';
+import { OrderTimeoutService } from './order-timeout.service';
 import { User } from 'src/users/entities/user.entity';
 import { Member } from 'src/members/entities/member.entity';
 import { MembersModule } from 'src/members/members.module';
@@ -39,7 +40,7 @@ import { OrderReservation } from 'src/order-reservations/entities/order-reservat
     forwardRef(() => OrderInvitationsModule),
   ],
   controllers: [OrdersController],
-  providers: [OrdersService],
+  providers: [OrdersService, OrderTimeoutService],
   exports: [OrdersService],
 })
 export class OrdersModule {}

@@ -28,9 +28,7 @@ function OrderConfirmationPage() {
 
 	// 支付輪詢相關狀態
 	const [isPolling, setIsPolling] = useState(false);
-	const [pollCount, setPollCount] = useState(0);
 	const [orderNo, setOrderNo] = useState<string | null>(null);
-	const MAX_POLL_COUNT = 30 * 15; // 15 分鐘
 	const POLL_INTERVAL = 2000; // 2 秒
 
 	const authToken = useSelector(selectToken);
@@ -87,14 +85,11 @@ function OrderConfirmationPage() {
 
 		let timeoutId: NodeJS.Timeout;
 		let isMounted = true;
-		let currentPollCount = 0;
 
 		const checkPaymentStatus = async () => {
 			if (!isMounted) {
 				return;
 			}
-
-			currentPollCount++;
 
 			try {
 				const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4040'}/api/orders/${orderNo}/payment-status`;
@@ -105,7 +100,7 @@ function OrderConfirmationPage() {
 				const paymentData = result.result || result;
 
 				if (paymentData.success && paymentData.data) {
-					const { depositPaid, orderStatus, isPaymentFailed } = paymentData.data;
+					const { depositPaid, orderStatus } = paymentData.data;
 
 					// 支付成功
 					if (depositPaid) {
@@ -114,14 +109,7 @@ function OrderConfirmationPage() {
 						return;
 					}
 
-					// 支付失敗（訂單超過 10 分鐘仍未支付）
-					if (isPaymentFailed) {
-						setIsPolling(false);
-						router.push('/courses/order-error?reason=payment_failed');
-						return;
-					}
-
-					// 訂單被取消
+					// 訂單被取消（可能是支付失敗或後端 timeout 機制取消）
 					if (orderStatus === OrderStatus.ORDER_CANCELED) {
 						setIsPolling(false);
 						router.push('/courses/order-error?reason=cancelled');
@@ -132,16 +120,7 @@ function OrderConfirmationPage() {
 				console.error('Payment polling error:', error);
 			}
 
-			// 檢查是否達到最大輪詢次數
-			if (currentPollCount >= MAX_POLL_COUNT) {
-				setIsPolling(false);
-				setPollCount(currentPollCount);
-				router.push('/courses/order-error?reason=timeout');
-				return;
-			}
-
-			// 繼續輪詢
-			setPollCount(currentPollCount);
+			// 繼續輪詢（後端會處理 timeout，前端持續輪詢直到後端回應訂單狀態改變）
 			timeoutId = setTimeout(() => {
 				if (isMounted) {
 					checkPaymentStatus();

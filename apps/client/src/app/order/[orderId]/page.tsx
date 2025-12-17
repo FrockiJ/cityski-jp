@@ -125,13 +125,26 @@ export default function OrderDetail() {
 		setIsPolling(false);
 	};
 
-	const startPolling = () => {
+	const startPolling = async () => {
 		if (pollingIntervalRef.current) {
 			clearInterval(pollingIntervalRef.current);
 		}
 
-		// 記錄當前的 balancePaymentInitiatedAt 值
-		previousBalancePaymentInitiatedAtRef.current = orderDetail?.transaction?.balancePaymentInitiatedAt;
+		// 先獲取最新的訂單狀態來記錄初始的 balancePaymentInitiatedAt
+		try {
+			const initialResponse = await api.get<ResponseWrapper<GetOrderDetailResponseDTO>>(
+				`/api/orders/${orderId}`,
+				{
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+				}
+			);
+			const initialOrder = initialResponse.data.result;
+			previousBalancePaymentInitiatedAtRef.current = initialOrder.transaction?.balancePaymentInitiatedAt;
+		} catch (error) {
+			console.error('Failed to get initial order state:', error);
+		}
 
 		pollingIntervalRef.current = setInterval(async () => {
 			try {
@@ -150,7 +163,8 @@ export default function OrderDetail() {
 				if (updatedOrder.transaction?.balanceDate) {
 					stopPolling();
 
-					// 儲存訂單資料到 localStorage
+					// 清除失敗資料，儲存成功資料到 localStorage
+					localStorage.removeItem('balancePaymentFailed');
 					const dataToStore = {
 						orderNo: updatedOrder.no,
 						orderId: updatedOrder.id,
@@ -162,17 +176,29 @@ export default function OrderDetail() {
 					return;
 				}
 
-				// 檢查是否 timeout（balancePaymentInitiatedAt 被清除表示 timeout）
-				// 之前有值，現在變成 null/undefined，表示後端清除了（timeout）
+				// 檢查是否支付失敗或 timeout（balancePaymentInitiatedAt 被清除）
+				// 之前有值，現在變成 null/undefined，表示後端清除了
 				if (
 					previousBalancePaymentInitiatedAtRef.current &&
 					!updatedOrder.transaction?.balancePaymentInitiatedAt
 				) {
 					stopPolling();
-					router.push('/courses/order-error?reason=balance-timeout');
+
+					// 檢查 lastPaymentAttemptResult 來區分支付失敗和 timeout
+					const lastAttemptResult = updatedOrder.transaction?.lastPaymentAttemptResult;
+
+					// 如果 lastPaymentAttemptResult 以 "RtnCode_" 開頭，表示支付失敗
+					if (lastAttemptResult && lastAttemptResult.startsWith('RtnCode_')) {
+						// 尾款支付失敗，localStorage 已經在開始支付時儲存了
+						router.push('/courses/order-error?reason=balance_payment_failed');
+					} else {
+						// Timeout
+						router.push('/courses/order-error?reason=balance-timeout');
+					}
 					return;
 				}
 			} catch (error) {
+				console.error('Error during polling:', error);
 				stopPolling();
 			}
 		}, 2000); // 每 2 秒 polling 一次
@@ -254,6 +280,12 @@ export default function OrderDetail() {
 			});
 
 			if (selectedPaymentMethod === 'credit') {
+				// 儲存訂單資料到 localStorage，以便支付失敗時使用
+				const dataToStore = {
+					orderId: orderDetail.id,
+				};
+				localStorage.setItem('balancePaymentFailed', JSON.stringify(dataToStore));
+
 				// 信用卡支付
 				const response = await api.post(
 					'/api/payments/credit-card/initialize',

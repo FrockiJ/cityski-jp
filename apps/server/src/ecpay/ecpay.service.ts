@@ -203,31 +203,61 @@ export class EcpayService {
           throw error; // 拋出錯誤，讓外層 catch 處理
         }
       } else {
-        // 支付失敗：取消訂單
+        // 支付失敗：根據支付類型處理
         this.logger.warn(`[CALLBACK STEP 4] ✗ Payment failed with RtnCode: ${notification.RtnCode}, RtnMsg: ${notification.RtnMsg}`);
-        this.logger.warn(`[CALLBACK STEP 4] Cancelling order ${notification.MerchantTradeNo}`);
 
-        // 取消訂單
         try {
-          // 從 MerchantTradeNo 提取原始訂單號
+          // 從 MerchantTradeNo 提取原始訂單號並判斷支付類型
           // 訂金: P21202512160137
           // 尾款: P21202512160137B1234 (B + 4位時間戳)
           let orderNo = notification.MerchantTradeNo;
           const bIndex = notification.MerchantTradeNo.indexOf('B');
-          if (bIndex !== -1) {
+          const isBalancePayment = bIndex !== -1;
+
+          if (isBalancePayment) {
             orderNo = notification.MerchantTradeNo.substring(0, bIndex);
           }
+
           // 限制失敗原因長度為 20 字元
           const failureReason = `RtnCode_${notification.RtnCode}`.substring(0, 20);
-          await this.transactionsService.cancelOrderByOrderNo(orderNo, failureReason);
-          this.logger.log(`[CALLBACK STEP 4] ✓ Order cancelled successfully`);
+
+          if (isBalancePayment) {
+            // 尾款支付失敗：只記錄失敗，不取消訂單，允許重新支付
+            this.logger.warn(`[CALLBACK STEP 4] Balance payment failed for order ${orderNo}, recording failure (order will not be cancelled)`);
+            await this.transactionsService.recordBalancePaymentFailure(orderNo, failureReason);
+            this.logger.log(`[CALLBACK STEP 4] ✓ Balance payment failure recorded`);
+          } else {
+            // 訂金支付失敗：取消訂單
+            this.logger.warn(`[CALLBACK STEP 4] Deposit payment failed, cancelling order ${orderNo}`);
+            await this.transactionsService.cancelOrderByOrderNo(orderNo, failureReason);
+            this.logger.log(`[CALLBACK STEP 4] ✓ Order cancelled successfully`);
+          }
         } catch (error) {
-          this.logger.error(`[CALLBACK STEP 4] ✗ Failed to cancel order: ${error.message}`);
+          this.logger.error(`[CALLBACK STEP 4] ✗ Failed to handle payment failure: ${error.message}`);
           // 不拋出錯誤，讓流程繼續
         }
       }
 
-      const redirectUrl = `${this.ecpayConfig.clientDomain}/courses/order-result`;
+      // 根據處理結果決定重定向 URL
+      let redirectUrl: string;
+
+      if (Number(notification.RtnCode) === 1) {
+        // 支付成功：導向支付成功頁面
+        redirectUrl = `${this.ecpayConfig.clientDomain}/courses/payment-success`;
+      } else {
+        // 支付失敗：導向錯誤頁面
+        // 從 MerchantTradeNo 判斷是否為尾款支付
+        const isBalancePayment = notification.MerchantTradeNo.indexOf('B') !== -1;
+
+        if (isBalancePayment) {
+          // 尾款支付失敗：導向錯誤頁面並帶上 balance_payment_failed 參數
+          redirectUrl = `${this.ecpayConfig.clientDomain}/courses/order-error?reason=balance_payment_failed`;
+        } else {
+          // 訂金支付失敗：導向一般錯誤頁面
+          redirectUrl = `${this.ecpayConfig.clientDomain}/courses/order-error?reason=payment_failed`;
+        }
+      }
+
       this.logger.log(`[CALLBACK SUCCESS] Payment callback processed successfully. Redirect URL: ${redirectUrl}`);
       this.logger.log('========================================');
       this.logger.log('[CALLBACK END] ECPay payment callback completed');

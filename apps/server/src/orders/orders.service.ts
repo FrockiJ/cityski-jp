@@ -244,6 +244,8 @@ export class OrdersService {
           status: order.transaction.status,
           balancePaymentMethod: order.transaction.balancePaymentMethod,
           balanceInvoice: order.transaction.balanceInvoice,
+          lastPaymentAttemptDate: order.transaction.lastPaymentAttemptDate,
+          lastPaymentAttemptResult: order.transaction.lastPaymentAttemptResult,
         } : undefined,
       };
 

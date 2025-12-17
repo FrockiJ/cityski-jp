@@ -35,6 +35,12 @@ export class TransactionDetailDTO {
 
   @Expose()
   balanceInvoice?: string;
+
+  @Expose()
+  lastPaymentAttemptDate?: Date;
+
+  @Expose()
+  lastPaymentAttemptResult?: string;
 }
 
 export  class OrderMemberDetailDTO {

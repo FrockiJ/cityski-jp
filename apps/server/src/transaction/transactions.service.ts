@@ -366,4 +366,50 @@ export class TransactionsService {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+  // Record balance payment failure without cancelling the order
+  // This allows users to retry balance payment
+  async recordBalancePaymentFailure(orderNo: string, failureReason: string) {
+    try {
+      const order = await this.ordersRepo.findOne({
+        where: { no: orderNo },
+        relations: ['transaction'],
+      });
+
+      if (!order) {
+        throw new CustomException('Order not found', HttpStatus.NOT_FOUND);
+      }
+
+      if (!order.transaction) {
+        throw new CustomException('Transaction not found', HttpStatus.NOT_FOUND);
+      }
+
+      const transaction = order.transaction;
+
+      // Record the failure
+      transaction.lastPaymentAttemptDate = new Date();
+      transaction.lastPaymentAttemptResult = failureReason;
+
+      // Clear balancePaymentInitiatedAt to allow retry
+      transaction.balancePaymentInitiatedAt = null;
+
+      await this.transactionsRepo.save(transaction);
+
+      return {
+        success: true,
+        message: 'Balance payment failure recorded, order remains active for retry',
+        data: {
+          orderNo: order.no,
+          transactionId: transaction.id,
+          lastPaymentAttemptResult: transaction.lastPaymentAttemptResult,
+          lastPaymentAttemptDate: transaction.lastPaymentAttemptDate,
+        },
+      };
+    } catch (err) {
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }

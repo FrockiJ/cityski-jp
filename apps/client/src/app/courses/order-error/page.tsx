@@ -18,18 +18,27 @@ const errorMessages = {
 	payment_failed: {
 		title: '支付失敗',
 		description: '您的支付未能成功完成，請聯繫客服或返回首頁重新下單。',
+		showRetry: false,
+	},
+	balance_payment_failed: {
+		title: '尾款支付失敗',
+		description: '您的尾款支付未能成功完成，訂單仍然有效，請重新嘗試支付尾款。',
+		showRetry: true,
 	},
 	timeout: {
 		title: '支付驗證超時',
 		description: '支付驗證超時，請稍後查看訂單狀態或聯繫客服。',
+		showRetry: false,
 	},
 	cancelled: {
 		title: '訂單已取消',
 		description: '您的訂單已被取消。',
+		showRetry: false,
 	},
 	default: {
 		title: '發生錯誤',
 		description: '處理您的訂單時發生錯誤，請稍後再試。',
+		showRetry: false,
 	},
 };
 
@@ -43,10 +52,22 @@ function OrderErrorContent() {
 	const [formData, setFormData] = useState<OrderFormData>();
 	const [plan, setPlan] = useState<CoursePlanResponseDTO>();
 	const [images, setImages] = useState<string[]>();
+	const [orderId, setOrderId] = useState<string | null>(null);
 
 	const errorInfo = errorMessages[reason] || errorMessages.default;
 
 	useEffect(() => {
+		// 優先檢查尾款支付失敗的資料
+		const balancePaymentData = localStorage.getItem('balancePaymentFailed');
+		if (balancePaymentData && reason === 'balance_payment_failed') {
+			const parsedData = JSON.parse(balancePaymentData);
+			setOrderId(parsedData.orderId);
+			// 清除 localStorage
+			localStorage.removeItem('balancePaymentFailed');
+			return;
+		}
+
+		// 如果不是尾款失敗，檢查訂金支付的資料
 		const createOrderSuccess = localStorage.getItem('createOrderSuccess');
 		if (createOrderSuccess) {
 			const { courseDetail, department, plan, formData } = JSON.parse(createOrderSuccess);
@@ -56,7 +77,7 @@ function OrderErrorContent() {
 			setFormData(formData);
 			setImages(courseDetail?.attachments.map((image: any) => process.env.NEXT_PUBLIC_AWS_S3_URL + image.key));
 		}
-	}, []);
+	}, [reason]);
 
 	return (
 		<div className='max-w-[380px] mx-auto pt-[48px] max-xs:pt-0'>
@@ -131,6 +152,15 @@ function OrderErrorContent() {
 					<Button variant='secondary' onClick={() => router.push('/')} className='w-full' aria-label='回到首頁'>
 						回到首頁
 					</Button>
+					{errorInfo.showRetry && orderId && (
+						<button
+							className='overflow-hidden gap-2.5 self-stretch px-6 py-5 max-w-full text-base font-bold text-white whitespace-nowrap rounded-lg bg-[linear-gradient(99deg,#FE696C_0%,#FD8E4B_100%)] w-full max-xs:px-5 transition-all duration-300 hover:opacity-90 hover:shadow-lg'
+							onClick={() => router.push(`/order/${orderId}`)}
+							aria-label='返回訂單重新支付'
+						>
+							重新支付尾款
+						</button>
+					)}
 				</div>
 			</div>
 		</div>

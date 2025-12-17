@@ -19,6 +19,9 @@ import { OrderHistoryService } from 'src/order-history/order-history.service';
 import { MembersService } from 'src/members/members.service';
 import { OrderReservationsService } from 'src/order-reservations/order-reservations.service';
 import { ReservationMembersService } from 'src/reservation-members/reservation-members.service';
+import { ReservationStatus } from 'src/reservations/entities/reservation.entity';
+import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
+import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
 
 @Injectable()
 export class OrderMembersService {
@@ -242,11 +245,66 @@ export class OrderMembersService {
         );
       }
 
-      // 3. Set source orderMember active to false
-      sourceOrderMember.active = false;
-      await queryRunner.manager.save(sourceOrderMember);
+      // Validate source has remaining lessons
+      const allOrderReservations = await queryRunner.manager.find(
+        OrderReservation,
+        {
+          where: { orderId: sourceOrderMember.orderId },
+          relations: ['reservation'],
+        },
+      );
 
-      // 4. Create new orderMember with same orderId but new memberId
+      const completeReservationCount = allOrderReservations.filter(
+        (or) =>
+          or.reservation && (
+          or.reservation.reservationStatus === ReservationStatus.COMPLETED ||
+          or.reservation.reservationStatus === ReservationStatus.PENDING_REVIEW),
+          
+          
+      ).length;
+
+      const remainingLessons =
+        sourceOrderMember.order.planNumber - completeReservationCount;
+
+      if (remainingLessons <= 0) {
+        throw new HttpException(
+          `無法轉移：此訂單已無剩餘堂數 (已使用 ${completeReservationCount} / ${sourceOrderMember.order.planNumber} 堂)`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Validate target doesn't already own this order
+      const existingTargetOrderMember = await queryRunner.manager.findOne(
+        OrderMember,
+        {
+          where: {
+            orderId: sourceOrderMember.orderId,
+            memberId: transferData.toId,
+            active: true,
+          },
+        },
+      );
+
+      if (existingTargetOrderMember) {
+        throw new HttpException(
+          '目標會員已擁有此訂單',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Find ReservationMembers for SCHEDULED reservations
+      const reservationMembersToTransfer = await queryRunner.manager
+        .createQueryBuilder(ReservationMember, 'rm')
+        .innerJoinAndSelect('rm.reservation', 'reservation')
+        .where('rm.orderMemberId = :sourceOrderMemberId', {
+          sourceOrderMemberId: sourceOrderMember.id,
+        })
+        .andWhere('reservation.reservationStatus = :scheduledStatus', {
+          scheduledStatus: ReservationStatus.SCHEDULED,
+        })
+        .getMany();
+
+      // Create new OrderMember FIRST (needed for FK constraint)
       const newOrderMember = this.orderMembersRepo.create({
         orderId: sourceOrderMember.orderId,
         memberId: transferData.toId,
@@ -254,10 +312,38 @@ export class OrderMembersService {
       });
       const savedOrderMember = await queryRunner.manager.save(newOrderMember);
 
-      // 5. Record in order history
+      // Bulk update ReservationMembers to point to new OrderMember
+      if (reservationMembersToTransfer.length > 0) {
+        const reservationMemberIds = reservationMembersToTransfer.map(
+          (rm) => rm.id,
+        );
+
+        await queryRunner.manager
+          .createQueryBuilder()
+          .update(ReservationMember)
+          .set({ orderMemberId: savedOrderMember.id })
+          .where('id IN (:...ids)', { ids: reservationMemberIds })
+          .execute();
+      }
+
+      const transferredCount = reservationMembersToTransfer.length;
+
+      // 3. Set source orderMember active to false
+      sourceOrderMember.active = false;
+      await queryRunner.manager.save(sourceOrderMember);
+
+      // 5. Record detailed history
+      const sourceMemberName =
+        (await this.membersService.findMemberById(sourceOrderMember.memberId))
+          ?.name || '未知';
+      const targetMemberName =
+        (await this.membersService.findMemberById(transferData.toId))?.name ||
+        '未知';
+
       await this.orderHistoryService.create({
         orderId: sourceOrderMember.orderId,
-        event: '會員轉移',
+        event: `會員轉移`,
+        reason: `${sourceMemberName} → ${targetMemberName}`,
         operator: 'system',
       });
 

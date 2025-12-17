@@ -15,6 +15,7 @@ interface RawReservationSlot {
 	departmentName: string;
 	venueName: string;
 	instructorName?: string;
+	reservationId: string;
 }
 
 interface RawGetReservationSlotsResponseData {
@@ -42,6 +43,7 @@ export interface ReservationSlot {
 	departmentName: string;
 	venueName: string;
 	instructorName?: string;
+	reservationId: string;
 }
 
 export interface GetReservationSlotsResponseData {
@@ -78,6 +80,7 @@ const transformSlot = (rawSlot: RawReservationSlot): ReservationSlot => {
 		departmentName: rawSlot.departmentName,
 		venueName: rawSlot.venueName,
 		instructorName: rawSlot.instructorName,
+		reservationId: rawSlot.reservationId,
 	};
 	return transformedSlot;
 };

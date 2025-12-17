@@ -855,6 +855,7 @@ export class ReservationsService {
             venueName: reservation.orderReservations?.[0]?.order?.coursePlan?.name,
             status: 'available',
             isMixed: false,
+            reservationId: reservation.id,
           });
         }
 

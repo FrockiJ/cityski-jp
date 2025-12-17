@@ -3,9 +3,11 @@ import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from
 import { Alert, Box, Button, CircularProgress, IconButton, Paper, Stack, Typography } from '@mui/material';
 import dayjs from 'dayjs';
 
-import { CourseType } from '@repo/shared';
+import { CourseType, ModalType } from '@repo/shared';
 import { useReservationSlots } from '@/hooks/useReservationSlots';
 import { useDepartments } from '@/hooks/useDepartments';
+import useModalProvider from '@/hooks/useModalProvider';
+import AddEditReservationIndoorModal from '@/components/Project/ReservationManagement/AddEditReservationIndoorModal';
 
 import DayView from './DayView';
 import IndoorOverseasToggle from './IndoorOverseasToggle';
@@ -29,6 +31,7 @@ interface FilterState {
 export default function Calendar() {
 	const container = useRef<HTMLDivElement>(null);
 	const containerNav = useRef<HTMLDivElement>(null);
+	const modal = useModalProvider();
 	const [viewType, setViewType] = useState<ViewType>('week');
 	const [viewMode, setViewMode] = useState<ViewMode>('calendar');
 	const [indoorOverseas, setIndoorOverseas] = useState<'indoor' | 'overseas'>('indoor');
@@ -153,8 +156,22 @@ export default function Calendar() {
 	};
 
 	const handleSlotClick = (slot: any) => {
-		console.log('Slot clicked:', slot);
-		// TODO: 開啟預約詳情彈窗
+		modal.openModal({
+			title: `編輯預約`,
+			center: true,
+			fullScreen: true,
+			noAction: true,
+			marginBottom: true,
+			children: (
+				<AddEditReservationIndoorModal
+					modalType={ModalType.EDIT}
+					courseType={''}
+					courseStatusType={0}
+					reservationId={slot.reservationId}
+					handleRefresh={refetch}
+				/>
+			),
+		});
 	};
 
 	const handleFiltersChange = (newFilters: FilterState) => {

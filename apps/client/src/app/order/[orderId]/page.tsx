@@ -323,9 +323,18 @@ export default function OrderDetail() {
 					showToast(errorMsg, 'error');
 				}
 			} else if (selectedPaymentMethod === 'atm') {
-				// ATM 轉帳：顯示提示訊息
-				showToast('請使用 ATM 轉帳支付尾款', 'info');
+				// ATM 轉帳：儲存資料並跳轉到 ATM 支付頁面
+				const totalAmt = orderDetail.transaction?.totalAmt || 0;
+				const dataToStore = {
+					orderId: orderDetail.id,
+					orderNo: orderDetail.no,
+					balanceAmt: balanceAmt,
+					totalAmt: totalAmt,
+				};
+				localStorage.setItem('atmPaymentData', JSON.stringify(dataToStore));
 				setShowPaymentDialog(false);
+				// 跳轉到 ATM 支付指示頁面
+				router.push('/courses/atm-payment');
 			}
 		} catch (error) {
 			console.error('Payment error:', error);

@@ -603,7 +603,7 @@ export class ReservationsService {
     try {
       const reservation = await this.reservationsRepo.findOne({
         where: { id },
-        relations: ['reservationMembers', 'reservationMembers.orderMember', 'reservationMembers.orderMember.member'],
+        relations: ['reservationMembers', 'reservationMembers.orderMember', 'reservationMembers.orderMember.member', 'reservationMembers.orderMember.order'],
       });
 
       if (!reservation) {
@@ -613,12 +613,36 @@ export class ReservationsService {
         );
       }
 
-      // 驗證 member 權限：只有預約參與者才能取消
-      // 檢查該 member 是否為此預約的參與者
+      // 驗證 member 權限：只有訂單的參與者（order members）才能取消預約
       if (userId) {
+        console.log('Checking permission for userId:', userId);
+        console.log('Reservation members:', reservation.reservationMembers?.map(rm => ({
+          id: rm.id,
+          orderMemberId: rm.orderMemberId,
+          orderMember: rm.orderMember ? {
+            id: rm.orderMember.id,
+            memberId: rm.orderMember.memberId,
+            active: rm.orderMember.active,
+            orderId: rm.orderMember.orderId
+          } : null
+        })));
+
+        // 檢查該 member 是否為此預約關聯訂單的參與者
         const isMemberOfReservation = reservation.reservationMembers?.some(
-          (rm) => rm.orderMember?.memberId === userId,
+          (rm) => {
+            // 確保 orderMember 存在且有 memberId
+            if (!rm.orderMember) {
+              console.warn(`ReservationMember ${rm.id} has no orderMember loaded`);
+              return false;
+            }
+            // 檢查 memberId 是否匹配
+            const matches = rm.orderMember.memberId === userId;
+            console.log(`Checking rm ${rm.id}: orderMember.memberId=${rm.orderMember.memberId}, userId=${userId}, matches=${matches}`);
+            return matches;
+          }
         );
+
+        console.log('isMemberOfReservation:', isMemberOfReservation);
 
         if (!isMemberOfReservation) {
           throw new CustomException(

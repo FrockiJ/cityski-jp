@@ -31,14 +31,26 @@ export default function OrderBase({ orderStatusMapper }: OrderBaseProps) {
 		.filter(({ status }) => status in orderStatusMapper)
 		// 濾掉正在進行 ECPay 支付但還沒收到回覆的訂單
 		.filter((order) => {
-			// 如果不是待付訂金狀態，保留
-			if (order.status !== 0) return true;
-			// 如果是待付訂金，但沒有開始支付流程（paymentInitiatedAt 為 null），保留
-			if (!order.paymentInitiatedAt) return true;
-			// 如果已經收到付款（depositDate 不為 null），保留
-			if (order.depositDate) return true;
-			// 其他情況（正在支付中）過濾掉
-			return false;
+			// 如果不是待付訂金或待結清狀態，保留
+			if (order.status !== 0 && order.status !== 2) return true;
+
+			// 待付訂金：檢查訂金支付狀態
+			if (order.status === 0) {
+				if (!order.paymentInitiatedAt) return true;
+				if (order.depositDate) return true;
+				return false; // 正在支付訂金中
+			}
+
+			// 待結清：檢查尾款支付狀態
+			if (order.status === 2) {
+				if (!order.balancePaymentInitiatedAt) return true;
+				// Note: balanceDate is not in GetOrdersResponseDTO, so we can't check it here
+				// The order will remain hidden while balancePaymentInitiatedAt is set
+				// It will reappear after timeout (when balancePaymentInitiatedAt is cleared) or payment success
+				return false; // 正在支付尾款中
+			}
+
+			return true;
 		})
 		.map((apiOrder) => ({
 			id: apiOrder.id,

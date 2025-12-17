@@ -39,4 +39,7 @@ export class GetOrdersResponseDTO {
   @Expose()
   depositDate: Date | null;
 
+  @Expose()
+  balancePaymentInitiatedAt: Date | null;
+
 }

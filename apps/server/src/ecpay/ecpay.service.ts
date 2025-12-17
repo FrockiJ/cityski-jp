@@ -36,12 +36,16 @@ export class EcpayService {
     try {
       // 生成唯一的 MerchantTradeNo
       // 訂金: 使用原始訂單號
-      // 尾款: 在訂單號後加上 B 後綴以避免重複 (B = Balance)
+      // 尾款: 在訂單號後加上 B 後綴 + 時間戳（秒）以避免重複 (B = Balance)
       // 注意：綠界要求 MerchantTradeNo 只能包含數字和英文字母，不能有特殊字符
+      // 注意：MerchantTradeNo 最大長度為 20 字元
       let merchantTradeNo = request.orderId;
       if (transactionStatus === 2) {
         // PENDING_FULL_PAYMENT: 尾款支付
-        merchantTradeNo = `${request.orderId}B`;
+        // 加入當前時間戳的後 4 位數（秒級），確保每次重試都是唯一的
+        // 15 字元訂單號 + 1 字元 B + 4 字元時間戳 = 20 字元（符合 ECPay 限制）
+        const timestamp = Math.floor(Date.now() / 1000).toString().slice(-4);
+        merchantTradeNo = `${request.orderId}B${timestamp}`;
         this.logger.log(`Generating balance payment MerchantTradeNo: ${merchantTradeNo}`);
       } else {
         this.logger.log(`Generating deposit payment MerchantTradeNo: ${merchantTradeNo}`);
@@ -156,10 +160,13 @@ export class EcpayService {
         try {
           // 從 MerchantTradeNo 提取原始訂單號
           // 訂金: P21202512160137
-          // 尾款: P21202512160137B
-          const orderNo = notification.MerchantTradeNo.endsWith('B')
-            ? notification.MerchantTradeNo.slice(0, -1)
-            : notification.MerchantTradeNo;
+          // 尾款: P21202512160137B1234 (B + 4位時間戳)
+          let orderNo = notification.MerchantTradeNo;
+          // 如果包含 B，則移除 B 及其後面的時間戳
+          const bIndex = notification.MerchantTradeNo.indexOf('B');
+          if (bIndex !== -1) {
+            orderNo = notification.MerchantTradeNo.substring(0, bIndex);
+          }
           this.logger.log(`[CALLBACK STEP 4] Extracted order number: ${orderNo} from MerchantTradeNo: ${notification.MerchantTradeNo}`);
 
           // 查詢訂單以獲取交易狀態
@@ -203,9 +210,13 @@ export class EcpayService {
         // 取消訂單
         try {
           // 從 MerchantTradeNo 提取原始訂單號
-          const orderNo = notification.MerchantTradeNo.endsWith('B')
-            ? notification.MerchantTradeNo.slice(0, -1)
-            : notification.MerchantTradeNo;
+          // 訂金: P21202512160137
+          // 尾款: P21202512160137B1234 (B + 4位時間戳)
+          let orderNo = notification.MerchantTradeNo;
+          const bIndex = notification.MerchantTradeNo.indexOf('B');
+          if (bIndex !== -1) {
+            orderNo = notification.MerchantTradeNo.substring(0, bIndex);
+          }
           // 限制失敗原因長度為 20 字元
           const failureReason = `RtnCode_${notification.RtnCode}`.substring(0, 20);
           await this.transactionsService.cancelOrderByOrderNo(orderNo, failureReason);

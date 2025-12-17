@@ -77,4 +77,11 @@ export class Transaction extends UserDate {
     nullable: true,
   })
   paymentInitiatedAt: Date;
+
+  @Column({
+    type: 'timestamp',
+    name: 'balance_payment_initiated_at',
+    nullable: true,
+  })
+  balancePaymentInitiatedAt: Date;
 }

@@ -25,6 +25,9 @@ export class TransactionDetailDTO {
   balanceDate?: Date;
 
   @Expose()
+  balancePaymentInitiatedAt?: Date;
+
+  @Expose()
   status: TransactionStatusEnum;
 
   @Expose()

@@ -3,10 +3,12 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { Box } from '@mui/material';
 import { CoursePlanResponseDTO, CourseType, Department, GetCourseDetailResponseDTO } from '@repo/shared';
 import { CircleCheck } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useSelector } from 'react-redux';
 
 import { OrderFormData } from '@/components/Project/Courses/CourseDetail/CourseBookingForm';
 import Button from '@/components/Project/Shared/Common/Button';
+import { selectToken } from '@/state/slices/authSlice';
 
 const courseTypeMap = {
 	[CourseType.GROUP]: '團體班教學',
@@ -16,8 +18,7 @@ const courseTypeMap = {
 
 const PaymentSuccessContent = () => {
 	const router = useRouter();
-	const searchParams = useSearchParams();
-	const orderNo = searchParams.get('orderNo');
+	const accessToken = useSelector(selectToken);
 
 	const [courseDetail, setCourseDetail] = useState<GetCourseDetailResponseDTO>();
 	const [department, setDepartment] = useState<Department | null>(null);
@@ -32,7 +33,12 @@ const PaymentSuccessContent = () => {
 	const fetchOrderDetails = async (orderNumber: string) => {
 		try {
 			setIsLoading(true);
-			const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/orders/${orderNumber}`);
+
+			const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders/${orderNumber}`, {
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+				},
+			});
 
 			if (!response.ok) {
 				throw new Error('Failed to fetch order details');
@@ -48,22 +54,31 @@ const PaymentSuccessContent = () => {
 			// 設定訂單資料
 			setOrderId(orderData.id || null);
 
-			// 設定課程詳情
-			if (orderData.course) {
-				setCourseDetail(orderData.course);
-				setImages(orderData.course.attachments?.map((image: any) =>
-					process.env.NEXT_PUBLIC_AWS_S3_URL + image.key
-				));
+			// 設定課程詳情（從扁平化的 orderData 中構建）
+			setCourseDetail({
+				type: orderData.type,
+				skiType: orderData.skiType,
+				attachments: orderData.coursePlanImage ? [{ key: orderData.coursePlanImage }] : [],
+			} as GetCourseDetailResponseDTO);
+
+			if (orderData.coursePlanImage) {
+				setImages([process.env.NEXT_PUBLIC_AWS_S3_URL + orderData.coursePlanImage]);
 			}
 
 			// 設定部門資料
-			if (orderData.coursePlan?.department) {
-				setDepartment(orderData.coursePlan.department);
+			if (orderData.departmentName) {
+				setDepartment({
+					name: orderData.departmentName,
+				} as Department);
 			}
 
-			// 設定方案資料
-			if (orderData.coursePlan) {
-				setPlan(orderData.coursePlan);
+			// 設定方案資料（從 orderData 中構建）
+			if (orderData.coursePlanName) {
+				setPlan({
+					name: orderData.coursePlanName,
+					number: orderData.planNumber,
+					type: orderData.planNumber === 1 ? 1 : 0, // 1堂為體驗課
+				} as CoursePlanResponseDTO);
 			}
 
 			// 構建表單資料
@@ -83,13 +98,20 @@ const PaymentSuccessContent = () => {
 	};
 
 	useEffect(() => {
-		if (orderNo) {
+		// 從 localStorage 讀取訂單資料
+		const balancePaymentData = localStorage.getItem('balancePaymentSuccess');
+
+		if (balancePaymentData && accessToken) {
+			const parsedData = JSON.parse(balancePaymentData);
+			const { orderNo } = parsedData;
 			fetchOrderDetails(orderNo);
-		} else {
-			// 如果沒有訂單號，跳轉到課程列表
+			// 清除 localStorage
+			localStorage.removeItem('balancePaymentSuccess');
+		} else if (!balancePaymentData) {
+			// 如果沒有資料，跳轉到課程列表
 			router.push('/courses');
 		}
-	}, [orderNo, router]);
+	}, [accessToken, router]);
 
 	if (isLoading) {
 		return (

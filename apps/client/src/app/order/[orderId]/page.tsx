@@ -1108,7 +1108,7 @@ export default function OrderDetail() {
 							<button
 								className={`px-4 py-3 rounded-lg font-bold text-white transition-all duration-300 ${
 									selectedPaymentMethod && !isProcessingPayment
-										? 'bg-[linear-gradient(99deg,#FE696C_0%,#FD8E4B_100%)] hover:opacity-90 hover:shadow-lg'
+										? 'bg-zinc-900 hover:bg-zinc-800 hover:shadow-lg'
 										: 'bg-zinc-300 cursor-not-allowed'
 								}`}
 								onClick={handleConfirmPayment}

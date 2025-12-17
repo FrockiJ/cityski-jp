@@ -159,6 +159,10 @@ export default function Calendar() {
 
 	const handleFiltersChange = (newFilters: FilterState) => {
 		setFilters(newFilters);
+		// Update currentDate when date filter changes
+		if (!newFilters.startDate.isSame(filters.startDate, 'day')) {
+			setCurrentDate(newFilters.startDate);
+		}
 	};
 
 	// 前端過濾：根據選擇的教練過濾時段

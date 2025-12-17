@@ -126,6 +126,7 @@ export class OrdersService {
           paymentStatus: order.transaction?.status || 0,
           paymentInitiatedAt: order.transaction?.paymentInitiatedAt || null,
           depositDate: order.transaction?.depositDate || null,
+          balancePaymentInitiatedAt: order.transaction?.balancePaymentInitiatedAt || null,
           number: order.planNumber,
           people: order.adultCount + order.childCount,
           process: order.orderReservations?.filter(
@@ -236,6 +237,7 @@ export class OrdersService {
           depositDate: order.transaction.depositDate,
           balanceAmt: order.transaction.balanceAmt,
           balanceDate: order.transaction.balanceDate,
+          balancePaymentInitiatedAt: order.transaction.balancePaymentInitiatedAt,
           status: order.transaction.status,
           balancePaymentMethod: order.transaction.balancePaymentMethod,
           balanceInvoice: order.transaction.balanceInvoice,
@@ -298,6 +300,7 @@ export class OrdersService {
         createdTime: order.createdTime,
         paymentInitiatedAt: order.transaction?.paymentInitiatedAt || null,
         depositDate: order.transaction?.depositDate || null,
+        balancePaymentInitiatedAt: order.transaction?.balancePaymentInitiatedAt || null,
       }));
 
       const res = {

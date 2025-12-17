@@ -67,6 +67,40 @@ export class OrderTimeoutService {
       this.logger.log(
         `Successfully cancelled ${timedOutOrders.length} timed out orders`,
       );
+
+      // 檢查尾款支付 timeout
+      const balanceTimedOutOrders = await this.ordersRepo
+        .createQueryBuilder('order')
+        .leftJoinAndSelect('order.transaction', 'transaction')
+        .where('order.status = :orderStatus', {
+          orderStatus: OrderStatus.ORDER_SUCCESSFUL,
+        })
+        .andWhere('transaction.status = :txStatus', {
+          txStatus: 2, // TransactionStatus.PENDING_FULL_PAYMENT
+        })
+        .andWhere('transaction.balancePaymentInitiatedAt IS NOT NULL')
+        .andWhere('transaction.balancePaymentInitiatedAt < :threshold', {
+          threshold: timeoutThreshold,
+        })
+        .andWhere('transaction.balanceDate IS NULL')
+        .getMany();
+
+      if (balanceTimedOutOrders.length > 0) {
+        this.logger.log(
+          `Found ${balanceTimedOutOrders.length} balance payment timed out orders, marking as failed...`,
+        );
+
+        // 處理尾款 timeout
+        for (const order of balanceTimedOutOrders) {
+          await this.markBalancePaymentFailed(order);
+        }
+
+        this.logger.log(
+          `Successfully marked ${balanceTimedOutOrders.length} balance payments as failed`,
+        );
+      } else {
+        this.logger.log('No balance payment timed out orders found');
+      }
     } catch (error) {
       this.logger.error(
         `Error checking payment timeout: ${error.message}`,
@@ -114,6 +148,48 @@ export class OrderTimeoutService {
     } catch (error) {
       this.logger.error(
         `Failed to cancel order ${order.no}: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
+
+  /**
+   * 標記尾款支付失敗（不取消訂單，允許重新嘗試）
+   */
+  private async markBalancePaymentFailed(order: Order): Promise<void> {
+    try {
+      const transaction = order.transaction;
+
+      if (!transaction) {
+        this.logger.warn(`Order ${order.no} has no transaction, skipping`);
+        return;
+      }
+
+      // 計算超時時間（分鐘）
+      const timeoutMinutes = Math.floor(
+        (Date.now() - transaction.balancePaymentInitiatedAt.getTime()) / 60000,
+      );
+
+      this.logger.log(
+        `Marking balance payment failed for order ${order.no} (timeout: ${timeoutMinutes} minutes)`,
+      );
+
+      // 記錄失敗原因，但不改變訂單狀態
+      transaction.lastPaymentAttemptDate = new Date();
+      transaction.lastPaymentAttemptResult = `Balance_Timeout_${timeoutMinutes}min`;
+
+      // 清除 balancePaymentInitiatedAt 以允許重新嘗試
+      transaction.balancePaymentInitiatedAt = null;
+
+      // 保存更新
+      await this.transactionsRepo.save(transaction);
+
+      this.logger.log(
+        `Balance payment marked as failed for order ${order.no}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to mark balance payment failed for order ${order.no}: ${error.message}`,
         error.stack,
       );
     }

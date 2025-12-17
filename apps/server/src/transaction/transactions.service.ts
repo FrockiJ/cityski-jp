@@ -163,7 +163,9 @@ export class TransactionsService {
       transaction.status = TransactionStatus.PENDING_FULL_PAYMENT;
       transaction.depositDate = new Date();
 
-      await this.transactionsRepo.save(transaction);
+      console.log('Before save - depositDate:', transaction.depositDate);
+      const savedTransaction = await this.transactionsRepo.save(transaction);
+      console.log('After save - depositDate:', savedTransaction.depositDate);
 
       // Update order status
       order.status = 2;

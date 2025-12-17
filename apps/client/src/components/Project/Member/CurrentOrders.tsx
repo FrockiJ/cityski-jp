@@ -23,6 +23,12 @@ export const orderStatusMapper = {
 		headerText: '即將上課時間',
 		buttonLabel: '預約課程',
 	},
+	[OrderStatus.ORDER_COMPLETED]: {
+		headerStyle: 'border-[#2E7BBE] text-[#2E7BBE]',
+		headerLabel: '訂單完成',
+		headerText: '即將上課時間',
+		buttonLabel: '預約課程',
+	},
 };
 
 export default function CurrentOrders() {

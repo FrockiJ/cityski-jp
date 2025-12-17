@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import {
 	CourseType,
@@ -11,7 +11,7 @@ import {
 	ResponseWrapper,
 	OrderReservationResponseDto,
 } from '@repo/shared';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import CancelOrderModal from '@/components/Project/OrderDetail/CancelOrderModal';
 
 import ProfileIcon from '@/components/Icon/ProfileIcon';
@@ -37,6 +37,7 @@ const skiTypeMap = {
 
 export default function OrderDetail() {
 	const { orderId } = useParams<{ orderId: string }>();
+	const router = useRouter();
 	const [orderDetail, setOrderDetail] = useState<GetOrderDetailResponseDTO | null>(null);
 	const [loading, setLoading] = useState(true);
 	const accessToken = useSelector(selectToken);
@@ -49,6 +50,9 @@ export default function OrderDetail() {
 	const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 	const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'credit' | 'atm' | null>(null);
 	const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+	const [isPolling, setIsPolling] = useState(false);
+	const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+	const previousBalancePaymentInitiatedAtRef = useRef<Date | null | undefined>(null);
 
 	useEffect(() => {
 		if (!accessToken) return;
@@ -111,6 +115,70 @@ export default function OrderDetail() {
 			setPendingInvitations(orderDetail.pendingInvitations || []);
 		}
 	}, [orderDetail]);
+
+	// Polling 函數：檢查尾款支付狀態
+	const stopPolling = () => {
+		if (pollingIntervalRef.current) {
+			clearInterval(pollingIntervalRef.current);
+			pollingIntervalRef.current = null;
+		}
+		setIsPolling(false);
+	};
+
+	const startPolling = () => {
+		if (pollingIntervalRef.current) {
+			clearInterval(pollingIntervalRef.current);
+		}
+
+		// 記錄當前的 balancePaymentInitiatedAt 值
+		previousBalancePaymentInitiatedAtRef.current = orderDetail?.transaction?.balancePaymentInitiatedAt;
+
+		pollingIntervalRef.current = setInterval(async () => {
+			try {
+				const response = await api.get<ResponseWrapper<GetOrderDetailResponseDTO>>(
+					`/api/orders/${orderId}`,
+					{
+						headers: {
+							Authorization: `Bearer ${accessToken}`,
+						},
+					}
+				);
+
+				const updatedOrder = response.data.result;
+
+				// 檢查尾款是否已支付成功
+				if (updatedOrder.transaction?.balanceDate) {
+					stopPolling();
+					setOrderDetail(updatedOrder);
+					showToast('尾款支付成功！', 'success');
+					return;
+				}
+
+				// 檢查是否 timeout（balancePaymentInitiatedAt 被清除表示 timeout）
+				// 之前有值，現在變成 null/undefined，表示後端清除了（timeout）
+				if (
+					previousBalancePaymentInitiatedAtRef.current &&
+					!updatedOrder.transaction?.balancePaymentInitiatedAt
+				) {
+					stopPolling();
+					router.push('/courses/order-error?reason=balance-timeout');
+					return;
+				}
+			} catch (error) {
+				console.error('Polling error:', error);
+				stopPolling();
+			}
+		}, 2000); // 每 2 秒 polling 一次
+
+		setIsPolling(true);
+	};
+
+	// Cleanup polling on unmount
+	useEffect(() => {
+		return () => {
+			stopPolling();
+		};
+	}, []);
 
 	if (!orderDetail || !courseDetail) return null;
 
@@ -207,6 +275,9 @@ export default function OrderDetail() {
 					}
 
 					setShowPaymentDialog(false);
+
+					// 啟動 polling 檢查支付狀態
+					startPolling();
 				} else {
 					const errorMsg = result?.error || response.data.message || 'Payment initialization failed';
 					console.error('Payment initialization failed:', errorMsg);

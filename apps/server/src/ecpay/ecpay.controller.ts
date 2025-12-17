@@ -79,9 +79,16 @@ export class EcpayController {
       }
 
       // 記錄支付開始時間
-      order.transaction.paymentInitiatedAt = new Date();
+      if (transaction.status === 0) {
+        // 訂金支付：設定 paymentInitiatedAt
+        order.transaction.paymentInitiatedAt = new Date();
+        this.logger.log(`Deposit payment initiated at ${order.transaction.paymentInitiatedAt} for order ${request.orderId}`);
+      } else if (transaction.status === 2) {
+        // 尾款支付：設定 balancePaymentInitiatedAt
+        order.transaction.balancePaymentInitiatedAt = new Date();
+        this.logger.log(`Balance payment initiated at ${order.transaction.balancePaymentInitiatedAt} for order ${request.orderId}`);
+      }
       await this.transactionsRepo.save(order.transaction);
-      this.logger.log(`Payment initiated at ${order.transaction.paymentInitiatedAt} for order ${request.orderId}`);
 
       // 驗證金額是否正確
       if (request.amount !== expectedAmount) {

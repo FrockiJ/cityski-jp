@@ -17,6 +17,7 @@ import { ReservationMember } from 'src/reservation-members/entities/reservation-
 import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { User } from 'src/users/entities/user.entity';
+import { Member } from 'src/members/entities/member.entity';
 import { CoursePlanSession } from 'src/course-plan-session/entities/course-plan-session.entity';
 import { CoursePlan } from 'src/course-plan/entities/course-plan.entity';
 import { Course } from 'src/course/entities/course.entity';
@@ -51,6 +52,8 @@ export class ReservationsService {
     private readonly ordersRepo: Repository<Order>,
     @InjectRepository(User)
     private readonly usersRepo: Repository<User>,
+    @InjectRepository(Member)
+    private readonly membersRepo: Repository<Member>,
     @InjectRepository(CoursePlanSession)
     private readonly coursePlanSessionRepo: Repository<CoursePlanSession>,
     private readonly dataSource: DataSource,
@@ -292,6 +295,25 @@ export class ReservationsService {
         );
       }
 
+      // 驗證預約數量是否超過訂單課程數量
+      const allOrderReservationsForValidation = await this.orderReservationsRepo.find({
+        where: { orderId: body.orderId },
+        relations: ['reservation'],
+      });
+
+      // 計算 active 預約數量 (排除 CANCELED 狀態)
+      const activeReservationCount = allOrderReservationsForValidation.filter(
+        (or) => or.reservation && or.reservation.reservationStatus !== ReservationStatus.CANCELED
+      ).length;
+
+      // 如果已達課程數量上限，拒絕創建新預約
+      if (activeReservationCount >= order.planNumber) {
+        throw new CustomException(
+          `預約數量已達上限。此訂單最多可預約 ${order.planNumber} 堂課程，目前已有 ${activeReservationCount} 個有效預約。`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       // 驗證所有 orderMemberIds 存在且屬於該訂單
       const orderMembers = await this.orderMembersRepo.find({
         where: { id: In(body.orderMemberIds) },
@@ -315,12 +337,24 @@ export class ReservationsService {
         );
       }
 
+      // 計算 teachingLevel（如果未提供的話）
+      let teachingLevel = body.teachingLevel;
+      if (!teachingLevel) {
+        // 從 orderMembers 中獲取 memberIds
+        const memberIds = orderMembers.map(om => om.memberId);
+        // 使用訂單的 skiType 來計算
+        teachingLevel = await this.calculateTeachingLevel(
+          memberIds,
+          order.skiType,
+        ) as SkiAndSnowboardLevelEnum;
+      }
+
       // 1. 創建 Reservation
       const newReservation = queryRunner.manager.create(Reservation, {
         reservationStatus:
           body.reservationStatus || ReservationStatus.SCHEDULED,
         classTime: body.classTime,
-        teachingLevel: body.teachingLevel,
+        teachingLevel: teachingLevel,
         instructor: body.instructor || null,
         isDesignatedCoach: body.isDesignatedCoach || false,
         createdUser: userId,
@@ -840,6 +874,60 @@ export class ReservationsService {
       };
     } catch (err) {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  /**
+   * 計算教學等級
+   * 如果前台沒有提供課程等級，則使用所有成員中的最小等級 + 1
+   * @param memberIds - 成員 ID 列表
+   * @param skiType - 滑板類型 (0: BOTH, 1: 單板, 2: 雙板)
+   * @returns 教學等級字符串
+   */
+  private async calculateTeachingLevel(
+    memberIds: string[],
+    skiType: number,
+  ): Promise<string> {
+    // 如果沒有成員，返回預設值
+    if (!memberIds || memberIds.length === 0) {
+      return '-';
+    }
+
+    try {
+      // 查詢所有成員
+      const members = await this.membersRepo.find({
+        where: memberIds.map(id => ({ id })),
+      });
+
+      if (members.length === 0) {
+        return '-';
+      }
+
+      // 根據滑板類型取得對應的等級
+      const levels = members.map((member) => {
+        if (skiType === 1) {
+          // 單板
+          return member.snowboard || 1;
+        } else if (skiType === 2) {
+          // 雙板
+          return member.skis || 1;
+        } else {
+          // BOTH (0) - 取兩者中較小的
+          return Math.min(member.snowboard || 1, member.skis || 1);
+        }
+      });
+
+      // 找出最小等級
+      const minLevel = Math.min(...levels);
+
+      // 最小等級 + 1，但不超過 20
+      console.log('Reservation calculateTeachingLevel - minLevel:', minLevel, 'levels:', levels);
+      const calculatedLevel = Math.min(minLevel + 1, 20);
+
+      return calculatedLevel.toString();
+    } catch (error) {
+      console.error('Error calculating teaching level in reservations:', error);
+      return '-';
     }
   }
 }

@@ -29,6 +29,7 @@ import { Reservation } from 'src/reservations/entities/reservation.entity';
 import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
 import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
+import { Member } from 'src/members/entities/member.entity';
 
 @Injectable()
 export class OrdersService {
@@ -50,6 +51,8 @@ export class OrdersService {
     private readonly reservationMembersRepo: Repository<ReservationMember>,
     @InjectRepository(OrderReservation)
     private readonly orderReservationsRepo: Repository<OrderReservation>,
+    @InjectRepository(Member)
+    private readonly membersRepo: Repository<Member>,
     @Inject(forwardRef(() => TransactionsService))
     private readonly transactionsService: TransactionsService,
     @Inject(forwardRef(() => OrderMembersService))
@@ -308,6 +311,67 @@ export class OrdersService {
   }
 
   /**
+   * 計算教學等級
+   * 如果前台沒有提供課程等級，則使用所有成員中的最小等級 + 1
+   * @param memberIds - 訂單成員 ID 列表
+   * @param skiType - 滑板類型 (1: 單板, 2: 雙板)
+   * @param providedLevel - 前台提供的等級(可選)
+   * @returns 教學等級字符串
+   */
+  private async calculateTeachingLevel(
+    memberIds: string[],
+    skiType: number,
+    providedLevel?: string,
+  ): Promise<string> {
+    // 如果前台已提供等級，直接使用
+    if (providedLevel && providedLevel !== '-') {
+      return providedLevel;
+    }
+
+    // 如果沒有成員，返回預設值
+    if (!memberIds || memberIds.length === 0) {
+      return '-';
+    }
+
+    try {
+      // 查詢所有成員
+      const members = await this.membersRepo.find({
+        where: memberIds.map(id => ({ id })),
+      });
+
+      if (members.length === 0) {
+        return '-';
+      }
+
+      // 根據滑板類型取得對應的等級
+      const levels = members.map((member) => {
+        if (skiType === 1) {
+          // 單板
+          return member.snowboard || 1;
+        } else if (skiType === 2) {
+          // 雙板
+          return member.skis || 1;
+        } else {
+          // BOTH (0) - 取兩者中較小的
+          return Math.min(member.snowboard || 1, member.skis || 1);
+        }
+      });
+
+      // 找出最小等級
+      const minLevel = Math.min(...levels);
+
+      // 最小等級 + 1，但不超過 20
+      console.log('minLevel', minLevel, levels);
+      const calculatedLevel = Math.min(minLevel + 1, 20);
+
+      return calculatedLevel.toString();
+    } catch (error) {
+      console.error('Error calculating teaching level:', error);
+      return '-';
+    }
+  }
+
+  /**
    * 第1碼：課程類型
    * G：團體課
    * P：私人課
@@ -538,6 +602,18 @@ export class OrdersService {
       await this.ordersRepo.save(savedOrder);
 
       if (savedOrder) {
+        // 計算教學等級
+        // 準備成員ID列表：如果有提供memberIds則使用，否則使用訂購者memberId
+        const memberIdsForLevel = body.memberIds && body.memberIds.length > 0
+          ? body.memberIds
+          : [memberId];
+
+        const teachingLevel = await this.calculateTeachingLevel(
+          memberIdsForLevel,
+          body.skiType,
+          body.teachingLevel,
+        );
+
         // 創建 order-member 記錄
 
         // 指定式個人練習須建立 reservation 和 order-reservation 關聯
@@ -562,7 +638,7 @@ export class OrdersService {
                 const newReservation = queryRunner.manager.create(Reservation, {
                   reservationStatus: 1, // SCHEDULED
                   classTime: session.startTime,
-                  teachingLevel: '-',
+                  teachingLevel: teachingLevel as any,
                   instructor: null,
                   department: department,
                   createdUser: memberId,
@@ -699,7 +775,7 @@ export class OrdersService {
                 const newReservation = queryRunner.manager.create(Reservation, {
                   reservationStatus: 1, // SCHEDULED
                   classTime: session.startTime,
-                  teachingLevel: '-',
+                  teachingLevel: teachingLevel as any,
                   instructor: null,
                   department: department,
                   createdUser: memberId,

@@ -162,71 +162,6 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
             </Paper>
 
 
-
-            <Paper
-              elevation={0}
-              sx={{
-                p: 2,
-                border: '1px solid rgba(0, 0, 0, 0.12)',
-                borderRadius: 3,
-                backgroundColor: selectedReport === 'instructor-schedule'
-                  ? 'rgba(25, 118, 210, 0.08)'
-                  : 'transparent',
-                borderColor: selectedReport === 'instructor-schedule'
-                  ? 'primary.main'
-                  : 'rgba(0, 0, 0, 0.12)',
-              }}
-            >
-              <FormControlLabel
-                value="instructor-schedule"
-                control={
-                  <Radio
-                    sx={{
-                      color: 'rgba(0, 0, 0, 0.6)',
-                      '&.Mui-checked': {
-                        color: 'primary.main',
-                      },
-                    }}
-                  />
-                }
-                label={
-                  <Box>
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        fontWeight: 400,
-                        fontSize: '16px',
-                        lineHeight: '24px',
-                        color: 'text.primary',
-                      }}
-                    >
-                      教練總排堂表
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontSize: '12px',
-                        lineHeight: '16px',
-                        color: 'text.disabled',
-                        display: 'block',
-                      }}
-                    >
-                      教練總排課統計表
-                    </Typography>
-                  </Box>
-                }
-                sx={{
-                  m: 0,
-                  width: '100%',
-                  alignItems: 'flex-start',
-                  '& .MuiFormControlLabel-label': {
-                    flex: 1,
-                    ml: 1,
-                  }
-                }}
-              />
-            </Paper>
-
             <Paper
               elevation={0}
               sx={{
@@ -264,7 +199,7 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
                         color: 'text.primary',
                       }}
                     >
-                      教練總排堂表(統計)
+                      教練總排堂表
                     </Typography>
                     <Typography
                       variant="caption"
@@ -275,7 +210,7 @@ const ExportReportModal: React.FC<ExportReportModalProps> = ({
                         display: 'block',
                       }}
                     >
-                      教練堂數統計及指定課程匯總
+                      教練總排課統計表
                     </Typography>
                   </Box>
                 }

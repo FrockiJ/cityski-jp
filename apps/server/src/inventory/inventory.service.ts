@@ -42,7 +42,7 @@ export class InventoryService {
     if (toDate) {
       to = new Date(toDate);
       // Set to last day of the month at 23:59:59.999
-      to.setMonth(to.getMonth() + 1, 0); // Sets to last day of the month
+      to.setMonth(to.getMonth() + 3, 0); // Sets to last day of the month
       to.setHours(23, 59, 59, 999);
     } else {
       to = new Date(new Date().setMonth(new Date().getMonth() + 3));
@@ -53,13 +53,7 @@ export class InventoryService {
     // Find all valid orders (等待確認 or 訂購成功, not 已完成)
     const orders = await this.orderRepository.find({
       where: {
-        status: In([OrderStatus.WAITING_FOR_CONFIRMATION, OrderStatus.ORDER_SUCCESSFUL]),
-        transaction: {
-          status: In([
-            TransactionStatus.DEPOSIT_PAID,
-            TransactionStatus.FULLY_PAID,
-          ]),
-        },
+        status: In([OrderStatus.WAITING_FOR_CONFIRMATION, OrderStatus.ORDER_SUCCESSFUL])
       },
       relations: [
         'member',

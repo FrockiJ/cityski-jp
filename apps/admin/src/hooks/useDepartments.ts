@@ -16,8 +16,8 @@ export const useDepartments = () => {
 			setLoading(true);
 			setError(null);
 			const response = await getDepartments();
-			// API 返回結構: { statusCode, message, result: [...] }
-			const data = response?.result || response;
+			// API returns ResponseWrapper with result property
+			const data = response.result;
 			if (data && Array.isArray(data)) {
 				const depts = data.map((dept) => ({
 					id: dept.id,

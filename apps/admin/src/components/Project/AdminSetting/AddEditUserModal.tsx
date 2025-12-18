@@ -234,7 +234,7 @@ const AddEditUserModal = ({
 															name={`departmentsWithRoles[${index}].departmentId`}
 															placeholder='選擇'
 															options={
-																getDepartmentsData?.map((x) => {
+																getDepartmentsData?.result?.map((x) => {
 																	const isDisabledOption = values.departmentsWithRoles
 																		.map((x) => x.departmentId)
 																		.includes(x.id);

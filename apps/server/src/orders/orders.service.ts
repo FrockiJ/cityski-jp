@@ -562,7 +562,7 @@ export class OrdersService {
       // 生成訂單編號，如果重複則重試（最多 3 次）
       let orderNo: string;
       let retryCount = 0;
-      const MAX_RETRIES = 3;
+      const MAX_RETRIES = 10;
 
       while (retryCount < MAX_RETRIES) {
         orderNo = await this.generateOrderNo(body.type, body.skiType, body.bkgType);
@@ -580,7 +580,7 @@ export class OrdersService {
         console.warn(`Order number ${orderNo} already exists, retrying... (${retryCount}/${MAX_RETRIES})`);
 
         // 等待一小段時間再重試
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
 
       if (retryCount === MAX_RETRIES) {

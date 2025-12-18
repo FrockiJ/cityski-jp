@@ -12,7 +12,7 @@ const orderStatusMapper: OrderBaseProps['orderStatusMapper'] = {
 		buttonLabel: '',
 	},
 	[OrderStatus.ORDER_CANCELED]: {
-		headerStyle: 'border-[#818181] text-[#818181]',
+		headerStyle: 'border-[#B71D18] text-[#B71D18]',
 		headerLabel: '訂單取消',
 		headerText: '取消日期',
 		buttonLabel: '',

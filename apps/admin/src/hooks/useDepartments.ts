@@ -16,8 +16,8 @@ export const useDepartments = () => {
 			setLoading(true);
 			setError(null);
 			const response = await getDepartments();
-			if (response.result && Array.isArray(response.result)) {
-				const depts = response.result.map((dept) => ({
+			if (response && Array.isArray(response)) {
+				const depts = response.map((dept) => ({
 					id: dept.id,
 					name: dept.name,
 				}));

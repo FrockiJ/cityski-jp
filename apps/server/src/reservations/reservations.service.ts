@@ -844,6 +844,12 @@ export class ReservationsService {
         const ordererName = order?.member?.name || '未知';
         const transactionStatus = order?.transaction?.status ?? null;
 
+        // 取得板類和等級資訊
+        const skiType = order?.skiType;
+        const boardType = skiType === 1 ? '單板' : skiType === 2 ? '雙板' : '單板和雙板';
+        const teachingLevel = reservation.teachingLevel;
+        const level = teachingLevel ? parseInt(teachingLevel, 10) : null;
+
         // 計算同時間同課程的總預約數（用於判斷併班）
         const sameTimeAndCourse = reservations.filter(r => {
           const rTime = new Date(r.classTime).toISOString();
@@ -869,6 +875,8 @@ export class ReservationsService {
           status: 'available',
           isMixed,
           reservationId: reservation.id,
+          boardType,
+          level,
         });
       }
 

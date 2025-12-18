@@ -18,6 +18,8 @@ interface RawReservationSlot {
 	venueName: string;
 	instructorName?: string;
 	reservationId: string;
+	boardType?: string;
+	level?: number;
 }
 
 interface RawGetReservationSlotsResponseData {
@@ -48,6 +50,8 @@ export interface ReservationSlot {
 	venueName: string;
 	instructorName?: string;
 	reservationId: string;
+	boardType?: string;
+	level?: number;
 }
 
 export interface GetReservationSlotsResponseData {
@@ -87,6 +91,8 @@ const transformSlot = (rawSlot: RawReservationSlot): ReservationSlot => {
 		venueName: rawSlot.venueName,
 		instructorName: rawSlot.instructorName,
 		reservationId: rawSlot.reservationId,
+		boardType: rawSlot.boardType,
+		level: rawSlot.level,
 	};
 	return transformedSlot;
 };

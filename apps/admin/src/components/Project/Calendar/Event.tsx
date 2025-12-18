@@ -31,11 +31,13 @@ interface EventProps {
 	eventPosition?: number;
 	date?: Dayjs;
 	currentDate?: Dayjs;
-	ordererName?: string;
+	instructorName?: string;
 	transactionStatus?: number | null;
 	currentBookedCount?: number;
 	maxCapacity?: number;
 	isMixed?: boolean;
+	boardType?: string;
+	level?: number;
 	onClick?: () => void;
 }
 
@@ -49,11 +51,13 @@ export const Event = ({
 	date,
 	currentDate,
 	courseType,
-	ordererName = '未知',
+	instructorName = '未知',
 	transactionStatus = null,
 	currentBookedCount = 0,
 	maxCapacity = 0,
 	isMixed = false,
+	boardType,
+	level,
 	onClick,
 }: EventProps) => {
 	if (date && currentDate) {
@@ -137,9 +141,19 @@ export const Event = ({
 
 	const getDisplayLabel = () => {
 		if (courseType === CourseType.INDIVIDUAL) return '個人練習';
-		if (courseType === CourseType.GROUP) return `${ordererName} (團體)`;
-		if (courseType === CourseType.PRIVATE) return `${ordererName} (私人)`;
-		return ordererName;
+		if (courseType === CourseType.GROUP) return `${instructorName} (團體)`;
+		if (courseType === CourseType.PRIVATE) return `${instructorName} (私人)`;
+		return instructorName;
+	};
+
+	const getBoardTypeAndLevel = () => {
+		if (!boardType && !level) return title;
+		const boardTypeText = boardType || '';
+		const levelText = level ? `LV.${level}` : '';
+		if (boardTypeText && levelText) {
+			return `${boardTypeText} ${levelText}`;
+		}
+		return boardTypeText || levelText || title;
 	};
 
 	return (
@@ -173,7 +187,7 @@ export const Event = ({
 				/>
 			)}
 
-			{/* 第一行：課程名稱（板類 + 等級）*/}
+			{/* 第一行：板類 + 等級 */}
 			<Typography
 				sx={{
 					fontWeight: 700,
@@ -186,7 +200,7 @@ export const Event = ({
 					whiteSpace: 'nowrap',
 				}}
 			>
-				{title}
+				{getBoardTypeAndLevel()}
 			</Typography>
 
 			{/* 第二行：姓名 + 訂單類型/狀態 */}

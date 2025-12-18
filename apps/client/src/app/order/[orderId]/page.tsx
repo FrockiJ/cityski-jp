@@ -1181,7 +1181,7 @@ export default function OrderDetail() {
 												<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
 													{orderDetail.transaction.depositPaymentMethod === 'ATM' ? '線上ATM' :
 													 orderDetail.transaction.depositPaymentMethod === 'CREDIT' ? '線上信用卡' :
-													 orderDetail.transaction.depositPaymentMethod === 'CASH' ? '現金' :
+													 orderDetail.transaction.depositPaymentMethod === 'CASH' ? '現場付現' :
 													 orderDetail.transaction.depositPaymentMethod || '未記錄'}
 												</div>
 											</div>

@@ -138,10 +138,10 @@ export const Event = ({
 	const styles = getOrderTypeStyles(courseType, transactionStatus, currentBookedCount, maxCapacity);
 	const showRedDot = transactionStatus === 2; // PENDING_FULL_PAYMENT
 	const isShortDuration = durationMinutes <= 30;
-
+	const isFull = currentBookedCount >= maxCapacity && maxCapacity > 0;
 	const getDisplayLabel = () => {
 		if (courseType === CourseType.INDIVIDUAL) return '個人練習';
-		if (courseType === CourseType.GROUP) return `${instructorName} (團體)`;
+		if (courseType === CourseType.GROUP) return `${instructorName} ${isFull ? "(團體)" : "(未滿)"}`;
 		if (courseType === CourseType.PRIVATE) return `${instructorName} (私人)`;
 		return instructorName;
 	};

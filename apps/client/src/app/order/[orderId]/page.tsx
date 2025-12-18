@@ -238,7 +238,7 @@ export default function OrderDetail() {
 		if (transactionStatus === 0) {
 			return {
 				label: '待付訂金',
-				style: 'border-[#2B2B2B] text-[#2B2B2B]',
+				style: 'border-[#FE7B5D] text-[#FE7B5D]',
 			};
 		} else if (transactionStatus === 2) {
 			return {

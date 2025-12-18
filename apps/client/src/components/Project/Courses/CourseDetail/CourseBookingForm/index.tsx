@@ -71,11 +71,10 @@ const CourseBookingForm = ({ data, onSubmit }: CourseBookingFormProps) => {
 	const handleSubmit = (event: React.FormEvent) => {
 		event.preventDefault();
 		// check if user is logged in
-		// turn off when testing
-		// if (!userInfo && !accessToken) {
-		// 	router.push('/login');
-		// 	return;
-		// }
+		if (!userInfo && !accessToken) {
+			router.push('/login');
+			return;
+		}
 
 		// Save form data to localStorage before navigating
 		localStorage.setItem(

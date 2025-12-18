@@ -202,8 +202,8 @@ const WeekView = ({ currentDate, slots = [], onSlotClick }: Props) => {
 											title={slot.courseName}
 											startTime={startTime}
 											endTime={endTime}
-											instructor={slot.instructorName}
-											status={slot.status}
+											ordererName={slot.ordererName}
+											transactionStatus={slot.transactionStatus}
 											currentBookedCount={slot.currentBookedCount}
 											maxCapacity={slot.maxCapacity}
 											isMixed={slot.isMixed}

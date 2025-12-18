@@ -56,5 +56,6 @@ export const CourseType = {
 	GROUP: 'G',
 	PRIVATE: 'P',
 	TRAINING: 'T',
+	INDIVIDUAL: 'I',
 } as const;
 export type CourseType = EnumValues<typeof CourseType>;

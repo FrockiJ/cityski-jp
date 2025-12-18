@@ -11,6 +11,8 @@ interface RawReservationSlot {
 	maxCapacity: number;
 	status: 'available' | 'full' | 'closed';
 	courseType: string; // Backend sends this as string
+	ordererName: string;
+	transactionStatus: number | null;
 	isMixed: boolean;
 	departmentName: string;
 	venueName: string;
@@ -39,6 +41,8 @@ export interface ReservationSlot {
 	maxCapacity: number;
 	status: 'available' | 'full' | 'closed';
 	courseType: CourseType;
+	ordererName: string;
+	transactionStatus: number | null;
 	isMixed: boolean;
 	departmentName: string;
 	venueName: string;
@@ -76,6 +80,8 @@ const transformSlot = (rawSlot: RawReservationSlot): ReservationSlot => {
 		maxCapacity: rawSlot.maxCapacity,
 		status: rawSlot.status,
 		courseType: rawSlot.courseType as CourseType,
+		ordererName: rawSlot.ordererName,
+		transactionStatus: rawSlot.transactionStatus ?? null,
 		isMixed: rawSlot.isMixed,
 		departmentName: rawSlot.departmentName,
 		venueName: rawSlot.venueName,

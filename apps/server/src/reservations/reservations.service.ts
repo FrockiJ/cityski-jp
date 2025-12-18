@@ -808,6 +808,8 @@ export class ReservationsService {
         .leftJoinAndSelect('reservation.department', 'department')
         .leftJoinAndSelect('reservation.orderReservations', 'orderReservation')
         .leftJoinAndSelect('orderReservation.order', 'order')
+        .leftJoinAndSelect('order.member', 'member')
+        .leftJoinAndSelect('order.transaction', 'transaction')
         .leftJoinAndSelect('order.coursePlan', 'coursePlan')
         .leftJoinAndSelect('coursePlan.course', 'course')
         .leftJoinAndSelect('course.coursePeople', 'coursePeople')
@@ -825,51 +827,50 @@ export class ReservationsService {
 
       const reservations = await reservationsQuery.getMany();
 
-      // 按 classTime 和 courseType 分組，同一時間的不同課程應該是不同的時段
-      const slotsMap = new Map<string, any>();
+      // 建立 slots 陣列 - 每個預約對應一個 slot（不聚合）
+      const slots = [];
 
       for (const reservation of reservations) {
         const classTimeStr = new Date(reservation.classTime).toISOString();
-        const course = reservation.orderReservations?.[0]?.order?.coursePlan?.course;
+        const order = reservation.orderReservations?.[0]?.order;
+        const course = order?.coursePlan?.course;
         const courseName = course?.name || '未知課程';
         const courseType = course?.type;
-        const courseId = course?.id;
         const coursePeople = course?.coursePeople?.[0];
         const maxCapacity = coursePeople?.maxPeople || 0;
-        const courseLength = course?.length || 90; // 預設 90 分鐘
+        const courseLength = course?.length || 90;
 
-        // 使用 classTime + courseId 作為 key，確保同時間不同課程分開，即使是同一課程類型也能區分
-        const slotKey = `${classTimeStr}-${courseId}`;
+        // 取得訂購人和交易資訊
+        const ordererName = order?.member?.name || '未知';
+        const transactionStatus = order?.transaction?.status ?? null;
 
-        if (!slotsMap.has(slotKey)) {
-          slotsMap.set(slotKey, {
-            id: `slot-${classTimeStr}-${courseId}`,
-            startTime: reservation.classTime,
-            endTime: new Date(new Date(reservation.classTime).getTime() + courseLength * 60 * 1000), // 使用 course.length（分鐘）
-            courseName,
-            courseType,
-            maxCapacity,
-            currentBookedCount: 0,
-            instructorName: reservation.instructor || '未指定',
-            departmentName: reservation.department?.name,
-            venueName: reservation.orderReservations?.[0]?.order?.coursePlan?.name,
-            status: 'available',
-            isMixed: false,
-            reservationId: reservation.id,
-          });
-        }
+        // 計算同時間同課程的總預約數（用於判斷併班）
+        const sameTimeAndCourse = reservations.filter(r => {
+          const rTime = new Date(r.classTime).toISOString();
+          const rCourse = r.orderReservations?.[0]?.order?.coursePlan?.course;
+          return rTime === classTimeStr && rCourse?.id === course?.id;
+        });
+        const currentBookedCount = sameTimeAndCourse.length;
+        const isMixed = courseType === CourseType.GROUP && currentBookedCount > 1;
 
-        // 累計預約數量
-        const slot = slotsMap.get(slotKey);
-        slot.currentBookedCount++;
-
-        // 檢查是否併班
-        if (courseType === CourseType.GROUP && slot.currentBookedCount > 1) {
-          slot.isMixed = true;
-        }
+        slots.push({
+          id: `slot-${reservation.id}`,
+          startTime: reservation.classTime,
+          endTime: new Date(new Date(reservation.classTime).getTime() + courseLength * 60 * 1000),
+          courseName,
+          courseType,
+          ordererName,
+          transactionStatus,
+          maxCapacity,
+          currentBookedCount,
+          instructorName: reservation.instructor || '未指定',
+          departmentName: reservation.department?.name,
+          venueName: order?.coursePlan?.name,
+          status: 'available',
+          isMixed,
+          reservationId: reservation.id,
+        });
       }
-
-      const slots = Array.from(slotsMap.values());
 
       // 為每個 slot 計算最終狀態
       slots.forEach((slot) => {

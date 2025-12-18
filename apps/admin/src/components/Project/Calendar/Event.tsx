@@ -1,8 +1,8 @@
-import { Box, Typography, Tooltip } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import dayjs from 'dayjs';
 import { Dayjs } from 'dayjs';
-import GroupsIcon from '@mui/icons-material/Groups';
+
 
 import { CourseType } from '@/shared/core/constants/enum';
 
@@ -27,16 +27,12 @@ interface EventProps {
 	title: string;
 	startTime: string;
 	endTime: string;
-	backgroundColor?: string;
-	color?: string;
 	overlappingEvents?: number;
 	eventPosition?: number;
 	date?: Dayjs;
 	currentDate?: Dayjs;
-	unPaidDownPayment?: boolean;
-	paymentSettled?: boolean;
-	instructor?: string;
-	status?: 'available' | 'full' | 'closed';
+	ordererName?: string;
+	transactionStatus?: number | null;
 	currentBookedCount?: number;
 	maxCapacity?: number;
 	isMixed?: boolean;
@@ -48,17 +44,13 @@ export const Event = ({
 	title,
 	startTime,
 	endTime,
-	backgroundColor = 'primary.light',
-	color = 'primary.dark',
 	overlappingEvents = 1,
 	eventPosition = 0,
 	date,
 	currentDate,
-	unPaidDownPayment = false,
 	courseType,
-	paymentSettled = true,
-	instructor,
-	status = 'available',
+	ordererName = '未知',
+	transactionStatus = null,
 	currentBookedCount = 0,
 	maxCapacity = 0,
 	isMixed = false,
@@ -88,34 +80,67 @@ export const Event = ({
 	const leftOffset =
 		type === 'W' ? 1 + eventPosition * (100 / overlappingEvents) : eventPosition * (100 / overlappingEvents);
 
-	const getStatusStyles = () => {
-		switch (status) {
-			case 'full':
-				// 紅色：額滿
+	const getOrderTypeStyles = (
+		courseType: CourseType,
+		transactionStatus: number | null,
+		currentBookedCount: number,
+		maxCapacity: number
+	) => {
+		// Priority 1: Pending Deposit overrides everything
+		if (transactionStatus === 0) {
+			return {
+				backgroundColor: 'rgba(145, 158, 171, 0.24)',
+				textColor: '#919EAB',
+				borderColor: 'rgba(145, 158, 171, 0.32)',
+			};
+		}
+
+		// Priority 2: Course Type
+		switch (courseType) {
+			case CourseType.GROUP:
+				const isFull = currentBookedCount >= maxCapacity && maxCapacity > 0;
+				return isFull
+					? {
+							backgroundColor: 'rgba(0, 184, 217, 0.24)',
+							textColor: '#006C9C',
+							borderColor: 'rgba(0, 184, 217, 0.32)',
+					  }
+					: {
+							backgroundColor: '#FFFFFF',
+							textColor: '#006C9C',
+							borderColor: '#00B8D9',
+					  };
+			case CourseType.PRIVATE:
 				return {
-					backgroundColor: 'rgba(229, 57, 53, 0.24)',
-					color: '#C62828',
-					border: '1px solid rgba(229, 57, 53, 0.32)',
+					backgroundColor: 'rgba(255, 171, 0, 0.24)',
+					textColor: '#B76E00',
+					borderColor: 'rgba(255, 171, 0, 0.32)',
 				};
-			case 'closed':
-				// 灰色：已關閉/過去時間
+			case CourseType.INDIVIDUAL:
+				return {
+					backgroundColor: 'rgba(54, 179, 126, 0.24)',
+					textColor: '#1B806A',
+					borderColor: 'rgba(54, 179, 126, 0.32)',
+				};
+			default:
 				return {
 					backgroundColor: 'rgba(145, 158, 171, 0.24)',
-					color: '#919EAB',
-					border: '1px solid rgba(145, 158, 171, 0.32)',
-				};
-			case 'available':
-			default:
-				// 綠色：可預約
-				return {
-					backgroundColor: 'rgba(76, 175, 80, 0.24)',
-					color: '#2E7D32',
-					border: '1px solid rgba(76, 175, 80, 0.32)',
+					textColor: '#919EAB',
+					borderColor: 'rgba(145, 158, 171, 0.32)',
 				};
 		}
 	};
 
-	const styles = getStatusStyles();
+	const styles = getOrderTypeStyles(courseType, transactionStatus, currentBookedCount, maxCapacity);
+	const showRedDot = transactionStatus === 2; // PENDING_FULL_PAYMENT
+	const isShortDuration = durationMinutes <= 30;
+
+	const getDisplayLabel = () => {
+		if (courseType === CourseType.INDIVIDUAL) return '個人練習';
+		if (courseType === CourseType.GROUP) return `${ordererName} (團體)`;
+		if (courseType === CourseType.PRIVATE) return `${ordererName} (私人)`;
+		return ordererName;
+	};
 
 	return (
 		<EventWrapper
@@ -124,57 +149,59 @@ export const Event = ({
 				top: `${topPosition + 3}px`,
 				height: `${heightPixels - 4}px`,
 				backgroundColor: styles.backgroundColor,
-				color: styles.color,
+				color: styles.textColor,
 				width,
 				left: type === 'W' ? `${leftOffset}%` : `${leftOffset + 0.16}%`,
-				border: 'border' in styles ? styles.border : '1px solid currentColor',
+				border: `1px solid ${styles.borderColor}`,
 				display: 'flex',
 				flexDirection: 'column',
-				justifyContent: 'space-between',
-				padding: '0.25rem 0.5rem',
+				justifyContent: 'flex-start',
+				padding: '6px',
 			}}
 		>
-			{!paymentSettled && (
+			{showRedDot && (
 				<Box
 					sx={{
 						position: 'absolute',
-						top: 0,
-						right: 0,
-						backgroundColor: 'red',
+						top: '4px',
+						right: '4px',
+						backgroundColor: '#FF5630',
 						width: '5px',
 						height: '5px',
 						borderRadius: '50%',
-						margin: '2px',
 					}}
 				/>
 			)}
 
-			{/* 時間 */}
-			<Typography sx={{ fontWeight: 600, fontSize: '0.65rem', lineHeight: '1.2', color: styles.color }}>
-				{dayjs(`2000-01-01 ${startTime}`).format('hA')}
-			</Typography>
-
-			{/* 課程名稱 */}
-			<Typography sx={{ fontWeight: 600, fontSize: '0.7rem', lineHeight: '1.2', color: styles.color, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+			{/* 第一行：課程名稱（板類 + 等級）*/}
+			<Typography
+				sx={{
+					fontWeight: 700,
+					fontSize: '0.75rem',
+					lineHeight: '1rem',
+					color: styles.textColor,
+					textTransform: 'uppercase',
+					overflow: 'hidden',
+					textOverflow: 'ellipsis',
+					whiteSpace: 'nowrap',
+				}}
+			>
 				{title}
 			</Typography>
 
-			{/* 教練 和 人數/上限 */}
-			<Box sx={{ display: 'flex', alignItems: 'center', gap: '2px', minHeight: 0 }}>
-				<Typography sx={{ fontSize: '0.6rem', lineHeight: '1.2', color: styles.color, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1 }}>
-					{instructor || '未指定'}
-				</Typography>
-				<Typography sx={{ fontWeight: 600, fontSize: '0.6rem', lineHeight: '1.2', color: styles.color, flexShrink: 0, whiteSpace: 'nowrap' }}>
-					{currentBookedCount}/{maxCapacity}
-				</Typography>
-			</Box>
-
-			{/* 併班提示 */}
-			{isMixed && courseType === CourseType.GROUP && (
-				<Tooltip title='已併班' placement='top' arrow>
-					<GroupsIcon sx={{ fontSize: '0.75rem', color: styles.color }} />
-				</Tooltip>
-			)}
+			{/* 第二行：姓名 + 訂單類型/狀態 */}
+			<Typography
+				sx={{
+					fontSize: '0.875rem',
+					lineHeight: '1.25rem',
+					color: styles.textColor,
+					overflow: 'hidden',
+					textOverflow: 'ellipsis',
+					whiteSpace: 'nowrap',
+				}}
+			>
+				{getDisplayLabel()}
+			</Typography>
 		</EventWrapper>
 	);
 };

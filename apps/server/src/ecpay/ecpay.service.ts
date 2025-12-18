@@ -49,6 +49,10 @@ export class EcpayService {
         this.logger.log(`Generating balance payment MerchantTradeNo: ${merchantTradeNo}`);
       } else {
         this.logger.log(`Generating deposit payment MerchantTradeNo: ${merchantTradeNo}`);
+
+        // 訂金支付：在初始化時就記錄 deposit_payment_method 為 'CREDIT'
+        this.logger.log(`Recording deposit payment method as CREDIT for order: ${request.orderId}`);
+        await this.transactionsService.recordDepositPaymentMethod(request.orderId, 'CREDIT');
       }
 
       // 準備支付參數

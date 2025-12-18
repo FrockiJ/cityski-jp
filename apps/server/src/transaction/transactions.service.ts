@@ -76,6 +76,43 @@ export class TransactionsService {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+  // Record deposit payment method when user clicks payment button
+  async recordDepositPaymentMethod(orderNo: string, paymentMethod: string) {
+    try {
+      const order = await this.ordersRepo.findOne({
+        where: { no: orderNo },
+        relations: ['transaction'],
+      });
+
+      if (!order) {
+        throw new CustomException('Order not found', HttpStatus.NOT_FOUND);
+      }
+
+      if (!order.transaction) {
+        throw new CustomException('Transaction not found', HttpStatus.NOT_FOUND);
+      }
+
+      const transaction = order.transaction;
+
+      // Only record if status is PENDING_DEPOSIT
+      if (transaction.status === TransactionStatus.PENDING_DEPOSIT) {
+        transaction.depositPaymentMethod = paymentMethod;
+        await this.transactionsRepo.save(transaction);
+        console.log(`Deposit payment method recorded: ${paymentMethod} for order: ${orderNo}`);
+      }
+
+      return {
+        success: true,
+        message: 'Deposit payment method recorded',
+      };
+    } catch (err) {
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
   // pay deposit for an order (DEV ONLY / Manual confirmation by admin)
   async payDeposit(body: PayDepositRequestDTO, memberId: string) {
     try {
@@ -165,7 +202,15 @@ export class TransactionsService {
       // Update transaction status to PENDING_FULL_PAYMENT
       transaction.status = TransactionStatus.PENDING_FULL_PAYMENT;
       transaction.depositDate = new Date();
-      transaction.depositPaymentMethod = paymentMethod;
+
+      // Only update depositPaymentMethod if it's not already set
+      // (It should have been set when user clicked the payment button)
+      if (!transaction.depositPaymentMethod) {
+        transaction.depositPaymentMethod = paymentMethod;
+        console.log('depositPaymentMethod was not set, setting to:', paymentMethod);
+      } else {
+        console.log('depositPaymentMethod already set to:', transaction.depositPaymentMethod);
+      }
 
       console.log('Before save - depositDate:', transaction.depositDate);
       console.log('Before save - depositPaymentMethod:', transaction.depositPaymentMethod);

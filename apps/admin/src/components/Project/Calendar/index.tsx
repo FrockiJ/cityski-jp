@@ -218,12 +218,25 @@ export default function Calendar() {
 		>
 			{/* Fixed Calendar Header */}
 			{/* 預約篩選器 */}
-			<ReservationFilters
-				filters={filters}
-				departments={departments}
-				instructors={coaches}
-				onFiltersChange={handleFiltersChange}
-			/>
+			{departmentsLoading ? (
+				<Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', minHeight: 100 }}>
+					<CircularProgress size={20} sx={{ mr: 2 }} />
+					<Typography>載入分店資料中...</Typography>
+				</Box>
+			) : departments.length === 0 ? (
+				<Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+					<Alert severity="warning">
+						無法載入分店資料，請確認資料庫中存在分店記錄
+					</Alert>
+				</Box>
+			) : (
+				<ReservationFilters
+					filters={filters}
+					departments={departments}
+					instructors={coaches}
+					onFiltersChange={handleFiltersChange}
+				/>
+			)}
 
 			<Paper
 				ref={containerNav}

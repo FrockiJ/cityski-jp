@@ -407,21 +407,6 @@ export class OrdersService {
     queryRunner?: QueryRunner,
   ): Promise<string> {
     try {
-      // 查詢當前 type 的最大編號（包含所有狀態的訂單，包括已取消的）
-      let lastItem = null;
-      if (queryRunner) {
-        lastItem = await queryRunner.manager
-          .createQueryBuilder(Order, 'order')
-          .where('order.type = :type', { type })
-          .orderBy('order.no', 'DESC')
-          .getOne();
-      } else {
-        lastItem = await this.ordersRepo
-          .createQueryBuilder('order')
-          .where('order.type = :type', { type })
-          .orderBy('order.no', 'DESC')
-          .getOne();
-      }
       const toDay = new Date();
       const year = toDay.getFullYear();
       const month =
@@ -430,19 +415,61 @@ export class OrdersService {
           : toDay.getMonth() + 1;
       const day =
         toDay.getDate() < 10 ? `0${toDay.getDate()}` : toDay.getDate();
-      let nextNo = 1;
 
-      if (lastItem) {
-        // 提取數字
-        const lastNo = parseInt(lastItem.no.slice(11), 10);
-        nextNo = lastNo + 1;
+      // 生成當天的日期前綴
+      const datePrefix = `${type}${skiType}${bkgType}${year}${month}${day}`;
+
+      // 查詢當天同 type, skiType, bkgType 的所有訂單
+      let todayOrders = null;
+      if (queryRunner) {
+        todayOrders = await queryRunner.manager
+          .createQueryBuilder(Order, 'order')
+          .where('order.no LIKE :prefix', { prefix: `${datePrefix}%` })
+          .orderBy('order.no', 'DESC')
+          .getMany();
+      } else {
+        todayOrders = await this.ordersRepo
+          .createQueryBuilder('order')
+          .where('order.no LIKE :prefix', { prefix: `${datePrefix}%` })
+          .orderBy('order.no', 'DESC')
+          .getMany();
       }
 
-      // 格式化加上type
-      return `${type}${skiType}${bkgType}${year}${month}${day}${nextNo.toString().padStart(4, '0')}`;
+      let nextNo = 1;
+
+      if (todayOrders && todayOrders.length > 0) {
+        // 提取所有序號並找到最大值
+        const serialNumbers = todayOrders
+          .map(order => {
+            // 確保訂單號長度正確（15位）
+            if (order.no.length === 15) {
+              const serialStr = order.no.slice(11); // 取最後4位序號
+              const serialNum = parseInt(serialStr, 10);
+              return isNaN(serialNum) ? 0 : serialNum;
+            }
+            return 0;
+          })
+          .filter(num => num > 0); // 過濾無效的序號
+
+        if (serialNumbers.length > 0) {
+          const maxSerial = Math.max(...serialNumbers);
+          nextNo = maxSerial + 1;
+        }
+      }
+
+      // 檢查序號是否超出範圍（最大4位數）
+      if (nextNo > 9999) {
+        throw new HttpException(
+          `Daily order limit exceeded for ${datePrefix}. Maximum 9999 orders per day.`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      // 格式化訂單號
+      return `${datePrefix}${nextNo.toString().padStart(4, '0')}`;
     } catch (err) {
       throw new HttpException(
-        `Error when attempting to generate a number with generateNo: ${err.message}`,
+        `Error when attempting to generate order number: ${err.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

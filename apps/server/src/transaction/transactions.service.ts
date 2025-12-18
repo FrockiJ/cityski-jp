@@ -349,6 +349,7 @@ export class TransactionsService {
       // Update transaction status to FULLY_PAID
       transaction.status = TransactionStatus.FULLY_PAID;
       transaction.balanceDate = new Date();
+      transaction.balancePaymentMethod = 'CREDIT'; // 記錄信用卡支付
 
       await this.transactionsRepo.save(transaction);
 
@@ -417,5 +418,45 @@ export class TransactionsService {
       }
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  async selectBalancePaymentMethod(
+    orderId: string,
+    paymentMethod: string,
+    memberId: string,
+  ) {
+    // 1. 查找訂單及交易
+    const order = await this.ordersRepo.findOne({
+      where: { id: orderId, orderer: memberId },
+      relations: ['transaction'],
+    });
+
+    if (!order || !order.transaction) {
+      throw new CustomException('Order not found', HttpStatus.NOT_FOUND);
+    }
+
+    const transaction = order.transaction;
+
+    // 2. 驗證交易狀態必須是待結清
+    if (transaction.status !== TransactionStatus.PENDING_FULL_PAYMENT) {
+      throw new CustomException(
+        'Invalid transaction status',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // 3. 記錄尾款支付方式
+    transaction.balancePaymentMethod = paymentMethod;
+    await this.transactionsRepo.save(transaction);
+
+    return {
+      success: true,
+      message: 'Balance payment method recorded',
+      data: {
+        orderId: order.id,
+        orderNo: order.no,
+        balancePaymentMethod: paymentMethod,
+      },
+    };
   }
 }

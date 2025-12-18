@@ -323,7 +323,22 @@ export default function OrderDetail() {
 					showToast(errorMsg, 'error');
 				}
 			} else if (selectedPaymentMethod === 'atm') {
-				// ATM 轉帳：儲存資料並跳轉到 ATM 支付頁面
+				// 1. 調用後端 API 記錄選擇 ATM 支付
+				await api.patch(
+					'/api/transactions/select-balance-payment-method',
+					{
+						orderId: orderDetail.id,
+						paymentMethod: 'ATM',
+					},
+					{
+						headers: {
+							'Content-Type': 'application/json',
+							Authorization: `Bearer ${accessToken}`,
+						},
+					}
+				);
+
+				// 2. 儲存 ATM 支付資料到 localStorage
 				const totalAmt = orderDetail.transaction?.totalAmt || 0;
 				const dataToStore = {
 					orderId: orderDetail.id,
@@ -332,8 +347,10 @@ export default function OrderDetail() {
 					totalAmt: totalAmt,
 				};
 				localStorage.setItem('atmPaymentData', JSON.stringify(dataToStore));
+
 				setShowPaymentDialog(false);
-				// 跳轉到 ATM 支付指示頁面
+
+				// 3. 跳轉到 ATM 支付頁面
 				router.push('/courses/atm-payment');
 			}
 		} catch (error) {
@@ -382,7 +399,31 @@ export default function OrderDetail() {
 											</div>
 										</div>
 									)}
+									{orderDetail.transaction?.status === 2 &&
+									 orderDetail.transaction?.balancePaymentMethod === 'ATM' &&
+									 !orderDetail.transaction?.balanceDate && (
+										<div className='inline-flex justify-start items-center gap-1'>
+											<div className="justify-start text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+												匯款帳號有效時間
+											</div>
+											<div className="justify-start text-zinc-500 text-sm font-normal font-['Poppins'] leading-6">
+												{(() => {
+													const baseDate = orderDetail.transaction.balancePaymentInitiatedAt
+														? new Date(orderDetail.transaction.balancePaymentInitiatedAt)
+														: new Date();
+													const validUntil = new Date(baseDate);
+													validUntil.setDate(validUntil.getDate() + 3);
+													return validUntil.toLocaleDateString('sv-SE') + ' ' +
+														validUntil.toLocaleTimeString('sv-SE', {
+															hour: '2-digit',
+															minute: '2-digit',
+														});
+												})()}
+											</div>
+										</div>
+									)}
 								</div>
+								{/* 訂金 ATM 轉帳資訊 */}
 								{orderDetail.status === OrderStatus.PENDING_DEPOSIT && (
 									<div className='self-stretch rounded-xl outline outline-2 outline-offset-[-2px] outline-zinc-800 inline-flex justify-start items-start overflow-hidden'>
 										<div className='flex-1 m-0.5 self-stretch relative border-r border-zinc-300 overflow-hidden'>
@@ -519,6 +560,147 @@ export default function OrderDetail() {
 										</div>
 									</div>
 								)}
+
+								{/* 尾款 ATM 轉帳資訊 */}
+								{orderDetail.transaction?.status === 2 &&
+								 orderDetail.transaction?.balancePaymentMethod === 'ATM' &&
+								 !orderDetail.transaction?.balanceDate && (
+									<div className='self-stretch rounded-xl outline outline-2 outline-offset-[-2px] outline-zinc-800 inline-flex justify-start items-start overflow-hidden'>
+										<div className='flex-1 m-0.5 self-stretch relative border-r border-zinc-300 overflow-hidden'>
+											<div className='left-[24px] top-[24px] absolute inline-flex flex-col justify-center items-start gap-0.5'>
+												<div className='inline-flex justify-start items-center gap-1'>
+													<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+														應繳尾款
+													</div>
+													<div data-svg-wrapper className='relative'>
+														<svg
+															width='16'
+															height='16'
+															viewBox='0 0 16 16'
+															fill='none'
+															xmlns='http://www.w3.org/2000/svg'
+														>
+															<path
+																d='M8.00038 11.3333C8.36857 11.3333 8.66704 11.0348 8.66704 10.6666V7.33325C8.66704 6.96506 8.36857 6.66659 8.00038 6.66659C7.63219 6.66659 7.33371 6.96506 7.33371 7.33325V10.6666C7.33371 11.0348 7.63219 11.3333 8.00038 11.3333Z'
+																fill='#0F72ED'
+															/>
+															<path
+																d='M8.00038 5.99992C7.63219 5.99992 7.33371 5.70144 7.33371 5.33325C7.33371 4.96506 7.63219 4.66659 8.00038 4.66659C8.36857 4.66659 8.66704 4.96506 8.66704 5.33325C8.66704 5.70144 8.36857 5.99992 8.00038 5.99992Z'
+																fill='#0F72ED'
+															/>
+															<path
+																fillRule='evenodd'
+																clipRule='evenodd'
+																d='M8.00038 1.33325C4.31848 1.33325 1.33371 4.31802 1.33371 7.99992C1.33371 11.6818 4.31848 14.6666 8.00038 14.6666C11.6823 14.6666 14.667 11.6818 14.667 7.99992C14.667 6.23181 13.9647 4.53612 12.7144 3.28587C11.4642 2.03563 9.76849 1.33325 8.00038 1.33325ZM2.53371 7.99992C2.53371 4.98076 4.98122 2.53325 8.00038 2.53325C9.45022 2.53325 10.8407 3.1092 11.8659 4.1344C12.8911 5.1596 13.467 6.55007 13.467 7.99992C13.467 11.0191 11.0195 13.4666 8.00038 13.4666C4.98122 13.4666 2.53371 11.0191 2.53371 7.99992Z'
+																fill='#0F72ED'
+															/>
+														</svg>
+													</div>
+												</div>
+												<div className='inline-flex justify-start items-center gap-0.5'>
+													<div className="justify-start text-zinc-800 text-3xl font-semibold font-['Poppins'] leading-8">
+														{orderDetail.transaction.balanceAmt?.toLocaleString()}
+													</div>
+													<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
+														元
+													</div>
+												</div>
+											</div>
+											<div className='left-[24px] top-[134px] absolute inline-flex justify-start items-center gap-1'>
+												<div className="justify-start text-zinc-500 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
+													總金額
+												</div>
+												<div className='flex justify-start items-center'>
+													<div className="justify-start text-zinc-500 text-sm font-normal font-['Poppins'] leading-5">
+														{orderDetail.transaction.totalAmt?.toLocaleString()}
+													</div>
+													<div className="w-3.5 h-3.5 justify-center text-zinc-500 text-xs font-['Noto_Sans_TC'] leading-5">
+														元
+													</div>
+												</div>
+											</div>
+										</div>
+										<div className='flex-1 p-6 inline-flex flex-col justify-start items-start gap-6'>
+											<div className='self-stretch flex flex-col justify-start items-start gap-1'>
+												<div className='self-stretch h-6 inline-flex justify-start items-center gap-2'>
+													<div className='flex-1 justify-end'>
+														<span className="text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
+															台中銀行{' '}
+														</span>
+														<span className="text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
+															(053)
+														</span>
+													</div>
+												</div>
+												<div className='self-stretch inline-flex justify-between items-center'>
+													<div className="justify-start text-zinc-800 text-xl font-semibold font-['Poppins'] leading-7">
+														77777-25115541-7
+													</div>
+													<button
+														className='rounded-lg flex justify-center items-center gap-1 overflow-hidden cursor-pointer px-2 py-1 transition-colors'
+														onClick={() => {
+															navigator.clipboard
+																.writeText('77777-25115541-7')
+																.then(() => showToast('已複製帳號號碼', 'success'))
+																.catch((err) => {
+																	console.error('複製失敗:', err);
+																	showToast('複製失敗，請重試', 'error');
+																});
+														}}
+													>
+														<div className="text-center justify-start text-blue-600 text-sm font-medium font-['Noto_Sans_TC'] leading-6">
+															複製
+														</div>
+														<div data-svg-wrapper className='relative'>
+															<svg
+																width='16'
+																height='16'
+																viewBox='0 0 16 16'
+																fill='none'
+																xmlns='http://www.w3.org/2000/svg'
+															>
+																<path
+																	d='M13.2 1.33325H6.13333C5.69333 1.33325 5.33333 1.69325 5.33333 2.13325V3.99992H2.8C2.36 3.99992 2 4.35992 2 4.79992V13.8666C2 14.3066 2.36 14.6666 2.8 14.6666H9.86667C10.3067 14.6666 10.6667 14.3066 10.6667 13.8666V11.9999H13.2C13.64 11.9999 14 11.6399 14 11.1999V2.13325C14 1.69325 13.64 1.33325 13.2 1.33325ZM9.6 13.5999H3.06667V5.06659H9.6V13.5999ZM12.9333 10.9333H10.6667V4.79992C10.6667 4.35992 10.3067 3.99992 9.86667 3.99992H6.4V2.39992H12.9333V10.9333Z'
+																	fill='#0F72ED'
+																/>
+															</svg>
+														</div>
+													</button>
+												</div>
+											</div>
+											<div className='self-stretch flex flex-col justify-start items-start gap-2'>
+												<div className='inline-flex justify-start items-center gap-2'>
+													<div className='px-1.5 py-0.5 bg-gray-200 rounded flex justify-start items-start'>
+														<div className="text-center justify-start text-zinc-800 text-xs font-medium font-['Noto_Sans_TC'] leading-4">
+															戶名
+														</div>
+													</div>
+													<div className='justify-start'>
+														<span className="text-zinc-500 text-sm font-normal font-['Poppins'] leading-6">
+															CitySki
+														</span>
+														<span className="text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+															城市滑雪學校-台中分校
+														</span>
+													</div>
+												</div>
+												<div className='inline-flex justify-start items-center gap-2'>
+													<div className='px-1.5 py-0.5 bg-gray-200 rounded flex justify-start items-start'>
+														<div className="text-center justify-start text-zinc-800 text-xs font-medium font-['Noto_Sans_TC'] leading-4">
+															分行
+														</div>
+													</div>
+													<div className='h-6 flex justify-start items-center gap-0.5'>
+														<div className="justify-end text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+															台中銀行西屯分行
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								)}
+
 								<div
 									className='self-stretch inline-flex justify-start items-center gap-5 cursor-pointer'
 									onClick={() => window.open(`/courses/course-detail?id=${orderDetail.courseId}`, '_blank')}
@@ -1029,20 +1211,55 @@ export default function OrderDetail() {
 							className='w-80 inline-flex flex-col justify-start items-start gap-6'
 						>
 							<div className='self-stretch p-6 bg-white rounded-2xl outline outline-1 outline-offset-[-1px] outline-zinc-300 flex flex-col justify-start items-start gap-4 overflow-hidden'>
-								<div className='self-stretch inline-flex justify-between items-center'>
-									<div className="justify-start text-zinc-800 text-xl font-medium font-['Noto_Sans_TC'] leading-7">
-										付款資料
-									</div>
-									<div
-										className={
-											'px-2.5 py-1.5 rounded-3xl outline outline-1 outline-offset-[-1px] flex justify-start items-center gap-1 ' +
-											getTransactionStatusInfo().style
-										}
-									>
-										<div className={"text-center justify-center text-xs font-medium font-['Noto_Sans_TC'] leading-5"}>
-											{getTransactionStatusInfo().label}
+								<div className='self-stretch flex flex-col gap-3'>
+									<div className='self-stretch inline-flex justify-between items-center'>
+										<div className="justify-start text-zinc-800 text-xl font-medium font-['Noto_Sans_TC'] leading-7">
+											付款資料
+										</div>
+										<div
+											className={
+												'px-2.5 py-1.5 rounded-3xl outline outline-1 outline-offset-[-1px] flex justify-start items-center gap-1 ' +
+												getTransactionStatusInfo().style
+											}
+										>
+											<div className={"text-center justify-center text-xs font-medium font-['Noto_Sans_TC'] leading-5"}>
+												{getTransactionStatusInfo().label}
+											</div>
 										</div>
 									</div>
+									{/* 尾款 ATM 支付提示 */}
+									{orderDetail.transaction?.status === 2 &&
+									 orderDetail.transaction?.balancePaymentMethod === 'ATM' && (
+										<div className='self-stretch p-3 bg-blue-50 rounded-lg flex items-center gap-2'>
+											<div data-svg-wrapper className='relative'>
+												<svg
+													width='16'
+													height='16'
+													viewBox='0 0 16 16'
+													fill='none'
+													xmlns='http://www.w3.org/2000/svg'
+												>
+													<path
+														d='M8.00038 11.3333C8.36857 11.3333 8.66704 11.0348 8.66704 10.6666V7.33325C8.66704 6.96506 8.36857 6.66659 8.00038 6.66659C7.63219 6.66659 7.33371 6.96506 7.33371 7.33325V10.6666C7.33371 11.0348 7.63219 11.3333 8.00038 11.3333Z'
+														fill='#0F72ED'
+													/>
+													<path
+														d='M8.00038 5.99992C7.63219 5.99992 7.33371 5.70144 7.33371 5.33325C7.33371 4.96506 7.63219 4.66659 8.00038 4.66659C8.36857 4.66659 8.66704 4.96506 8.66704 5.33325C8.66704 5.70144 8.36857 5.99992 8.00038 5.99992Z'
+														fill='#0F72ED'
+													/>
+													<path
+														fillRule='evenodd'
+														clipRule='evenodd'
+														d='M8.00038 1.33325C4.31848 1.33325 1.33371 4.31802 1.33371 7.99992C1.33371 11.6818 4.31848 14.6666 8.00038 14.6666C11.6823 14.6666 14.667 11.6818 14.667 7.99992C14.667 6.23181 13.9647 4.53612 12.7144 3.28587C11.4642 2.03563 9.76849 1.33325 8.00038 1.33325ZM2.53371 7.99992C2.53371 4.98076 4.98122 2.53325 8.00038 2.53325C9.45022 2.53325 10.8407 3.1092 11.8659 4.1344C12.8911 5.1596 13.467 6.55007 13.467 7.99992C13.467 11.0191 11.0195 13.4666 8.00038 13.4666C4.98122 13.4666 2.53371 11.0191 2.53371 7.99992Z'
+														fill='#0F72ED'
+													/>
+												</svg>
+											</div>
+											<div className="text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-5 whitespace-nowrap">
+												請於首堂課開始前支付尾款
+											</div>
+										</div>
+									)}
 								</div>
 								<div className='self-stretch flex flex-col justify-start items-start gap-2'>
 									{/* 訂單金額 */}
@@ -1111,8 +1328,9 @@ export default function OrderDetail() {
 										</div>
 									)}
 
-									{/* 線上支付尾款按鈕 - 僅在待結清狀態時顯示 */}
-									{orderDetail.transaction?.status === 2 && (
+									{/* 線上支付尾款按鈕 - 僅在待結清且尚未選擇支付方式時顯示 */}
+									{orderDetail.transaction?.status === 2 &&
+									 !orderDetail.transaction?.balancePaymentMethod && (
 										<div className='self-stretch flex flex-col gap-3 pt-4'>
 											<button
 												className='self-stretch overflow-hidden gap-2.5 px-6 py-2 text-base font-bold text-white whitespace-nowrap rounded-lg bg-zinc-900 w-full transition-all duration-300 hover:bg-zinc-800 hover:shadow-lg'
@@ -1183,6 +1401,33 @@ export default function OrderDetail() {
 													 orderDetail.transaction.depositPaymentMethod === 'CREDIT' ? '線上信用卡' :
 													 orderDetail.transaction.depositPaymentMethod === 'CASH' ? '現場付現' :
 													 orderDetail.transaction.depositPaymentMethod || '未記錄'}
+												</div>
+											</div>
+										)}
+
+										{/* 尾款付款日期 - 僅在已結清狀態時顯示 */}
+										{orderDetail.transaction?.status === 3 && orderDetail.transaction?.balanceDate && (
+											<div className='self-stretch inline-flex justify-between items-end'>
+												<div className="justify-start text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
+													尾款付款日期
+												</div>
+												<div className="justify-start text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
+													{new Date(orderDetail.transaction.balanceDate).toLocaleDateString('sv-SE')}
+												</div>
+											</div>
+										)}
+
+										{/* 尾款付款方式 - 僅在已結清狀態時顯示 */}
+										{orderDetail.transaction?.status === 3 && (
+											<div className='self-stretch inline-flex justify-between items-end'>
+												<div className="justify-start text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
+													尾款付款方式
+												</div>
+												<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
+													{orderDetail.transaction.balancePaymentMethod === 'ATM' ? '線上ATM' :
+													 orderDetail.transaction.balancePaymentMethod === 'CREDIT' ? '線上信用卡' :
+													 orderDetail.transaction.balancePaymentMethod === 'CASH' ? '現場付現' :
+													 orderDetail.transaction.balancePaymentMethod || '未記錄'}
 												</div>
 											</div>
 										)}

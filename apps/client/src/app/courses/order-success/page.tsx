@@ -4,9 +4,11 @@ import { Box } from '@mui/material';
 import { CoursePlanResponseDTO, CourseType, Department, GetCourseDetailResponseDTO } from '@repo/shared';
 import { CircleCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useSelector } from 'react-redux';
 
 import { OrderFormData } from '@/components/Project/Courses/CourseDetail/CourseBookingForm';
 import Button from '@/components/Project/Shared/Common/Button';
+import { selectToken } from '@/state/slices/authSlice';
 
 
 const courseTypeMap = {
@@ -17,6 +19,7 @@ const courseTypeMap = {
 
 const CourseDetailPage = () => {
 	const router = useRouter();
+	const accessToken = useSelector(selectToken);
 
 	const [courseDetail, setCourseDetail] = useState<GetCourseDetailResponseDTO>();
 	const [department, setDepartment] = useState<Department | null>(null);
@@ -101,10 +104,43 @@ const CourseDetailPage = () => {
 					throw new Error(data.error || 'Payment initialization failed');
 				}
 			} else if (selectedPaymentMethod === 'atm') {
-				// ATM 轉帳：跟訂金支付流程一樣，直接跳轉到訂單成功頁面
-				// ATM 轉帳是離線支付，用戶需要自己前往 ATM 完成轉帳
-				// 訂單狀態會保持在「待結清」直到後台確認收款
-				router.push('/courses/order-success');
+				// ATM 轉帳：調用後端 API 記錄選擇 ATM 支付
+				if (!accessToken || !orderId) {
+					alert('無法取得授權資訊，請重新登入');
+					return;
+				}
+
+				// 1. 調用後端 API 記錄選擇 ATM 支付
+				const response = await fetch(
+					`${process.env.NEXT_PUBLIC_API_URL}/api/transactions/select-balance-payment-method`,
+					{
+						method: 'PATCH',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${accessToken}`,
+						},
+						body: JSON.stringify({
+							orderId: orderId,
+							paymentMethod: 'ATM',
+						}),
+					}
+				);
+
+				if (!response.ok) {
+					throw new Error('Failed to record payment method');
+				}
+
+				// 2. 儲存 ATM 支付資料到 localStorage
+				const dataToStore = {
+					orderId: orderId,
+					orderNo: orderNo,
+					balanceAmt: balanceAmount,
+					totalAmt: balanceAmount,
+				};
+				localStorage.setItem('atmPaymentData', JSON.stringify(dataToStore));
+
+				// 3. 跳轉到 ATM 支付頁面
+				router.push('/courses/atm-payment');
 			}
 
 			setShowPaymentDialog(false);

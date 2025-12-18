@@ -35,6 +35,9 @@ export class Transaction extends UserDate {
   })
   depositDate: Date;
 
+  @Column({ name: 'deposit_payment_method', type: 'varchar', length: 10, nullable: true })
+  depositPaymentMethod: string;
+
   @Column({ name: 'balance_amt', type: 'int', nullable: true })
   balanceAmt: number;
 

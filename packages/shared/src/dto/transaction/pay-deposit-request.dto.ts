@@ -1,4 +1,4 @@
-import { IsNumber, IsString, IsUUID } from "class-validator";
+import { IsNumber, IsOptional, IsString, IsUUID } from "class-validator";
 import {
   CourseBkgType,
   CoursePlanTypeEnum,
@@ -20,4 +20,8 @@ export class PayDepositRequestDTO {
 
   @IsNumber()
   amount: number;
+
+  @IsOptional()
+  @IsString()
+  paymentMethod?: string;
 }

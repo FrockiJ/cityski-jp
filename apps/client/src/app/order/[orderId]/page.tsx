@@ -1159,6 +1159,33 @@ export default function OrderDetail() {
 												{new Date(orderDetail.createdTime).toLocaleDateString('sv-SE')}
 											</div>
 										</div>
+
+										{/* 訂金付款日期 - 僅在待結清或已結清狀態時顯示 */}
+										{orderDetail.transaction?.status >= 2 && orderDetail.transaction?.depositDate && (
+											<div className='self-stretch inline-flex justify-between items-end'>
+												<div className="justify-start text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
+													訂金付款日期
+												</div>
+												<div className="justify-start text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
+													{new Date(orderDetail.transaction.depositDate).toLocaleDateString('sv-SE')}
+												</div>
+											</div>
+										)}
+
+										{/* 訂金付款方式 - 僅在待結清或已結清狀態時顯示 */}
+										{orderDetail.transaction?.status >= 2 && (
+											<div className='self-stretch inline-flex justify-between items-end'>
+												<div className="justify-start text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
+													訂金付款方式
+												</div>
+												<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
+													{orderDetail.transaction.depositPaymentMethod === 'ATM' ? '線上ATM' :
+													 orderDetail.transaction.depositPaymentMethod === 'CREDIT' ? '線上信用卡' :
+													 orderDetail.transaction.depositPaymentMethod === 'CASH' ? '現金' :
+													 orderDetail.transaction.depositPaymentMethod || '未記錄'}
+												</div>
+											</div>
+										)}
 									</div>
 								</div>
 								<button

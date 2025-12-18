@@ -19,6 +19,9 @@ export class TransactionDetailDTO {
   depositDate?: Date;
 
   @Expose()
+  depositPaymentMethod?: string;
+
+  @Expose()
   balanceAmt: number;
 
   @Expose()

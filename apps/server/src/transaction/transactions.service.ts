@@ -76,10 +76,10 @@ export class TransactionsService {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
-  // pay deposit for an order (DEV ONLY)
+  // pay deposit for an order (DEV ONLY / Manual confirmation by admin)
   async payDeposit(body: PayDepositRequestDTO, memberId: string) {
     try {
-      const { orderId } = body;
+      const { orderId, paymentMethod } = body;
 
       // Find order with transaction
       const order = await this.ordersRepo.findOne({
@@ -108,12 +108,14 @@ export class TransactionsService {
       // Update transaction status to PENDING_FULL_PAYMENT
       transaction.status = TransactionStatus.PENDING_FULL_PAYMENT;
       transaction.depositDate = new Date();
-      transaction.depositAmt = (transaction.totalAmt - transaction.discountFee) / 2; 
+      transaction.depositAmt = (transaction.totalAmt - transaction.discountFee) / 2;
+      // 如果有提供付款方式則儲存，否則預設為 'ATM'（因為這個 API 主要用於手動確認 ATM 轉帳）
+      transaction.depositPaymentMethod = paymentMethod || 'ATM';
 
       await this.transactionsRepo.save(transaction);
 
-      // Update order status 
-      order.status = 2; 
+      // Update order status
+      order.status = 2;
       await this.ordersRepo.save(order);
 
       return {
@@ -123,6 +125,7 @@ export class TransactionsService {
           transactionId: transaction.id,
           status: transaction.status,
           depositDate: transaction.depositDate,
+          depositPaymentMethod: transaction.depositPaymentMethod,
         },
       };
     } catch (err) {
@@ -134,7 +137,7 @@ export class TransactionsService {
   }
 
   // pay deposit by order number (called by ECPay callback)
-  async payDepositByOrderNo(orderNo: string) {
+  async payDepositByOrderNo(orderNo: string, paymentMethod: string = 'CREDIT') {
     try {
       const order = await this.ordersRepo.findOne({
         where: { no: orderNo },
@@ -162,10 +165,13 @@ export class TransactionsService {
       // Update transaction status to PENDING_FULL_PAYMENT
       transaction.status = TransactionStatus.PENDING_FULL_PAYMENT;
       transaction.depositDate = new Date();
+      transaction.depositPaymentMethod = paymentMethod;
 
       console.log('Before save - depositDate:', transaction.depositDate);
+      console.log('Before save - depositPaymentMethod:', transaction.depositPaymentMethod);
       const savedTransaction = await this.transactionsRepo.save(transaction);
       console.log('After save - depositDate:', savedTransaction.depositDate);
+      console.log('After save - depositPaymentMethod:', savedTransaction.depositPaymentMethod);
 
       // Update order status
       order.status = 2;

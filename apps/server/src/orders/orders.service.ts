@@ -238,6 +238,7 @@ export class OrdersService {
           discountFee: order.transaction.discountFee,
           depositAmt: order.transaction.depositAmt,
           depositDate: order.transaction.depositDate,
+          depositPaymentMethod: order.transaction.depositPaymentMethod,
           balanceAmt: order.transaction.balanceAmt,
           balanceDate: order.transaction.balanceDate,
           balancePaymentInitiatedAt: order.transaction.balancePaymentInitiatedAt,

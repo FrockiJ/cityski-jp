@@ -186,7 +186,8 @@ export class EcpayService {
           if (transactionStatus === 0) {
             // TransactionStatus.PENDING_DEPOSIT: 訂金支付
             this.logger.log('[CALLBACK STEP 4] Routing to deposit payment handler...');
-            await this.transactionsService.payDepositByOrderNo(orderNo);
+            // 信用卡支付，傳遞 'CREDIT' 作為付款方式
+            await this.transactionsService.payDepositByOrderNo(orderNo, 'CREDIT');
             this.logger.log('[CALLBACK STEP 4] ✓ Deposit payment successful - Order status updated');
           } else if (transactionStatus === 2) {
             // TransactionStatus.PENDING_FULL_PAYMENT: 尾款支付

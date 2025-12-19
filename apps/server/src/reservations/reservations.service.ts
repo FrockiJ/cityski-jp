@@ -505,6 +505,14 @@ export class ReservationsService {
         }
       }
 
+      // 驗證預約狀態：只有已排定的預約可以修改
+      if (reservation.reservationStatus !== ReservationStatus.SCHEDULED) {
+        throw new CustomException(
+          `只有已排定的預約可以修改。目前狀態：${reservation.reservationStatus === ReservationStatus.PENDING_REVIEW ? '待紀錄' : reservation.reservationStatus === ReservationStatus.COMPLETED ? '已完成' : '已取消'}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       // 如果有提供 departmentId，驗證部門
       if (body.departmentId) {
         const department = await this.departmentsRepo.findOne({

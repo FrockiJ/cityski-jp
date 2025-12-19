@@ -1042,7 +1042,7 @@ export class OrdersService {
       const reservations =
         order.orderReservations?.map((or) => or.reservation) || [];
       const hasInProgressOrCompleted = reservations.some(
-        (r) => r && r.reservationStatus >= ReservationStatus.PENDING_REVIEW,
+        (r) => r && (r.reservationStatus == ReservationStatus.PENDING_REVIEW || r.reservationStatus == ReservationStatus.COMPLETED),
       );
 
       if (hasInProgressOrCompleted) {

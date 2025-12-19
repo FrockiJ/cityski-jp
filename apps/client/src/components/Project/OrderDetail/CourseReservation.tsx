@@ -544,9 +544,14 @@ export default function CourseReservation({
 															setSelectedReservationId(reservation.id);
 															setShowCancelModal(true);
 														}}
+														disabled={reservation.reservationStatus !== ReservationStatus.SCHEDULED}
 														data-state='Default'
 														data-type='Stroke_Rounded'
-														className='px-3 py-2 rounded-[20px] outline outline-1 outline-offset-[-1px] outline-white inline-flex justify-center items-center gap-2.5 overflow-hidden hover:bg-white/10 transition-colors cursor-pointer'
+														className={`px-3 py-2 rounded-[20px] outline outline-1 outline-offset-[-1px] outline-white inline-flex justify-center items-center gap-2.5 overflow-hidden transition-colors ${
+															reservation.reservationStatus === ReservationStatus.SCHEDULED
+																? 'hover:bg-white/10 cursor-pointer'
+																: 'cursor-not-allowed opacity-50'
+														}`}
 													>
 														<div className="text-center justify-start text-white text-xs font-medium font-['Noto_Sans_TC'] leading-5">
 															取消預約

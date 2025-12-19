@@ -155,17 +155,14 @@ function OrderConfirmationPage() {
 		};
 
 		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/orders`, {
-				method: 'POST',
+			const response = await axios.post('/api/orders', body, {
 				headers: {
-					'Content-Type': 'application/json',
 					Authorization: `Bearer ${authToken}`,
 				},
-				body: JSON.stringify(body),
 			});
 
 			if (response.status === 201) {
-				const orderData = await response.json();
+				const orderData = response.data;
 				const orderId = orderData?.result?.no;
 				const depositAmount = orderData?.result?.depositAmt;
 
@@ -202,15 +199,14 @@ function OrderConfirmationPage() {
 					// ATM 轉帳直接跳轉到成功頁面
 					router.push(`/courses/order-success`);
 				}
-			} else {
-				console.error('Order failed with status:', response.status);
-				const errorData = await response.json();
-				console.error('Error details:', errorData);
-				alert(`訂單建立失敗 (${response.status}): ${errorData?.message || '請重試'}`);
 			}
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Order submission error:', error);
-			alert('訂單提交失敗：' + (error as Error).message);
+			// 401 錯誤已由 interceptor 處理（自動導向登入頁），不需要再顯示 alert
+			if (error.response?.status !== 401) {
+				const errorMessage = error.response?.data?.message || '請重試';
+				alert(`訂單建立失敗: ${errorMessage}`);
+			}
 		}
 	};
 
@@ -222,21 +218,18 @@ function OrderConfirmationPage() {
 		//orderId = 'ABC00000012'; // TODO: 移除測試用 orderId
 		try {
 			// 調用後端初始化 ECPay 支付
-			const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/payments/credit-card/initialize`, {
-				method: 'POST',
+			const response = await axios.post('/api/payments/credit-card/initialize', {
+				orderId: orderId,
+				amount: amount,
+				callbackUrl: `${window.location.origin}/api/orders/credit-card/callback`,
+			}, {
 				headers: {
-					'Content-Type': 'application/json',
 					Authorization: `Bearer ${authToken}`,
 				},
-				body: JSON.stringify({
-					orderId: orderId,
-					amount: amount,
-					callbackUrl: `${window.location.origin}/api/orders/credit-card/callback`,
-				}),
 			});
 
-			if (response.ok) {
-				const result = await response.json();
+			if (response.status === 200 || response.status === 201) {
+				const result = response.data;
 
 				// 根據 NestJS 全局攔截器的響應格式提取 formHtml
 				// 支持多層結構：result.result.formHtml 或 result.data.formHtml 或 result.formHtml
@@ -260,15 +253,14 @@ function OrderConfirmationPage() {
 					console.error('No form HTML returned from ECPay initialization', result);
 					alert('支付初始化失敗，請重試');
 				}
-			} else {
-				console.error('ECPay initialization failed:', response.status);
-				const errorData = await response.json().catch(() => ({}));
-				console.error('Error details:', errorData);
-				alert('無法初始化支付，請重試');
 			}
-		} catch (error) {
+		} catch (error: any) {
 			console.error('ECPay payment initiation error:', error);
-			alert('支付初始化出錯：' + (error as Error).message);
+			// 401 錯誤已由 interceptor 處理（自動導向登入頁），不需要再顯示 alert
+			if (error.response?.status !== 401) {
+				const errorMessage = error.response?.data?.message || '請重試';
+				alert(`支付初始化失敗: ${errorMessage}`);
+			}
 		}
 	};
 

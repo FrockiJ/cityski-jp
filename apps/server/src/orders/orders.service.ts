@@ -16,6 +16,7 @@ import {
   ReservationResponseDto,
   OrderStatus,
   ReservationStatus,
+  TransactionStatus,
 } from '@repo/shared';
 import { Order } from './entities/order.entity';
 import { Department } from 'src/departments/entities/department.entity';
@@ -98,9 +99,26 @@ export class OrdersService {
         );
       }
 
+      // 隱藏信用卡支付且待付訂金的訂單
+      queryBuilder.andWhere(
+        '(transaction.depositPaymentMethod IS NULL OR transaction.status IS NULL OR transaction.depositPaymentMethod != :creditMethod OR transaction.status != :pendingStatus)',
+        {
+          creditMethod: 'CREDIT',
+          pendingStatus: TransactionStatus.PENDING_DEPOSIT,
+        },
+      );
+
+      // 隱藏有 Timeout 且訂單已取消的訂單
+      queryBuilder.andWhere(
+        '(transaction.lastPaymentAttemptResult IS NULL OR o.status IS NULL OR transaction.lastPaymentAttemptResult NOT LIKE :timeoutPattern OR o.status != :canceledStatus)',
+        {
+          timeoutPattern: '%Timeout%',
+          canceledStatus: OrderStatus.ORDER_CANCELED,
+        },
+      );
+
       // 排序：最新的訂單在前
       queryBuilder.orderBy('o.createdTime', 'DESC');
-
       const orders = await queryBuilder.getMany();
 
       const customPage =
@@ -286,6 +304,24 @@ export class OrdersService {
         )
         .orderBy('order.createdTime', 'DESC')
         .distinct(true); // 确保不会因为多个 orderMembers 而重复
+
+      // 隱藏信用卡支付且待付訂金的訂單
+      queryBuilder.andWhere(
+        '(transaction.depositPaymentMethod IS NULL OR transaction.status IS NULL OR transaction.depositPaymentMethod != :creditMethod OR transaction.status != :pendingStatus)',
+        {
+          creditMethod: 'CREDIT',
+          pendingStatus: TransactionStatus.PENDING_DEPOSIT,
+        },
+      );
+
+      // 隱藏有 Timeout 且訂單已取消的訂單
+      queryBuilder.andWhere(
+        '(transaction.lastPaymentAttemptResult IS NULL OR order.status IS NULL OR transaction.lastPaymentAttemptResult NOT LIKE :timeoutPattern OR order.status != :canceledStatus)',
+        {
+          timeoutPattern: '%Timeout%',
+          canceledStatus: OrderStatus.ORDER_CANCELED,
+        },
+      );
 
       // 获取总数
       const total = await queryBuilder.getCount();

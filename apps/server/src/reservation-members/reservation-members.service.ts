@@ -7,7 +7,7 @@ import { OrderMember } from '../order-members/entities/order-member.entity';
 import { OrderReservation } from '../order-reservations/entities/order-reservation.entity';
 import { Order } from '../orders/entities/order.entity';
 import { Member } from '../members/entities/member.entity';
-import { CourseSkiType } from '@repo/shared';
+import { CourseSkiType, OrderStatus } from '@repo/shared';
 
 @Injectable()
 export class ReservationMembersService {
@@ -20,6 +20,8 @@ export class ReservationMembersService {
     private readonly orderMembersRepo: Repository<OrderMember>,
     @InjectRepository(OrderReservation)
     private readonly orderReservationsRepo: Repository<OrderReservation>,
+    @InjectRepository(Order)
+    private readonly ordersRepo: Repository<Order>,
     @InjectRepository(Member)
     private readonly membersRepo: Repository<Member>,
     private readonly dataSource: DataSource,
@@ -217,6 +219,9 @@ export class ReservationMembersService {
 
           // 當預約狀態變為已完成時，自動提升有出席成員的滑雪等級
           await this.upgradeMemberLevelsOnCompletion(reservation.id);
+
+          // 檢查相關訂單是否所有預約都已完成，如果是則將訂單狀態變為已完成
+          await this.checkAndCompleteOrdersForReservation(reservation.id);
         }
       }
 
@@ -318,6 +323,92 @@ export class ReservationMembersService {
     } catch (err) {
       // 等級提升失敗不應影響主流程，僅記錄錯誤
       console.error('Failed to upgrade member levels:', err);
+    }
+  }
+
+  /**
+   * 檢查並完成訂單
+   * 當預約從待紀錄變成已完成時，檢查相關訂單是否所有預約都已完成
+   * 如果滿足條件，則將訂單狀態變更為已完成
+   * @param reservationId - 預約 ID
+   */
+  async checkAndCompleteOrdersForReservation(reservationId: string): Promise<void> {
+    try {
+      // 1. 找到與此預約相關的所有訂單（通過 OrderReservation）
+      const orderReservations = await this.orderReservationsRepo.find({
+        where: { reservationId },
+      });
+
+      if (!orderReservations || orderReservations.length === 0) {
+        return;
+      }
+
+      // 2. 對每個訂單進行檢查
+      const orderIds = new Set(orderReservations.map(or => or.orderId));
+
+      for (const orderId of orderIds) {
+        await this.checkAndCompleteOrder(orderId);
+      }
+    } catch (err) {
+      // 訂單狀態更新失敗不應影響主流程，僅記錄錯誤
+      console.error('Failed to check and complete orders:', err);
+    }
+  }
+
+  /**
+   * 檢查單個訂單是否所有預約都已完成，如果是則更新訂單狀態為已完成
+   * @param orderId - 訂單 ID
+   */
+  private async checkAndCompleteOrder(orderId: string): Promise<void> {
+    try {
+      // 1. 獲取訂單資訊
+      const order = await this.ordersRepo.findOne({
+        where: { id: orderId },
+      });
+
+      if (!order) {
+        return;
+      }
+
+      // 只處理狀態為 ORDER_SUCCESSFUL (2, 訂購成功) 的訂單
+      if (order.status !== OrderStatus.ORDER_SUCCESSFUL) {
+        return;
+      }
+
+      // 2. 獲取該訂單的所有預約（通過 OrderReservation）
+      const orderReservations = await this.orderReservationsRepo.find({
+        where: { orderId },
+        relations: ['reservation'],
+      });
+
+      if (!orderReservations || orderReservations.length === 0) {
+        return;
+      }
+
+      // 3. 過濾出所有有效的預約（排除已取消的預約）
+      const activeReservations = orderReservations.filter(
+        or => or.reservation && or.reservation.reservationStatus !== ReservationStatus.CANCELED
+      );
+
+      // 4. 檢查訂單是否有足夠的預約（應該等於 planNumber）
+      if (activeReservations.length !== order.planNumber) {
+        // 預約數量不等於訂購堂數，不符合完成條件
+        return;
+      }
+
+      // 5. 檢查所有有效預約是否都已完成
+      const allCompleted = activeReservations.every(
+        or => or.reservation.reservationStatus === ReservationStatus.COMPLETED
+      );
+
+      // 6. 如果所有預約都已完成，則將訂單狀態更新為已完成
+      if (allCompleted) {
+        order.status = OrderStatus.ORDER_COMPLETED;
+        await this.ordersRepo.save(order);
+        console.log(`Order ${order.no} (${orderId}) has been marked as completed - all ${order.planNumber} reservations are completed.`);
+      }
+    } catch (err) {
+      console.error(`Failed to check and complete order ${orderId}:`, err);
     }
   }
 }

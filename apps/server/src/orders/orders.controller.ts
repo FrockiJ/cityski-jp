@@ -5,6 +5,7 @@ import {
   Logger,
   Param,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -13,6 +14,8 @@ import { plainToInstance } from 'class-transformer';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { OrdersService } from './orders.service';
 import {
+  CancelOrderRequestDto,
+  CancelOrderResponseDto,
   CreateOrderRequestDTO,
   CreateOrderResponseDTO,
   GetOrderDetailResponseDTO,
@@ -163,5 +166,36 @@ export class OrdersController {
         error: error.message,
       };
     }
+  }
+
+  /**
+   * Cancel an order
+   * PUT /api/orders/:id/cancel
+   *
+   * Accessible by:
+   * - Order owner (member who created order)
+   * - Order participants (active order members)
+   * - Admin users
+   */
+  @UseGuards(AdminOrMemberGuard)
+  @Put('/:id/cancel')
+  async cancelOrder(
+    @Param('id') id: string,
+    @Body() body: CancelOrderRequestDto,
+    @Req() request: CustomRequest,
+  ): Promise<CancelOrderResponseDto> {
+    const userId = request['user']?.sub;
+    const userType = request['userType'] as 'member' | 'user';
+
+    const result = await this.ordersService.cancelOrder(
+      id,
+      body.reason,
+      userId,
+      userType,
+    );
+
+    return plainToInstance(CancelOrderResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 }

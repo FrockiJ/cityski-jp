@@ -17,6 +17,8 @@ interface CourseReservationProps {
 	accessToken: string;
 	planNumber: number;
 	onReservationCreated?: () => void;
+	canAddReservation?: boolean;
+	coursePlanName?: string;
 }
 
 const courseTypeMap = {
@@ -37,6 +39,8 @@ export default function CourseReservation({
 	accessToken,
 	planNumber,
 	onReservationCreated,
+	canAddReservation = true,
+	coursePlanName,
 }: CourseReservationProps) {
 	const [showMemberModal, setShowMemberModal] = useState(false);
 	const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
@@ -426,7 +430,7 @@ export default function CourseReservation({
 					<div className="justify-start text-zinc-800 text-xl font-medium font-['Noto_Sans_TC'] leading-7">
 						課程預約
 					</div>
-					{activeReservationCount < planNumber && (
+					{canAddReservation && activeReservationCount < planNumber && (
 						<button
 							onClick={() => {
 								if (orderMembers.length === 0) {

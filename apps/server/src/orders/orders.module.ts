@@ -18,6 +18,10 @@ import { Reservation } from 'src/reservations/entities/reservation.entity';
 import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
 import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
+import { OrderHistory } from 'src/order-history/entities/order-history.entity';
+import { OrderHistoryModule } from 'src/order-history/order-history.module';
+import { SMTPModule } from 'src/smtp/smtp.module';
+import { ReservationHistory } from 'src/reservation-history/entities/reservation-history.entity';
 
 @Module({
   imports: [
@@ -32,12 +36,16 @@ import { OrderReservation } from 'src/order-reservations/entities/order-reservat
       OrderMember,
       ReservationMember,
       OrderReservation,
+      OrderHistory,
+      ReservationHistory,
     ]),
     forwardRef(() => UsersModule),
     forwardRef(() => MembersModule),
     forwardRef(() => TransactionsModule),
     forwardRef(() => OrderMembersModule),
     forwardRef(() => OrderInvitationsModule),
+    forwardRef(() => OrderHistoryModule),
+    forwardRef(() => SMTPModule),
   ],
   controllers: [OrdersController],
   providers: [OrdersService, OrderTimeoutService],

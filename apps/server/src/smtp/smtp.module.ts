@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
@@ -12,7 +12,7 @@ import { User } from '../users/entities/user.entity';
     ConfigModule,
     TypeOrmModule.forFeature([User]),
     JwtModule,
-    AuthModule,
+    forwardRef(() => AuthModule),
   ],
   exports: [SMTPService],
   controllers: [SMTPController],

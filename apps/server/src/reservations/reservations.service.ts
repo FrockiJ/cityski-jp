@@ -8,7 +8,7 @@ import {
   In,
   LessThanOrEqual,
 } from 'typeorm';
-import { Cron } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { SkiAndSnowboardLevelEnum, CourseType } from '@repo/shared';
 import { Reservation } from './entities/reservation.entity';
 import { Department } from 'src/departments/entities/department.entity';
@@ -110,6 +110,11 @@ export class ReservationsService {
           'reservationMembers.orderMember.order.coursePlan',
           'reservationMembers.orderMember.order.coursePlan.course',
           'reservationMembers.orderMember.order.coursePlan.course.coursePeople',
+          'orderReservations',
+          'orderReservations.order',
+          'orderReservations.order.coursePlan',
+          'orderReservations.order.coursePlan.course',
+          'orderReservations.order.coursePlan.course.coursePeople',
         ],
         order: {
           createdTime: 'DESC',
@@ -120,12 +125,21 @@ export class ReservationsService {
 
       // 為每個預約加入課程名稱、板類和最大人數
       const reservationsWithCourseName = reservations.map((reservation) => {
-        const firstOrderMember =
-          reservation.reservationMembers?.[0]?.orderMember;
-        const order = firstOrderMember?.order;
-        const coursePlan = order?.coursePlan;
-        const course = coursePlan?.course;
-        const coursePeople = course?.coursePeople?.[0];
+        // 優先從 orderReservations 獲取課程資訊（不依賴預約成員）
+        let order = reservation.orderReservations?.[0]?.order;
+        let coursePlan = order?.coursePlan;
+        let course = coursePlan?.course;
+        let coursePeople = course?.coursePeople?.[0];
+
+        // 如果 orderReservations 沒有資料，才從 reservationMembers 獲取（向後兼容）
+        if (!order) {
+          const firstOrderMember =
+            reservation.reservationMembers?.[0]?.orderMember;
+          order = firstOrderMember?.order;
+          coursePlan = order?.coursePlan;
+          course = coursePlan?.course;
+          coursePeople = course?.coursePeople?.[0];
+        }
 
         const courseName = course?.name || '';
         const skiType = order?.skiType;
@@ -733,7 +747,8 @@ export class ReservationsService {
    * 每 10 分鐘檢查是否有課程已結束需要更新狀態
    * 將 SCHEDULED (1) 更新為 PENDING_REVIEW (2)
    */
-  @Cron('*/10 * * * *')
+  // @Cron('*/10 * * * *')
+  @Cron(CronExpression.EVERY_MINUTE)
   async updateExpiredReservationStatuses() {
     try {
       // 查找所有 classTime 已過且狀態仍為 SCHEDULED 的預約

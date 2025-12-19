@@ -27,7 +27,7 @@ export class SMTPService {
     return this.sendMail(mailData);
   }
 
-  private async sendMail(data: MailData) {
+  async sendMail(data: MailData) {
     const { to, subject, html } = data;
 
     // Format content with paragraph tags

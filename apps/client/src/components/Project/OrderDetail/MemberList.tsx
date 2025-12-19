@@ -15,6 +15,7 @@ interface MemberListProps {
 	onInvitationCreated?: (invitation: OrderInvitationResponseDto) => void;
 	orderReservations: OrderReservationResponseDto[];
 	planNumber: number;
+	canAddMember?: boolean;
 }
 
 type MemberType = 'adult' | 'youth';
@@ -46,6 +47,7 @@ export default function MemberList({
 	onInvitationCreated,
 	orderReservations,
 	planNumber,
+	canAddMember = true,
 }: MemberListProps) {
 	const [newMemberSlots, setNewMemberSlots] = useState<MemberSlot[]>([]);
 	const [showTypeSelector, setShowTypeSelector] = useState(false);
@@ -90,8 +92,8 @@ export default function MemberList({
 	// 計算當前參加人員總數（包含已加入會員、待註冊會員、空白參加人員）
 	const currentMemberCount = orderMembers.length + pendingInvitations.length + newMemberSlots.length;
 
-	// 判斷是否應該隱藏新增按鈕（團體課且人數已達上限）
-	const shouldHideAddButton = courseType === CourseType.GROUP && currentMemberCount >= purchasedQuantity;
+	// 判斷是否應該隱藏新增按鈕（團體課且人數已達上限，或訂單已取消）
+	const shouldHideAddButton = !canAddMember || (courseType === CourseType.GROUP && currentMemberCount >= purchasedQuantity);
 
 	// 点击外部关闭选择器
 	useEffect(() => {

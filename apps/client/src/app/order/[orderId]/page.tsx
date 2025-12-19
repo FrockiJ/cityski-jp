@@ -221,13 +221,52 @@ export default function OrderDetail() {
 
 	const handleCancelOrder = async (reason: string) => {
 		try {
-			// TODO: 調用取消訂單 API
-			console.log('取消訂單，原因:', reason);
-			showToast('已提交取消申請', 'success');
-			setIsCancelModalOpen(false);
-		} catch (error) {
+			const response = await api.put(
+				`/api/orders/${orderId}/cancel`,
+				{ reason },
+				{
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+				}
+			);
+
+			if (response.data.result?.success) {
+				showToast('訂單已成功取消', 'success');
+				setIsCancelModalOpen(false);
+
+				// Refresh order detail to show updated status
+				const updatedOrder = await api.get<ResponseWrapper<GetOrderDetailResponseDTO>>(
+					`/api/orders/${orderId}`,
+					{
+						headers: {
+							Authorization: `Bearer ${accessToken}`,
+						},
+					}
+				);
+				setOrderDetail(updatedOrder.data.result);
+
+				// Also refresh reservations
+				const updatedReservations = await api.get<ResponseWrapper<OrderReservationResponseDto[]>>(
+					`/api/orders/${orderId}/reservations`,
+					{
+						headers: {
+							Authorization: `Bearer ${accessToken}`,
+						},
+					}
+				);
+				setOrderReservations(updatedReservations.data.result);
+			}
+		} catch (error: any) {
 			console.error('取消訂單失敗:', error);
-			showToast('取消訂單失敗，請重試', 'error');
+
+			// Handle specific error messages
+			const errorMessage =
+				error.response?.data?.message ||
+				error.response?.data?.error ||
+				'取消訂單失敗，請重試';
+
+			showToast(errorMessage, 'error');
 		}
 	};
 
@@ -813,6 +852,7 @@ export default function OrderDetail() {
 								departmentId={courseDetail.departmentId}
 								accessToken={accessToken}
 								planNumber={orderDetail.planNumber}
+								canAddReservation={orderDetail.status !== OrderStatus.ORDER_CANCELED}
 								onReservationCreated={async () => {
 									// 重新獲取訂單預約資訊
 									try {
@@ -839,6 +879,7 @@ export default function OrderDetail() {
 								pendingInvitations={pendingInvitations}
 								orderReservations={orderReservations}
 								planNumber={orderDetail.planNumber}
+								canAddMember={orderDetail.status !== OrderStatus.ORDER_CANCELED}
 								onAddMember={async () => {
 									// 重新获取订单详情以更新成员列表
 									try {
@@ -1328,8 +1369,9 @@ export default function OrderDetail() {
 										</div>
 									)}
 
-									{/* 線上支付尾款按鈕 - 僅在待結清且尚未選擇支付方式時顯示 */}
-									{orderDetail.transaction?.status === 2 &&
+									{/* 線上支付尾款按鈕 - 僅在待結清且尚未選擇支付方式時顯示，且訂單未取消 */}
+									{orderDetail.status !== OrderStatus.ORDER_CANCELED &&
+									 orderDetail.transaction?.status === 2 &&
 									 !orderDetail.transaction?.balancePaymentMethod && (
 										<div className='self-stretch flex flex-col gap-3 pt-4'>
 											<button
@@ -1433,17 +1475,27 @@ export default function OrderDetail() {
 										)}
 									</div>
 								</div>
-								<button
-									onClick={() => setIsCancelModalOpen(true)}
-									className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] underline leading-6 hover:text-blue-600 transition-colors cursor-pointer"
-								>
-									申請取消訂單
-								</button>
+							{orderDetail &&
+				orderDetail.status !== OrderStatus.ORDER_CANCELED &&
+				orderReservations.every(
+					(or) =>
+						!or.reservation ||
+						or.reservation.reservationStatus === 1 ||
+						or.reservation.reservationStatus === 9
+				) && (
+					<button
+						onClick={() => setIsCancelModalOpen(true)}
+						className="mt-4 justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] underline leading-6 hover:text-blue-600 transition-colors cursor-pointer"
+					>
+						申請取消訂單
+					</button>
+				)}
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
+		
 			<CancelOrderModal
 				isOpen={isCancelModalOpen}
 				onClose={() => setIsCancelModalOpen(false)}

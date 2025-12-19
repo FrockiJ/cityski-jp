@@ -17,6 +17,8 @@ import {
   OrderStatus,
   ReservationStatus,
   TransactionStatus,
+  CancelOrderRequestDto,
+  CancelOrderResponseDto,
 } from '@repo/shared';
 import { Order } from './entities/order.entity';
 import { Department } from 'src/departments/entities/department.entity';
@@ -31,6 +33,12 @@ import { OrderMember } from 'src/order-members/entities/order-member.entity';
 import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
 import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
 import { Member } from 'src/members/entities/member.entity';
+import { OrderHistory } from 'src/order-history/entities/order-history.entity';
+import { OrderHistoryService } from 'src/order-history/order-history.service';
+import { SMTPService } from 'src/smtp/smtp.service';
+import { ConfigService } from '@nestjs/config';
+import { User } from 'src/users/entities/user.entity';
+import { ReservationHistory } from 'src/reservation-history/entities/reservation-history.entity';
 
 @Injectable()
 export class OrdersService {
@@ -54,12 +62,23 @@ export class OrdersService {
     private readonly orderReservationsRepo: Repository<OrderReservation>,
     @InjectRepository(Member)
     private readonly membersRepo: Repository<Member>,
+    @InjectRepository(OrderHistory)
+    private readonly orderHistoryRepo: Repository<OrderHistory>,
+    @InjectRepository(User)
+    private readonly usersRepo: Repository<User>,
+    @InjectRepository(ReservationHistory)
+    private readonly reservationHistoryRepo: Repository<ReservationHistory>,
     @Inject(forwardRef(() => TransactionsService))
     private readonly transactionsService: TransactionsService,
     @Inject(forwardRef(() => OrderMembersService))
     private readonly orderMembersService: OrderMembersService,
     @Inject(forwardRef(() => OrderInvitationsService))
     private readonly orderInvitationsService: OrderInvitationsService,
+    @Inject(forwardRef(() => OrderHistoryService))
+    private readonly orderHistoryService: OrderHistoryService,
+    @Inject(forwardRef(() => SMTPService))
+    private readonly smtpService: SMTPService,
+    private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -942,6 +961,302 @@ export class OrdersService {
         throw err;
       }
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  /**
+   * Cancel an order and all its associated SCHEDULED reservations
+   *
+   * Business Rules:
+   * 1. Only orders with ALL reservations status < 2 can be canceled
+   * 2. Order status changed to ORDER_CANCELED (9)
+   * 3. Set cancelDate to current timestamp
+   * 4. Create OrderHistory record
+   * 5. Auto-cancel all SCHEDULED reservations with same reason
+   * 6. Send email to customer and merchant
+   *
+   * @param orderId - Order UUID
+   * @param reason - Cancellation reason from user
+   * @param userId - User ID (member or admin) initiating cancellation
+   * @param userType - Type of user ('member' or 'user')
+   * @returns CancelOrderResponseDto
+   */
+  async cancelOrder(
+    orderId: string,
+    reason: string,
+    userId: string,
+    userType: 'member' | 'user',
+  ): Promise<CancelOrderResponseDto> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Step 1: Fetch order with all necessary relations
+      const order = await queryRunner.manager.findOne(Order, {
+        where: { id: orderId },
+        relations: [
+          'member',
+          'department',
+          'coursePlan',
+          'coursePlan.course',
+          'orderReservations',
+          'orderReservations.reservation',
+          'orderMembers',
+          'orderMembers.member',
+        ],
+      });
+
+      if (!order) {
+        throw new CustomException(
+          `Order with id: ${orderId} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // Step 2: Permission check (if member, must be order owner or participant)
+      if (userType === 'member') {
+        const isOrderer = order.orderer === userId;
+        const isParticipant = order.orderMembers?.some(
+          (om) => om.memberId === userId && om.active,
+        );
+
+        if (!isOrderer && !isParticipant) {
+          throw new CustomException(
+            'You do not have permission to cancel this order',
+            HttpStatus.FORBIDDEN,
+          );
+        }
+      }
+
+      // Step 3: Validate cancellation eligibility
+      // Check if order is already canceled
+      if (order.status === OrderStatus.ORDER_CANCELED) {
+        throw new CustomException(
+          'This order has already been canceled',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Check all reservations status < 2 (SCHEDULED=1 or CANCELED=9)
+      const reservations =
+        order.orderReservations?.map((or) => or.reservation) || [];
+      const hasInProgressOrCompleted = reservations.some(
+        (r) => r && r.reservationStatus >= ReservationStatus.PENDING_REVIEW,
+      );
+
+      if (hasInProgressOrCompleted) {
+        throw new CustomException(
+          'Cannot cancel order: some reservations have already started or completed. Only orders with all reservations in SCHEDULED status can be canceled.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Step 4: Update order status and cancelDate
+      order.status = OrderStatus.ORDER_CANCELED;
+      order.cancelDate = new Date();
+      order.updatedUser = userId;
+
+      await queryRunner.manager.save(Order, order);
+
+      // Step 5: Get operator name for history
+      let operatorName = '';
+      if (userType === 'member') {
+        const member = await queryRunner.manager.findOne(Member, {
+          where: { id: userId },
+        });
+        operatorName = member?.name || userId;
+      } else {
+        const user = await queryRunner.manager.findOne(User, {
+          where: { id: userId },
+        });
+        operatorName = user?.name || userId;
+      }
+
+      // Step 6: Create OrderHistory record
+      const orderHistory = queryRunner.manager.create(OrderHistory, {
+        orderId: order.id,
+        event: '取消訂單',
+        operator: operatorName,
+        reason: reason,
+        time: new Date(),
+        createdUser: userId,
+        updatedUser: userId,
+      });
+      await queryRunner.manager.save(OrderHistory, orderHistory);
+
+      // Step 7: Auto-cancel all SCHEDULED reservations
+      let canceledCount = 0;
+      for (const orderReservation of order.orderReservations || []) {
+        const reservation = orderReservation.reservation;
+
+        if (
+          reservation &&
+          reservation.reservationStatus === ReservationStatus.SCHEDULED
+        ) {
+          reservation.reservationStatus = ReservationStatus.CANCELED;
+          reservation.updatedUser = userId;
+          await queryRunner.manager.save(Reservation, reservation);
+          canceledCount++;
+
+          // Create ReservationHistory for each canceled reservation
+          const reservationHistory = queryRunner.manager.create(
+            ReservationHistory,
+            {
+              reservationId: reservation.id,
+              event: '訂單取消導致預約取消',
+              operator: operatorName,
+              reason: `訂單取消原因: ${reason}`,
+              time: new Date(),
+            },
+          );
+          await queryRunner.manager.save(
+            ReservationHistory,
+            reservationHistory,
+          );
+        }
+      }
+
+      // Commit transaction before sending emails
+      await queryRunner.commitTransaction();
+
+      // Step 8: Send email notifications (outside transaction)
+      // These are async and should not block the response
+      this.sendCancellationEmails(order, reason, operatorName).catch((err) => {
+        console.error('Failed to send cancellation emails:', err);
+        // Don't throw - email failure shouldn't fail the cancellation
+      });
+
+      return {
+        success: true,
+        message: '訂單已成功取消',
+        orderId: order.id,
+        orderNo: order.no,
+        canceledReservationsCount: canceledCount,
+      };
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(
+        `Failed to cancel order: ${err.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
+   * Send cancellation notification emails to customer and merchant
+   * @private
+   */
+  private async sendCancellationEmails(
+    order: Order,
+    reason: string,
+    operatorName: string,
+  ): Promise<void> {
+    try {
+      // Prepare course details
+      const courseName = order.coursePlan?.name || '未知課程';
+      const totalPeople = (order.adultCount || 0) + (order.childCount || 0);
+
+      // Format cancellation time
+      const cancelTime = order.cancelDate
+        ? new Date(order.cancelDate).toLocaleString('zh-TW', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : '未知時間';
+
+      // Get reservation times
+      const reservationTimes =
+        order.orderReservations
+          ?.map((or) => {
+            const classTime = or.reservation?.classTime;
+            if (classTime) {
+              return new Date(classTime).toLocaleString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+            }
+            return '';
+          })
+          .filter((t) => t)
+          .join('<br>') || '無預約時間';
+
+      // Email to customer (orderer)
+      if (order.member?.email) {
+        const customerEmailContent = `
+        <p>親愛的 ${order.member.name}，</p>
+        <p>您的訂單已成功取消。</p>
+        <p><strong>訂單資訊：</strong></p>
+        <p>訂單編號：${order.no}</p>
+        <p>課程名稱：${courseName}</p>
+        <p>預約人數：${totalPeople} 人</p>
+        <p>預約時間：<br>${reservationTimes}</p>
+        <p>取消時間：${cancelTime}</p>
+        <p>取消原因：${reason}</p>
+        <p>退款將根據退款政策處理，如有疑問請聯繫客服。</p>
+      `;
+
+        await this.smtpService.sendMail({
+          to: order.member.email,
+          subject: `訂單取消通知 - ${order.no}`,
+          html: {
+            hasImage: false,
+            subject: '訂單取消通知',
+            imagePath: '',
+            content: customerEmailContent,
+            buttonUrl: undefined,
+            buttonLabel: undefined,
+          },
+        });
+      }
+
+      // Email to merchant (department)
+      const merchantEmail =
+        this.configService.get('MERCHANT_EMAIL') || 'admin@cityski.com';
+
+      const merchantEmailContent = `
+      <p>訂單取消通知</p>
+      <p><strong>訂單資訊：</strong></p>
+      <p>訂單編號：${order.no}</p>
+      <p>課程名稱：${courseName}</p>
+      <p>訂購人：${order.member?.name || '未知'}</p>
+      <p>聯絡電話：${order.member?.phone || '未提供'}</p>
+      <p>訂購人Email：${order.member?.email || '未提供'}</p>
+      <p>預約人數：${totalPeople} 人</p>
+      <p>預約時間：<br>${reservationTimes}</p>
+      <p>取消時間：${cancelTime}</p>
+      <p>取消操作者：${operatorName}</p>
+      <p>取消原因：${reason}</p>
+      <p>部門：${order.department?.name || '未知'}</p>
+    `;
+
+      await this.smtpService.sendMail({
+        to: merchantEmail,
+        subject: `【訂單取消】${order.no} - ${order.member?.name}`,
+        html: {
+          hasImage: false,
+          subject: '訂單取消通知',
+          imagePath: '',
+          content: merchantEmailContent,
+          buttonUrl: undefined,
+          buttonLabel: undefined,
+        },
+      });
+    } catch (err) {
+      console.error('Error sending cancellation emails:', err);
+      throw err;
     }
   }
 }

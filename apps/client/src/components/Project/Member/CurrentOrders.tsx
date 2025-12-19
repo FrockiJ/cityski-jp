@@ -29,6 +29,12 @@ export const orderStatusMapper = {
 		headerText: '即將上課時間',
 		buttonLabel: '預約課程',
 	},
+	[OrderStatus.ORDER_CANCELED]: {
+		headerStyle: 'border-[#9CA3AF] text-[#9CA3AF]',
+		headerLabel: '訂單取消',
+		headerText: '取消時間',
+		buttonLabel: '查看詳情',
+	},
 };
 
 export default function CurrentOrders() {

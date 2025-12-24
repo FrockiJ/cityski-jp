@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 
 import Button from '../Common/Button';
@@ -69,8 +69,9 @@ type DatePickerProps = {
 	value: string;
 	handleChange: (value: string) => void;
 	handleCloseModal: () => void;
+	reservedDateTimes?: string[]; // 已預約的日期時間列表 (ISO格式)
 };
-export default function DatePicker({ value, handleChange, handleCloseModal }: DatePickerProps) {
+export default function DatePicker({ value, handleChange, handleCloseModal, reservedDateTimes = [] }: DatePickerProps) {
 	console.log('value', value);
 	const [currentDate, setCurrentDate] = useState(new Date());
 	// default selected today
@@ -80,7 +81,7 @@ export default function DatePicker({ value, handleChange, handleCloseModal }: Da
 		isToday: true,
 		isSelected: true,
 	});
-	const [selectedTime, setSelectedTime] = useState<string>();
+	const [selectedTime, setSelectedTime] = useState<string | undefined>(undefined);
 	console.log('selectedTime', selectedTime);
 
 	const handlePrevMonth = () => {
@@ -96,6 +97,8 @@ export default function DatePicker({ value, handleChange, handleCloseModal }: Da
 		// const selectedDay = new Date(day.date);
 		// console.log('selectedDay', selectedDay);
 		setSelectedDay(day);
+		// 換日時清除已選擇的時段
+		setSelectedTime(undefined);
 	};
 
 	const handleSelectedTime = (time: string) => {
@@ -119,7 +122,25 @@ export default function DatePicker({ value, handleChange, handleCloseModal }: Da
 		'20:00',
 	];
 
-	const disabledTimes = ['09:00', '15:00'];
+	// 計算當前選擇日期的已預約時段
+	const disabledTimes = useMemo(() => {
+		if (!selectedDay.date) return ['09:00', '15:00'];
+
+		const reservedTimes = reservedDateTimes
+			.filter(dateTime => {
+				const reservedDate = new Date(dateTime);
+				const reservedDateStr = reservedDate.toISOString().split('T')[0];
+				return reservedDateStr === selectedDay.date;
+			})
+			.map(dateTime => {
+				const reservedDate = new Date(dateTime);
+				const hours = reservedDate.getHours().toString().padStart(2, '0');
+				const minutes = reservedDate.getMinutes().toString().padStart(2, '0');
+				return `${hours}:${minutes}`;
+			});
+
+		return ['09:00', '15:00', ...reservedTimes];
+	}, [selectedDay.date, reservedDateTimes]);
 
 	const handleSubmit = () => {
 		handleChange(selectedDay.date + ' ' + selectedTime);
@@ -227,7 +248,7 @@ export default function DatePicker({ value, handleChange, handleCloseModal }: Da
 					<Button variant='secondary' onClick={handleCloseModal}>
 						取消
 					</Button>
-					<Button onClick={handleSubmit}>確認</Button>
+					<Button disabled={!selectedTime} onClick={handleSubmit}>確認</Button>
 				</div>
 			</section>
 		</div>

@@ -105,6 +105,15 @@ export default function CourseReservation({
 		setShowDatePickerModal(true);
 	};
 
+	// 獲取所有已預約的日期時間（未取消的預約）
+	const reservedDateTimes = orderReservations
+		.filter((or) => or.reservation && or.reservation.reservationStatus !== ReservationStatus.CANCELED)
+		.map((or) => {
+			const classTime = or.reservation!.classTime;
+			// 確保轉換為 ISO 字串格式
+			return typeof classTime === 'string' ? classTime : new Date(classTime).toISOString();
+		});
+
 	const handleDateTimeChange = async (value: string) => {
 		// DatePicker 在確認時會調用此函數並自動關閉
 		setSelectedDateTime(value);
@@ -350,7 +359,8 @@ export default function CourseReservation({
 							</button>
 							<button
 								onClick={handleNextStep}
-								className="px-5 py-2 bg-zinc-800 rounded-lg text-white text-sm font-medium font-['Noto_Sans_TC'] leading-6 hover:bg-zinc-700 transition-colors"
+								disabled={selectedMembers.size === 0}
+								className="px-5 py-2 bg-zinc-800 rounded-lg text-white text-sm font-medium font-['Noto_Sans_TC'] leading-6 hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								下一步
 							</button>
@@ -412,9 +422,10 @@ export default function CourseReservation({
 				<div className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'>
 					<div className='bg-white rounded-[20px] shadow-[0px_10px_26px_0px_rgba(0,0,0,0.13)] overflow-hidden'>
 						<DatePicker
-							value={selectedDateTime || new Date().toISOString()}
+							value={selectedDateTime || ''}
 							handleChange={handleDateTimeChange}
 							handleCloseModal={handleCloseDatePicker}
+							reservedDateTimes={reservedDateTimes}
 						/>
 					</div>
 				</div>

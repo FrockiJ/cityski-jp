@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 
 import Button from '../Common/Button';
@@ -100,8 +100,9 @@ type DatePickerProps = {
 	handleBack: () => void;
 	value: string;
 	mode: number;
+	reservedDateTimes?: string[]; // 已預約的日期時間列表 (ISO格式)
 };
-export default function DatePicker({ value, handleBack, handleChange, mode }: DatePickerProps) {
+export default function DatePicker({ value, handleBack, handleChange, mode, reservedDateTimes = [] }: DatePickerProps) {
 	const [currentDate, setCurrentDate] = useState(new Date());
 	// default selected today
 	const [selectedDay, setSelectedDay] = useState<DayType>({
@@ -110,7 +111,7 @@ export default function DatePicker({ value, handleBack, handleChange, mode }: Da
 		isToday: true,
 		isSelected: true,
 	});
-	const [selectedTime, setSelectedTime] = useState<string>();
+	const [selectedTime, setSelectedTime] = useState<string | undefined>(undefined);
 
 	const [weekIndex, setWeekIndex] = useState<number>(null);
 
@@ -153,6 +154,8 @@ export default function DatePicker({ value, handleBack, handleChange, mode }: Da
 
 	const handleSelectedDay = (day: DayType) => {
 		setSelectedDay(day);
+		// 換日時清除已選擇的時段
+		setSelectedTime(undefined);
 	};
 
 	const handleSelectedTime = (time: string) => {
@@ -174,7 +177,25 @@ export default function DatePicker({ value, handleBack, handleChange, mode }: Da
 		'20:00',
 	];
 
-	const disabledTimes = ['09:00', '15:00'];
+	// 計算當前選擇日期的已預約時段
+	const disabledTimes = useMemo(() => {
+		if (!selectedDay.date) return ['09:00', '15:00'];
+
+		const reservedTimes = reservedDateTimes
+			.filter(dateTime => {
+				const reservedDate = new Date(dateTime);
+				const reservedDateStr = reservedDate.toISOString().split('T')[0];
+				return reservedDateStr === selectedDay.date;
+			})
+			.map(dateTime => {
+				const reservedDate = new Date(dateTime);
+				const hours = reservedDate.getHours().toString().padStart(2, '0');
+				const minutes = reservedDate.getMinutes().toString().padStart(2, '0');
+				return `${hours}:${minutes}`;
+			});
+
+		return ['09:00', '15:00', ...reservedTimes];
+	}, [selectedDay.date, reservedDateTimes]);
 
 	const handleSubmit = () => {
 		if (selectedDay.date && selectedTime) {

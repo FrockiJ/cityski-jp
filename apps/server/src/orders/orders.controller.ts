@@ -87,10 +87,20 @@ export class OrdersController {
     @Param('id') id: string,
   ): Promise<OrderReservationResponseDto[]> {
     const result = await this.ordersService.getOrderReservations(id);
-    
+
     return plainToInstance(OrderReservationResponseDto, result, {
       excludeExtraneousValues: true,
     });
+  }
+
+  @UseGuards(AdminOrMemberGuard)
+  @Get('/:id/time-slot-availability')
+  async getTimeSlotAvailability(
+    @Param('id') id: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ): Promise<{ fullyBookedSlots: string[] }> {
+    return this.ordersService.getTimeSlotAvailability(id, startDate, endDate);
   }
 
   @UseGuards(ClientAuthGuard)

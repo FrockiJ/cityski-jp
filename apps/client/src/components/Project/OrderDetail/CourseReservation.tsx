@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { CoursePeople, CourseType, OrderMemberDetailDTO, OrderReservationResponseDto, ReservationStatus } from '@repo/shared';
+import { useState, useEffect } from 'react';
+import { CoursePeople, CourseType, OrderMemberDetailDTO, OrderReservationResponseDto, ReservationStatus, ResponseWrapper } from '@repo/shared';
 
 import DatePicker from '@/components/Project/Shared/DatePicker';
 import { showToast } from '@/components/Project/Utils/Toast';
@@ -53,6 +53,7 @@ export default function CourseReservation({
 	const [cancelReason, setCancelReason] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
 	const [showCancelReasonError, setShowCancelReasonError] = useState(false);
+	const [fullyBookedSlots, setFullyBookedSlots] = useState<string[]>([]);
 
 	// 獲取最低人數要求
 	const minPeople = coursePeople.length > 0 ? Math.min(...coursePeople.map((cp) => cp.minPeople)) : 1;
@@ -113,6 +114,41 @@ export default function CourseReservation({
 			// 確保轉換為 ISO 字串格式
 			return typeof classTime === 'string' ? classTime : new Date(classTime).toISOString();
 		});
+
+	// 獲取已滿的時段（每時段最多2個預約）
+	useEffect(() => {
+		const fetchFullyBookedSlots = async () => {
+			try {
+				// 獲取當前月份的開始和結束日期
+				const now = new Date();
+				const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+				const endDate = new Date(now.getFullYear(), now.getMonth() + 2, 0); // 獲取兩個月的資料
+
+				const response = await api.get<ResponseWrapper<{ fullyBookedSlots: string[] }>>(
+					`/api/orders/${orderId}/time-slot-availability`,
+					{
+						params: {
+							startDate: startDate.toISOString().split('T')[0],
+							endDate: endDate.toISOString().split('T')[0],
+						},
+						headers: {
+							Authorization: `Bearer ${accessToken}`,
+						},
+					}
+				);
+
+				if (response.data.result) {
+					setFullyBookedSlots(response.data.result.fullyBookedSlots);
+				}
+			} catch (error) {
+				console.error('獲取時段可用性失敗:', error);
+			}
+		};
+
+		if (orderId && accessToken) {
+			fetchFullyBookedSlots();
+		}
+	}, [orderId, accessToken]);
 
 	const handleDateTimeChange = async (value: string) => {
 		// DatePicker 在確認時會調用此函數並自動關閉
@@ -430,6 +466,7 @@ export default function CourseReservation({
 							handleChange={handleDateTimeChange}
 							handleCloseModal={handleCloseDatePicker}
 							reservedDateTimes={reservedDateTimes}
+							fullyBookedSlots={fullyBookedSlots}
 						/>
 					</div>
 				</div>

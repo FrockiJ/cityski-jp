@@ -44,7 +44,7 @@ export const MobileDateAreaContent = ({ value, onChange, handleBack }: SelectFie
 				</div>
 			</DrawerHeader>
 			<div className='h-[100%] overflow-y-scroll gap-4 items-center px-5 py-4 w-full leading-6'>
-				<MobileDatePicker value={value} handleChange={onChange} handleBack={handleBack} mode={mode} />
+				<MobileDatePicker value={value} handleChange={onChange} handleBack={handleBack} mode={mode} fullyBookedSlots={[]} />
 			</div>
 		</div>
 	);

@@ -1259,4 +1259,92 @@ export class OrdersService {
       throw err;
     }
   }
+
+  /**
+   * Get time slot availability for a specific order's course
+   * Returns which time slots are fully booked (2 or more reservations)
+   *
+   * @param orderId - Order ID
+   * @param startDate - Start date (YYYY-MM-DD)
+   * @param endDate - End date (YYYY-MM-DD)
+   * @returns Array of fully booked time slots
+   */
+  async getTimeSlotAvailability(
+    orderId: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<{ fullyBookedSlots: string[] }> {
+    try {
+      // 獲取訂單資訊，包括課程和部門
+      const order = await this.ordersRepo.findOne({
+        where: { id: orderId },
+        relations: ['coursePlan', 'coursePlan.course', 'department'],
+      });
+
+      if (!order) {
+        throw new CustomException(
+          `Order with id: ${orderId} not found`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const courseId = order.coursePlan?.course?.id;
+      const departmentId = order.department?.id;
+
+      if (!courseId || !departmentId) {
+        throw new CustomException(
+          'Order course or department not found',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // 轉換日期範圍
+      const startDateTime = new Date(startDate);
+      startDateTime.setHours(0, 0, 0, 0);
+
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+
+      // 查詢該課程在指定時間範圍內的所有未取消預約
+      const reservations = await this.reservationsRepo
+        .createQueryBuilder('reservation')
+        .leftJoinAndSelect('reservation.department', 'department')
+        .leftJoinAndSelect('reservation.orderReservations', 'orderReservation')
+        .leftJoinAndSelect('orderReservation.order', 'order')
+        .leftJoinAndSelect('order.coursePlan', 'coursePlan')
+        .leftJoinAndSelect('coursePlan.course', 'course')
+        .where('department.id = :departmentId', { departmentId })
+        .andWhere('course.id = :courseId', { courseId })
+        .andWhere('reservation.classTime >= :startDate', { startDate: startDateTime })
+        .andWhere('reservation.classTime <= :endDate', { endDate: endDateTime })
+        .andWhere('reservation.reservationStatus != :cancelStatus', {
+          cancelStatus: ReservationStatus.CANCELED,
+        })
+        .getMany();
+
+      // 統計每個時段的預約數量
+      const timeSlotCounts = new Map<string, number>();
+
+      reservations.forEach((reservation) => {
+        const classTimeStr = new Date(reservation.classTime).toISOString();
+        const currentCount = timeSlotCounts.get(classTimeStr) || 0;
+        timeSlotCounts.set(classTimeStr, currentCount + 1);
+      });
+
+      // 找出已滿的時段（預約數 >= 2）
+      const fullyBookedSlots: string[] = [];
+      timeSlotCounts.forEach((count, timeSlot) => {
+        if (count >= 2) {
+          fullyBookedSlots.push(timeSlot);
+        }
+      });
+
+      return { fullyBookedSlots };
+    } catch (err) {
+      if (err instanceof CustomException) {
+        throw err;
+      }
+      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }

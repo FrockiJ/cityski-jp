@@ -101,8 +101,9 @@ type DatePickerProps = {
 	value: string;
 	mode: number;
 	reservedDateTimes?: string[]; // 已預約的日期時間列表 (ISO格式)
+	fullyBookedSlots?: string[]; // 已滿的時段列表 (ISO格式，每時段>=2個預約)
 };
-export default function DatePicker({ value, handleBack, handleChange, mode, reservedDateTimes = [] }: DatePickerProps) {
+export default function DatePicker({ value, handleBack, handleChange, mode, reservedDateTimes = [], fullyBookedSlots = [] }: DatePickerProps) {
 	const [currentDate, setCurrentDate] = useState(new Date());
 	// default selected today
 	const [selectedDay, setSelectedDay] = useState<DayType>({
@@ -177,10 +178,11 @@ export default function DatePicker({ value, handleBack, handleChange, mode, rese
 		'20:00',
 	];
 
-	// 計算當前選擇日期的已預約時段
+	// 計算當前選擇日期的已預約時段和已滿時段
 	const disabledTimes = useMemo(() => {
 		if (!selectedDay.date) return [];
 
+		// 1. 獲取當前訂單已預約的時段
 		const reservedTimes = reservedDateTimes
 			.filter(dateTime => {
 				const reservedDate = new Date(dateTime);
@@ -194,8 +196,23 @@ export default function DatePicker({ value, handleBack, handleChange, mode, rese
 				return `${hours}:${minutes}`;
 			});
 
-		return reservedTimes;
-	}, [selectedDay.date, reservedDateTimes]);
+		// 2. 獲取已滿的時段（其他課程預約數>=2）
+		const fullyBookedTimes = fullyBookedSlots
+			.filter(dateTime => {
+				const bookedDate = new Date(dateTime);
+				const bookedDateStr = bookedDate.toISOString().split('T')[0];
+				return bookedDateStr === selectedDay.date;
+			})
+			.map(dateTime => {
+				const bookedDate = new Date(dateTime);
+				const hours = bookedDate.getHours().toString().padStart(2, '0');
+				const minutes = bookedDate.getMinutes().toString().padStart(2, '0');
+				return `${hours}:${minutes}`;
+			});
+
+		// 3. 合併兩個列表並去重
+		return Array.from(new Set([...reservedTimes, ...fullyBookedTimes]));
+	}, [selectedDay.date, reservedDateTimes, fullyBookedSlots]);
 
 	const handleSubmit = () => {
 		if (selectedDay.date && selectedTime) {

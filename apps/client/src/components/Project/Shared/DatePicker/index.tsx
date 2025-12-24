@@ -124,7 +124,7 @@ export default function DatePicker({ value, handleChange, handleCloseModal, rese
 
 	// 計算當前選擇日期的已預約時段
 	const disabledTimes = useMemo(() => {
-		if (!selectedDay.date) return ['09:00', '15:00'];
+		if (!selectedDay.date) return [];
 
 		const reservedTimes = reservedDateTimes
 			.filter(dateTime => {
@@ -139,7 +139,7 @@ export default function DatePicker({ value, handleChange, handleCloseModal, rese
 				return `${hours}:${minutes}`;
 			});
 
-		return ['09:00', '15:00', ...reservedTimes];
+		return reservedTimes;
 	}, [selectedDay.date, reservedDateTimes]);
 
 	const handleSubmit = () => {

@@ -189,7 +189,7 @@ const FixedPaymentBlock = ({ orderDetail, handleRefresh }: Props) => {
 						訂金支付方式
 					</Typography>
 					<Typography variant='body1'>
-						{transaction?.status > TransactionStatus.PENDING_DEPOSIT  ?  '--' : '--'}
+						{transaction?.status > TransactionStatus.PENDING_DEPOSIT  ? (transaction?.depositPaymentMethod === 'CREDIT' ? '刷卡' : transaction?.depositPaymentMethod === 'CASH' ? '付現' : transaction?.depositPaymentMethod === 'ATM' ? 'ATM' : '--') : '--'}
 					</Typography>
 				</Stack>
 				<Stack direction='row' justifyContent='space-between' mt={0.5}>

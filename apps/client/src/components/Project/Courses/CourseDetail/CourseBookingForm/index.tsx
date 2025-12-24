@@ -125,7 +125,7 @@ const CourseBookingForm = ({ data, onSubmit }: CourseBookingFormProps) => {
 					plans={data?.coursePlans}
 				/>
 				{/* 板類 */}
-				<SelectBoardField formData={formData} onChange={(value) => handleChange('boardType', value)} />
+				<SelectBoardField formData={formData} onChange={(value) => handleChange('boardType', value)} courseSkiType={data?.skiType} />
 				{/* 人數 */}
 				<NumberField
 					label='人數'

@@ -141,7 +141,7 @@ const MobileBookingForm = ({ data, onSubmit }: CourseBookingFormProps) => {
 												handleClick={() => handleSetBookingFormArea(BookingFormArea.SELECT_PLAN)}
 											/>
 											{/* 板類 */}
-											<SelectBoardField formData={formData} onChange={(value) => handleChange('boardType', value)} />
+											<SelectBoardField formData={formData} onChange={(value) => handleChange('boardType', value)} courseSkiType={data?.skiType} />
 											{/* 人數 */}
 											<MobileNumberField
 												label='人數'

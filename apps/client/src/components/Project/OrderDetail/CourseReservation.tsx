@@ -151,6 +151,8 @@ export default function CourseReservation({
 		} finally {
 			// 重置選擇狀態
 			setSelectedMembers(new Set());
+			// 清除選擇的日期時間
+			setSelectedDateTime('');
 		}
 	};
 
@@ -158,6 +160,8 @@ export default function CourseReservation({
 		setShowDatePickerModal(false);
 		// 取消時也清除選擇狀態
 		setSelectedMembers(new Set());
+		// 清除選擇的日期時間
+		setSelectedDateTime('');
 	};
 
 	const handleCancelReservation = async () => {

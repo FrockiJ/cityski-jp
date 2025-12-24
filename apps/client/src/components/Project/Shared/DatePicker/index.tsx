@@ -10,6 +10,7 @@ type DayType = {
 	isCurrentMonth: boolean;
 	isToday: boolean;
 	isSelected: boolean;
+	isPast?: boolean;
 };
 
 function isSameDate(date1, date2) {
@@ -22,13 +23,17 @@ const generateDays = (year: number, month: number, selectedDay: string) => {
 	const daysInMonth = new Date(year, month + 1, 0).getDate();
 	const firstDayOfMonth = new Date(year, month, 1).getDay();
 	const days = [];
+	const today = new Date();
+	today.setHours(0, 0, 0, 0); // Reset to start of day for comparison
 
 	// Add previous month's days to fill the grid
 	const prevMonthDays = new Date(year, month, 0).getDate();
 	for (let i = firstDayOfMonth; i > 0; i--) {
+		const dateObj = new Date(Date.UTC(year, month - 1, prevMonthDays - i + 1));
 		days.push({
-			date: new Date(Date.UTC(year, month - 1, prevMonthDays - i + 1)).toISOString().split('T')[0],
+			date: dateObj.toISOString().split('T')[0],
 			isCurrentMonth: false,
+			isPast: dateObj < today,
 		});
 	}
 
@@ -40,6 +45,7 @@ const generateDays = (year: number, month: number, selectedDay: string) => {
 			isCurrentMonth: true,
 			isToday: currentDate.toDateString() === new Date().toDateString(),
 			isSelected: !selectedDay ? false : isSameDate(new Date(selectedDay), currentDate), // Example for selected date
+			isPast: currentDate < today,
 		});
 	}
 
@@ -49,7 +55,11 @@ const generateDays = (year: number, month: number, selectedDay: string) => {
 
 	for (let i = 1; i <= daysToFill; i++) {
 		const nextMonthDate = new Date(Date.UTC(year, month + 1, i));
-		days.push({ date: nextMonthDate.toISOString().split('T')[0], isCurrentMonth: false });
+		days.push({
+			date: nextMonthDate.toISOString().split('T')[0],
+			isCurrentMonth: false,
+			isPast: nextMonthDate < today,
+		});
 	}
 
 	return days;
@@ -174,12 +184,13 @@ export default function DatePicker({ value, handleChange, handleCloseModal }: Da
 						<div key={day.date} className='py-2'>
 							<button
 								type='button'
-								disabled={day.isCurrentMonth === false}
+								disabled={day.isCurrentMonth === false || day.isPast}
 								className={classNames(
 									day.isSelected && 'text-white',
 									!day.isSelected && day.isToday && 'border border-gray-900',
-									!day.isSelected && !day.isToday && day.isCurrentMonth && 'text-gray-900',
+									!day.isSelected && !day.isToday && day.isCurrentMonth && !day.isPast && 'text-gray-900',
 									!day.isSelected && !day.isToday && !day.isCurrentMonth && 'text-gray-400',
+									!day.isSelected && day.isPast && 'text-gray-400 cursor-not-allowed',
 									day.isSelected && day.isToday && 'bg-gray-900',
 									day.isSelected && !day.isToday && 'bg-gray-900',
 									// !day.isSelected && 'hover:bg-gray-200',

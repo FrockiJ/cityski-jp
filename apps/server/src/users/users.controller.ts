@@ -92,4 +92,10 @@ export class UsersController {
 
     return this.usersService.rolesTest(roles, departments);
   }
+
+  @Get('/coaches')
+  @UseGuards(AuthGuard)
+  getCoaches(@Query('departmentId') departmentId?: string) {
+    return this.usersService.getCoaches(departmentId);
+  }
 }

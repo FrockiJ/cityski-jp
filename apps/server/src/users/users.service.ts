@@ -538,4 +538,33 @@ export class UsersService {
       allowedDepartments: departments,
     };
   }
+
+  async getCoaches(departmentId?: string) {
+    try {
+      const queryBuilder = this.usersRepo
+        .createQueryBuilder('user')
+        .innerJoin('user.userRolesDepartments', 'urd')
+        .innerJoin('urd.role', 'role')
+        .innerJoin('urd.department', 'department')
+        .where('role.name = :roleName', { roleName: '教練' })
+        .andWhere('user.status = :status', { status: UserStatus.ACTIVE })
+        .select(['user.id', 'user.name', 'user.email'])
+        .distinct(true);
+
+      // 如果提供了 departmentId，則過濾該部門的教練
+      if (departmentId) {
+        queryBuilder.andWhere('department.id = :departmentId', { departmentId });
+      }
+
+      const coaches = await queryBuilder.getMany();
+
+      return coaches.map((coach) => ({
+        id: coach.id,
+        name: coach.name,
+        email: coach.email,
+      }));
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }

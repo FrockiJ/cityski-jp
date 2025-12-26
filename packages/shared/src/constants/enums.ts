@@ -35,6 +35,7 @@ export type UserIsDefPassword = EnumValues<typeof UserIsDefPassword>;
  **/
 export const Roles = {
   SUPER_ADMIN: '系統管理員',
+  COACH: '教練',
 } as const;
 export type Roles = (typeof Roles)[keyof typeof Roles];
 

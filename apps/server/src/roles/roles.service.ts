@@ -57,6 +57,18 @@ export class RolesService {
     } catch (error) {
       console.log('role error', error);
     }
+
+    // Initialize COACH role if not exists
+    try {
+      await this.createRole({
+        name: Roles.COACH,
+        superAdm: IsSuperAdmin.NO,
+        status: RoleStatus.ACTIVE,
+        menuIds: [],
+      });
+    } catch (error) {
+      console.log('coach role initialization error', error);
+    }
   }
 
   // gets a single role
@@ -207,9 +219,23 @@ export class RolesService {
         throw new CustomException(`角色名稱重複`, HttpStatus.BAD_REQUEST);
       }
 
+      // Prevent creating roles with "教練" in the name (reserved for COACH role)
       if (
         createRoleDTO.superAdm === IsSuperAdmin.NO &&
-        createRoleDTO.menuIds.length === 0
+        createRoleDTO.name.includes('教練') &&
+        createRoleDTO.name !== Roles.COACH
+      ) {
+        throw new CustomException(
+          `角色名稱不可包含「教練」，此為系統保留名稱`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Allow COACH role to be created without permissions, but other normal roles need at least one permission
+      if (
+        createRoleDTO.superAdm === IsSuperAdmin.NO &&
+        createRoleDTO.menuIds.length === 0 &&
+        createRoleDTO.name !== Roles.COACH
       ) {
         throw new CustomException(`至少須勾選一個權限`, HttpStatus.BAD_REQUEST);
       }
@@ -266,6 +292,25 @@ export class RolesService {
         throw new CustomException('此id無對應角色', HttpStatus.BAD_REQUEST);
       }
 
+      // Prevent renaming COACH role or renaming other roles to include "教練"
+      if (role.name === Roles.COACH && updateData.name !== Roles.COACH) {
+        throw new CustomException(
+          '無法修改教練角色名稱',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      if (
+        role.name !== Roles.COACH &&
+        updateData.name.includes('教練') &&
+        role.superAdm !== IsSuperAdmin.YES
+      ) {
+        throw new CustomException(
+          `角色名稱不可包含「教練」，此為系統保留名稱`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       // superAdmin can only edit name
       if (role.superAdm === IsSuperAdmin.YES) {
         Object.assign(role, {
@@ -301,6 +346,9 @@ export class RolesService {
       if (role.superAdm === IsSuperAdmin.YES) {
         throw new CustomException('無法刪除系統管理員', HttpStatus.BAD_REQUEST);
       }
+      if (role.name === Roles.COACH) {
+        throw new CustomException('無法刪除教練角色', HttpStatus.BAD_REQUEST);
+      }
 
       // remove role
       await this.rolesRepo.remove(role);
@@ -321,6 +369,9 @@ export class RolesService {
       }
       if (role.superAdm === IsSuperAdmin.YES) {
         throw new CustomException('無法停用系統管理員', HttpStatus.BAD_REQUEST);
+      }
+      if (role.name === Roles.COACH) {
+        throw new CustomException('無法停用教練角色', HttpStatus.BAD_REQUEST);
       }
       const isRoleUsing = await this.urdRepo.findOne({
         where: { role: { id } },

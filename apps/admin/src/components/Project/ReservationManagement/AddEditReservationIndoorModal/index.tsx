@@ -40,8 +40,10 @@ import { StyledAbsoluteModalActions } from '@/CIBase/CoreModal/CoreModalActions'
 import FormikDateTimePicker from '@/components/Common/CIBase/Formik/FormikDateTimePicker';
 import FormikInput from '@/components/Common/CIBase/Formik/FormikInput';
 import FormikRadio from '@/components/Common/CIBase/Formik/FormikRadio';
+import FormikSelect from '@/components/Common/CIBase/Formik/FormikSelect';
 import { FormikScrollToError } from '@/Formik/common/FormikComponents';
 import useModalProvider from '@/hooks/useModalProvider';
+import { getCoaches } from '@/utils/http/api/user';
 
 import BlockArea from '../../shared/BlockArea';
 import AddMemberModal from '../AddMemberModal';
@@ -130,6 +132,10 @@ const AddEditReservationIndoorModal = ({
 	const [courseDetail, setCourseDetail] = useState<any>(null);
 	const [courseDetailLoading, setCourseDetailLoading] = useState(false);
 
+	// 教練列表狀態
+	const [coaches, setCoaches] = useState<{ value: string; label: string }[]>([]);
+	const [coachesLoading, setCoachesLoading] = useState(false);
+
 	// 改期原因 Modal 狀態
 	const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
 	const [pendingFormValues, setPendingFormValues] = useState<InitialValuesProps | null>(null);
@@ -201,6 +207,29 @@ const AddEditReservationIndoorModal = ({
 
 		loadReservationData();
 	}, [modalType, reservationId]);
+
+	// 獲取教練列表
+	useEffect(() => {
+		const fetchCoaches = async () => {
+			setCoachesLoading(true);
+			try {
+				const response = await getCoaches();
+				if (response.result) {
+					const coachOptions = response.result.map((coach) => ({
+						value: coach.name,
+						label: coach.name,
+					}));
+					setCoaches(coachOptions);
+				}
+			} catch (error) {
+				console.error('獲取教練列表失敗:', error);
+			} finally {
+				setCoachesLoading(false);
+			}
+		};
+
+		fetchCoaches();
+	}, []);
 
 	// 當從訂單頁面跳轉過來新增預約時，自動填入訂單成員到待新增列表
 	useEffect(() => {
@@ -338,7 +367,11 @@ const AddEditReservationIndoorModal = ({
 
 	const validationSchema = Yup.object().shape({
 		pickTrainer: Yup.string().required('必填欄位'),
-		trainerName: Yup.string().required('教練姓名為必填欄位'),
+		trainerName: Yup.string().when('pickTrainer', {
+			is: 'Y',
+			then: (schema) => schema.required('教練姓名為必填欄位'),
+			otherwise: (schema) => schema.notRequired(),
+		}),
 		courseStartDate: Yup.date().nullable().required('必填'),
 		courseLevel: Yup.string().required('必填欄位'),
 		departmentId: Yup.string().required('必填欄位'),
@@ -652,6 +685,13 @@ const AddEditReservationIndoorModal = ({
 				enableReinitialize
 			>
 				{({ isSubmitting, values, setFieldValue }) => {
+					// 當「指定教練」改為「不指定」時，清空教練名稱
+					React.useEffect(() => {
+						if (values.pickTrainer === 'N' && values.trainerName) {
+							setFieldValue('trainerName', '');
+						}
+					}, [values.pickTrainer, setFieldValue]);
+
 					// 自動更新授課等級：當成員有變動時
 					React.useEffect(() => {
 						// 只在有 orderDetail 時處理
@@ -805,13 +845,14 @@ const AddEditReservationIndoorModal = ({
 											disabled={isBasicInfoDisabled}
 										/>
 										<BlockArea>
-											<FormikInput
+											<FormikSelect
 												name='trainerName'
 												title='教練'
 												width='320px'
-												isRequired={true}
-												placeholder='請輸入教練名字'
-												disabled={isBasicInfoDisabled}
+												isRequired={values.pickTrainer === 'Y'}
+												placeholder='請選擇教練'
+												options={coaches}
+												disabled={isBasicInfoDisabled || coachesLoading || values.pickTrainer === 'N'}
 											/>
 										</BlockArea>
 									</Stack>

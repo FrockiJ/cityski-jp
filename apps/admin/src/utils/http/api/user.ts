@@ -41,3 +41,7 @@ export const getUserByEmail = ({ email }: { email: string }) => {
 export const getRoleOptions = () => {
 	return http.get<ResponseWrapper<GetRoleOptionsResponseDTO>>(`/api/users/role-options`);
 };
+
+export const getCoaches = () => {
+	return http.get<ResponseWrapper<{ id: string; name: string; email: string }[]>>(`/api/users/coaches`);
+};

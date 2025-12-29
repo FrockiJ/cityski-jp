@@ -10,7 +10,9 @@ import { useInitialOptions } from '@/hooks/useInitialOptions';
 import { FilterInfo } from '@/shared/core/constants/interface/decorator';
 import { ObjectType, PropertyTypeFactory } from '@/shared/types/common';
 import { resetFilterState } from '@/state/slices/searchFilterSlice';
+import { addOptionItem } from '@/state/slices/optionSlice';
 import { useAppDispatch, useAppSelector } from '@/state/store';
+import { getCoaches } from '@/utils/http/api/user';
 
 import 'reflect-metadata';
 
@@ -49,12 +51,34 @@ function CoreFilter<T extends object>({
 	const propertiesMap = queryInstance ? getPropertiesMap<T>(queryInstance) : null;
 	const unusedProperties = unused && propertiesMap ? unused(propertiesMap) : [];
 
-	const toggleDrawer = (open: boolean) => (event: React.KeyboardEvent | React.MouseEvent) => {
+	const toggleDrawer = (open: boolean) => async (event: React.KeyboardEvent | React.MouseEvent) => {
 		if (
 			event.type === 'keydown' &&
 			((event as React.KeyboardEvent).key === 'Tab' || (event as React.KeyboardEvent).key === 'Shift')
 		) {
 			return;
+		}
+
+		// 當打開抽屜時，動態載入教練選項
+		if (open) {
+			try {
+				// 從 localStorage 或 filteredData 中獲取 departmentId
+				const departmentId = localStorage.getItem('departmentId') ||
+					(filteredData?.departmentId as string) ||
+					undefined;
+
+				const response = await getCoaches(departmentId);
+				// API 回應結構是 { statusCode, message, result }
+				if (response.result && Array.isArray(response.result)) {
+					const coaches = response.result.map((coach) => ({
+						label: coach.name,
+						value: coach.name,
+					}));
+					dispatch(addOptionItem({ key: OptionNames.INSTRUCTOR, option: coaches }));
+				}
+			} catch (error) {
+				console.error('Failed to load coaches:', error);
+			}
 		}
 
 		setDrawerOpen(open);
@@ -118,12 +142,12 @@ function CoreFilter<T extends object>({
 					<List>{filterList()}</List>
 				</Nav>
 
-				<Box mx={3}>
+				<Box mx={3} mt={3}>
 					<CoreButton
 						color='default'
 						iconType='filterClear'
 						variant='outlined'
-						label='清除'
+						label='清除條件'
 						aria-label='DrawerClear'
 						size='large'
 						width='100%'

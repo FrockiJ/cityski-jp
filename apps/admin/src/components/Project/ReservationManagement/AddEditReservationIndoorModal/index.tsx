@@ -213,7 +213,8 @@ const AddEditReservationIndoorModal = ({
 		const fetchCoaches = async () => {
 			setCoachesLoading(true);
 			try {
-				const response = await getCoaches();
+				const departmentId = localStorage.getItem('departmentId') || undefined;
+				const response = await getCoaches(departmentId);
 				if (response.result) {
 					const coachOptions = response.result.map((coach) => ({
 						value: coach.name,

@@ -5,12 +5,14 @@ import {
 	CourseBkgType,
 	CourseStatusType,
 	CourseType,
+	CourseSkiType,
 	DiscountStatus,
 	MemberStatus,
 	MemberType,
 	Option,
 	OptionManagerType,
 	OptionNames,
+	ReservationStatus,
 } from '@repo/shared';
 
 import { selectOptions } from '@/state/slices/optionSlice';
@@ -95,6 +97,37 @@ const fetchOptionManager = async () => {
 			{ label: '預約式課程', value: CourseBkgType.FLEXIBLE },
 			{ label: '指定式課程', value: CourseBkgType.FIXED },
 		]),
+
+		// reservation-management > filter Select Options
+		checkOptionsAndAdd(optionManager, OptionNames.RESERVATION_STATUS, () => [
+			{ label: '已排定', value: ReservationStatus.SCHEDULED },
+			{ label: '待紀錄', value: ReservationStatus.PENDING_REVIEW },
+			{ label: '已完成', value: ReservationStatus.COMPLETED },
+			{ label: '已取消', value: ReservationStatus.CANCELED },
+		]),
+
+		// reservation-management > filter Select Options
+		checkOptionsAndAdd(optionManager, OptionNames.COURSE_SKI_TYPE, () => [
+			{ label: '單板和雙板', value: CourseSkiType.BOTH },
+			{ label: '單板', value: CourseSkiType.SNOWBOARD },
+			{ label: '雙板', value: CourseSkiType.SKI },
+		]),
+
+		// reservation-management > filter Select Options
+		checkOptionsAndAdd(optionManager, OptionNames.SKI_SNOWBOARD_LEVEL, () => [
+			{ label: '1', value: '1' },
+			{ label: '2', value: '2' },
+			{ label: '3', value: '3' },
+			{ label: '4', value: '4' },
+			{ label: '5', value: '5' },
+			{ label: '6', value: '6' },
+			{ label: '7', value: '7' },
+			{ label: '7以上', value: '7+' },
+		]),
+
+		// reservation-management > filter Select Options (教練)
+		// 延遲載入：在打開篩選抽屜時動態載入，這裡先設為空陣列
+		checkOptionsAndAdd(optionManager, OptionNames.INSTRUCTOR, () => []),
 	]);
 	return optionManager;
 };

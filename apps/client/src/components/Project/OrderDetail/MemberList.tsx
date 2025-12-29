@@ -773,7 +773,7 @@ export default function MemberList({
 									type='text'
 									value={searchKeyword}
 									onChange={(e) => handleSearchChange(e.target.value)}
-									placeholder='搜尋會員姓名或電話'
+									placeholder='會員ID'
 									className="w-full px-4 py-3 pr-10 border border-zinc-300 rounded-lg focus:outline-none focus:border-blue-600 text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6"
 								/>
 								<div className='absolute right-3 top-1/2 -translate-y-1/2'>

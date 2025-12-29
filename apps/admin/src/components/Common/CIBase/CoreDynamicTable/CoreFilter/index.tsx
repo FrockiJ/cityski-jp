@@ -62,7 +62,12 @@ function CoreFilter<T extends object>({
 		// 當打開抽屜時，動態載入教練選項
 		if (open) {
 			try {
-				const response = await getCoaches();
+				// 從 localStorage 或 filteredData 中獲取 departmentId
+				const departmentId = localStorage.getItem('departmentId') ||
+					(filteredData?.departmentId as string) ||
+					undefined;
+
+				const response = await getCoaches(departmentId);
 				// API 回應結構是 { statusCode, message, result }
 				if (response.result && Array.isArray(response.result)) {
 					const coaches = response.result.map((coach) => ({

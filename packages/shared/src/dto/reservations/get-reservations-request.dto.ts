@@ -1,5 +1,5 @@
 import { IsOptional, IsString, IsNumber } from 'class-validator';
-import { Type, Expose } from 'class-transformer';
+import { Type, Expose, Transform } from 'class-transformer';
 import { PaginationRequestDTO } from '../pagination/pagination-request.dto';
 import {
   FilterType,
@@ -26,9 +26,12 @@ export class GetReservationsRequestDto extends PaginationRequestDTO {
     sequence: 1,
   })
   @IsOptional()
-  @IsString()
+  @Transform(({ value }) => {
+    if (!value) return undefined;
+    return Array.isArray(value) ? value : [value];
+  })
   @Expose()
-  courseType?: CourseType;
+  courseType?: CourseType | CourseType[];
 
   // 2. 課程狀態篩選
   @Filter({
@@ -39,10 +42,14 @@ export class GetReservationsRequestDto extends PaginationRequestDTO {
     sequence: 2,
   })
   @IsOptional()
-  @IsNumber()
+  @Transform(({ value }) => {
+    if (!value) return undefined;
+    const arr = Array.isArray(value) ? value : [value];
+    return arr.map(v => Number(v));
+  })
   @Type(() => Number)
   @Expose()
-  reservationStatus?: ReservationStatusEnum;
+  reservationStatus?: ReservationStatusEnum | ReservationStatusEnum[];
 
   // 3. 板類篩選
   @Filter({
@@ -53,10 +60,14 @@ export class GetReservationsRequestDto extends PaginationRequestDTO {
     sequence: 3,
   })
   @IsOptional()
-  @IsNumber()
+  @Transform(({ value }) => {
+    if (!value) return undefined;
+    const arr = Array.isArray(value) ? value : [value];
+    return arr.map(v => Number(v));
+  })
   @Type(() => Number)
   @Expose()
-  skiType?: CourseSkiType;
+  skiType?: CourseSkiType | CourseSkiType[];
 
   // 4. 等級篩選
   @Filter({
@@ -67,9 +78,13 @@ export class GetReservationsRequestDto extends PaginationRequestDTO {
     sequence: 4,
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (!value) return undefined;
+    return Array.isArray(value) ? value : [value];
+  })
   @IsString()
   @Expose()
-  teachingLevel?: SkiAndSnowboardLevelEnum;
+  teachingLevel?: SkiAndSnowboardLevelEnum | SkiAndSnowboardLevelEnum[];
 
   // 5. 教練篩選
   @Filter({
@@ -80,9 +95,13 @@ export class GetReservationsRequestDto extends PaginationRequestDTO {
     sequence: 5,
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (!value) return undefined;
+    return Array.isArray(value) ? value : [value];
+  })
   @IsString()
   @Expose()
-  instructor?: string;
+  instructor?: string | string[];
 
   // 6. 剩餘名額篩選
   @Filter({

@@ -37,7 +37,10 @@ export const useUserFormatTableData = (options?: Props) => {
 					id: data.id,
 					name: data.name,
 					email: data.email,
-					roles: data.userRolesDepartments.map((x) => `${x.department.name} - ${x.role.name}`).join(', '),
+					roles: data.userRolesDepartments
+						.filter((x) => x.department && x.role)
+						.map((x) => `${x.department.name} - ${x.role.name}`)
+						.join(', '),
 					status: data.status === UserStatus.ACTIVE,
 					updatedTime: dayjs(data.updatedTime).format('YYYY/MM/DD HH:mm'),
 					isSuperAdmin: data.isSuperAdmin,

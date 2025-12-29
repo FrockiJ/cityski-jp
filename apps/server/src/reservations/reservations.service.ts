@@ -92,27 +92,39 @@ export class ReservationsService {
         });
       }
 
-      // 篩選：預約狀態
+      // 篩選：預約狀態（支援複選）
       if (
         request.reservationStatus !== undefined &&
         request.reservationStatus !== null
       ) {
-        queryBuilder.andWhere('reservation.reservationStatus = :reservationStatus', {
-          reservationStatus: request.reservationStatus,
+        const statuses = Array.isArray(request.reservationStatus)
+          ? request.reservationStatus
+          : [request.reservationStatus];
+
+        queryBuilder.andWhere('reservation.reservationStatus IN (:...statuses)', {
+          statuses,
         });
       }
 
-      // 篩選：課程類型（從 Order 表）
+      // 篩選：課程類型（從 Order 表，支援複選）
       if (request.courseType) {
-        queryBuilder.andWhere('order.type = :courseType', {
-          courseType: request.courseType,
+        const courseTypes = Array.isArray(request.courseType)
+          ? request.courseType
+          : [request.courseType];
+
+        queryBuilder.andWhere('order.type IN (:...courseTypes)', {
+          courseTypes,
         });
       }
 
-      // 篩選：板類（從 Order 表）
+      // 篩選：板類（從 Order 表，支援複選）
       if (request.skiType !== undefined && request.skiType !== null) {
-        queryBuilder.andWhere('order.skiType = :skiType', {
-          skiType: request.skiType,
+        const skiTypes = Array.isArray(request.skiType)
+          ? request.skiType
+          : [request.skiType];
+
+        queryBuilder.andWhere('order.skiType IN (:...skiTypes)', {
+          skiTypes,
         });
       }
 
@@ -122,17 +134,24 @@ export class ReservationsService {
           ? request.teachingLevel
           : [request.teachingLevel];
 
-        const conditions = levels.map(level => {
-          if (level === '7+') {
-            // 處理「7以上」的情況
-            return 'CAST(reservation.teachingLevel AS INTEGER) >= 7';
-          } else {
-            return `reservation.teachingLevel = '${level}'`;
-          }
-        });
+        // 分離出「7+」和普通等級
+        const normalLevels = levels.filter(level => level !== '7+');
+        const has7Plus = levels.includes('7+');
+
+        const conditions: string[] = [];
+
+        // 處理普通等級
+        if (normalLevels.length > 0) {
+          conditions.push('reservation.teachingLevel IN (:...normalLevels)');
+        }
+
+        // 處理「7以上」的情況
+        if (has7Plus) {
+          conditions.push('CAST(reservation.teachingLevel AS INTEGER) >= 7');
+        }
 
         if (conditions.length > 0) {
-          queryBuilder.andWhere(`(${conditions.join(' OR ')})`);
+          queryBuilder.andWhere(`(${conditions.join(' OR ')})`, { normalLevels });
         }
       }
 
@@ -142,13 +161,9 @@ export class ReservationsService {
           ? request.instructor
           : [request.instructor];
 
-        const instructorConditions = instructors.map(
-          (instructor) => `reservation.instructor = '${instructor}'`
-        );
-
-        if (instructorConditions.length > 0) {
-          queryBuilder.andWhere(`(${instructorConditions.join(' OR ')})`);
-        }
+        queryBuilder.andWhere('reservation.instructor IN (:...instructors)', {
+          instructors,
+        });
       }
 
       // 篩選：上課時間範圍（起始）

@@ -107,7 +107,16 @@ export default function useGetTableData<T extends ListResultI>({
 			const value = conditionQuery[key];
 
 			if (value !== '') {
-				filterStr += `&${key}=${value}`;
+				// 如果值是陣列，則為每個值生成一個查詢參數
+				if (Array.isArray(value)) {
+					value.forEach((v) => {
+						if (v !== '') {
+							filterStr += `&${key}=${encodeURIComponent(v)}`;
+						}
+					});
+				} else {
+					filterStr += `&${key}=${encodeURIComponent(value)}`;
+				}
 			}
 		});
 

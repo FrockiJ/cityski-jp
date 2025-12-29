@@ -19,6 +19,7 @@ interface CourseReservationProps {
 	onReservationCreated?: () => void;
 	canAddReservation?: boolean;
 	coursePlanName?: string;
+	expDate?: Date;
 }
 
 const courseTypeMap = {
@@ -41,6 +42,7 @@ export default function CourseReservation({
 	onReservationCreated,
 	canAddReservation = true,
 	coursePlanName,
+	expDate,
 }: CourseReservationProps) {
 	const [showMemberModal, setShowMemberModal] = useState(false);
 	const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
@@ -467,6 +469,7 @@ export default function CourseReservation({
 							handleCloseModal={handleCloseDatePicker}
 							reservedDateTimes={reservedDateTimes}
 							fullyBookedSlots={fullyBookedSlots}
+							maxDate={expDate}
 						/>
 					</div>
 				</div>

@@ -765,6 +765,9 @@ export class OrdersService {
               }
             }
 
+            // Calculate initial expDate based on created reservations
+            await this.calculateAndUpdateOrderExpDate(savedOrder.id, queryRunner);
+
             await queryRunner.commitTransaction();
           } catch (err) {
             await queryRunner.rollbackTransaction();
@@ -849,6 +852,9 @@ export class OrdersService {
                 );
               }
 
+              // Calculate initial expDate based on linked reservations
+              await this.calculateAndUpdateOrderExpDate(savedOrder.id, queryRunner);
+
               await queryRunner.commitTransaction();
             } catch (err) {
               await queryRunner.rollbackTransaction();
@@ -892,6 +898,9 @@ export class OrdersService {
 
                 // 注意: 不創建 ReservationMember（與個人練習不同）
               }
+
+              // Calculate initial expDate based on created reservations
+              await this.calculateAndUpdateOrderExpDate(savedOrder.id, queryRunner);
 
               await queryRunner.commitTransaction();
             } catch (err) {
@@ -962,6 +971,136 @@ export class OrdersService {
       }
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  /**
+   * Calculate and update order's expDate based on active reservations
+   *
+   * This method:
+   * 1. Queries all non-canceled reservations for the order
+   * 2. Finds the earliest classTime (first lesson)
+   * 3. Calculates expDate using business rules
+   * 4. Updates order.expDate
+   *
+   * Business Rules:
+   * - planNumber <= 10: expDate = firstLessonDate + 6 months
+   * - planNumber > 10: expDate = firstLessonDate + 1 year
+   * - No active reservations: expDate = null
+   *
+   * @param orderId - Order UUID
+   * @param queryRunner - Optional transaction query runner
+   * @returns Updated expDate or null
+   */
+  async calculateAndUpdateOrderExpDate(
+    orderId: string,
+    queryRunner?: QueryRunner,
+  ): Promise<Date | null> {
+    const manager = queryRunner ? queryRunner.manager : this.ordersRepo.manager;
+
+    // Get order with its reservations
+    const order = await manager.findOne(Order, {
+      where: { id: orderId },
+      relations: ['orderReservations', 'orderReservations.reservation'],
+    });
+
+    if (!order) {
+      throw new CustomException('Order not found', HttpStatus.NOT_FOUND);
+    }
+
+    // Filter to active (non-canceled) reservations and sort by index
+    const activeReservations = order.orderReservations
+      .filter((or: OrderReservation) => or.reservation.reservationStatus !== 9) // Not CANCELED
+      .sort((a: OrderReservation, b: OrderReservation) => a.index - b.index);
+
+    let calculatedExpDate: Date | null = null;
+
+    if (activeReservations.length > 0) {
+      // Get the first lesson's classTime
+      const firstLessonDate = activeReservations[0].reservation.classTime;
+
+      // Calculate expDate using helper
+      const { calculateExpDate } = await import(
+        './helpers/expdate-calculator.helper'
+      );
+      calculatedExpDate = calculateExpDate(firstLessonDate, order.planNumber);
+    }
+
+    // Update order's expDate
+    order.expDate = calculatedExpDate;
+    await manager.save(order);
+
+    return calculatedExpDate;
+  }
+
+  /**
+   * Manually update order's expDate (admin override)
+   *
+   * Validates that:
+   * 1. Order exists
+   * 2. New expDate is after or equal to system-calculated expDate
+   * 3. Creates OrderHistory record
+   *
+   * @param orderId - Order UUID
+   * @param newExpDate - New expiration date
+   * @param userId - Admin user ID
+   * @returns Updated order data
+   */
+  async updateOrderExpDate(
+    orderId: string,
+    newExpDate: Date,
+    userId: string,
+  ): Promise<any> {
+    // Get order with its reservations
+    const order = await this.ordersRepo.findOne({
+      where: { id: orderId },
+      relations: ['orderReservations', 'orderReservations.reservation'],
+    });
+
+    if (!order) {
+      throw new CustomException('Order not found', HttpStatus.NOT_FOUND);
+    }
+
+    // Calculate system-calculated expDate
+    const activeReservations = order.orderReservations
+      .filter((or: OrderReservation) => or.reservation.reservationStatus !== 9)
+      .sort((a: OrderReservation, b: OrderReservation) => a.index - b.index);
+
+    let calculatedExpDate: Date | null = null;
+
+    if (activeReservations.length > 0) {
+      const firstLessonDate = activeReservations[0].reservation.classTime;
+      const { calculateExpDate } = await import(
+        './helpers/expdate-calculator.helper'
+      );
+      calculatedExpDate = calculateExpDate(firstLessonDate, order.planNumber);
+    }
+
+    // Validate: new expDate must be >= calculated expDate
+    if (calculatedExpDate && newExpDate < calculatedExpDate) {
+      throw new CustomException(
+        `Manual expDate (${newExpDate.toLocaleDateString()}) cannot be earlier than system-calculated expDate (${calculatedExpDate.toLocaleDateString()})`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Update order's expDate
+    order.expDate = newExpDate;
+    order.updatedUser = userId;
+    await this.ordersRepo.save(order);
+
+    // Create OrderHistory record
+    await this.orderHistoryService.create({
+      orderId: order.id,
+      event: '手動延長課程使用期限',
+      operator: userId,
+      reason: `從 ${calculatedExpDate?.toLocaleDateString() || 'N/A'} 延長至 ${newExpDate.toLocaleDateString()}`,
+    });
+
+    return {
+      id: order.id,
+      expDate: order.expDate,
+      calculatedExpDate: calculatedExpDate,
+    };
   }
 
   /**

@@ -4,6 +4,7 @@ import {
   Get,
   Logger,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -23,6 +24,8 @@ import {
   GetOrdersResponseDTO,
   OrderReservationResponseDto,
   ResWithPaginationDTO,
+  UpdateOrderExpDateRequestDto,
+  UpdateOrderExpDateResponseDto,
 } from '@repo/shared';
 import { ClientAuthGuard } from 'src/guards/client-auth.guard';
 import { CustomRequest } from 'src/shared/interfaces/custom-request';
@@ -205,6 +208,32 @@ export class OrdersController {
     );
 
     return plainToInstance(CancelOrderResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  /**
+   * Manually update order expiration date
+   * PATCH /api/orders/:id/expdate
+   *
+   * Admin-only endpoint to extend expDate beyond calculated value
+   */
+  @UseGuards(AuthGuard)
+  @Patch('/:id/expdate')
+  async updateOrderExpDate(
+    @Param('id') id: string,
+    @Body() body: UpdateOrderExpDateRequestDto,
+    @Req() request: CustomRequest,
+  ): Promise<UpdateOrderExpDateResponseDto> {
+    const userId = request['user']?.sub;
+
+    const result = await this.ordersService.updateOrderExpDate(
+      id,
+      body.expDate,
+      userId,
+    );
+
+    return plainToInstance(UpdateOrderExpDateResponseDto, result, {
       excludeExtraneousValues: true,
     });
   }

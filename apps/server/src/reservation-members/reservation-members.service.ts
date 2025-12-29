@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { ReservationMember } from './entities/reservation-member.entity';
@@ -7,6 +7,7 @@ import { OrderMember } from '../order-members/entities/order-member.entity';
 import { OrderReservation } from '../order-reservations/entities/order-reservation.entity';
 import { Order } from '../orders/entities/order.entity';
 import { Member } from '../members/entities/member.entity';
+import { OrdersService } from '../orders/orders.service';
 import { CourseSkiType, OrderStatus } from '@repo/shared';
 
 @Injectable()
@@ -25,6 +26,8 @@ export class ReservationMembersService {
     @InjectRepository(Member)
     private readonly membersRepo: Repository<Member>,
     private readonly dataSource: DataSource,
+    @Inject(forwardRef(() => OrdersService))
+    private readonly ordersService: OrdersService,
   ) {}
 
   async create(
@@ -107,6 +110,12 @@ export class ReservationMembersService {
           },
         );
         await queryRunner.manager.save(newOrderReservation);
+
+        // Recalculate order's expDate since a new reservation was linked
+        await this.ordersService.calculateAndUpdateOrderExpDate(
+          order.id,
+          queryRunner,
+        );
       }
 
       // 4. 創建 ReservationMember

@@ -13,6 +13,7 @@ import { MembersModule } from 'src/members/members.module';
 import { JwtModule } from '@nestjs/jwt';
 import { User } from 'src/users/entities/user.entity';
 import { Member } from 'src/members/entities/member.entity';
+import { OrdersModule } from 'src/orders/orders.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { Member } from 'src/members/entities/member.entity';
     forwardRef(() => ReservationsModule),
     forwardRef(() => OrderMembersModule),
     forwardRef(() => MembersModule),
+    forwardRef(() => OrdersModule),
     JwtModule,
   ],
   controllers: [ReservationMembersController],

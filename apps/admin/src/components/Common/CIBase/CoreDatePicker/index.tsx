@@ -21,6 +21,8 @@ interface CoreDatePickerProps extends Omit<DatePickerProps<Dayjs>, 'label'> {
 	isError?: boolean;
 	defaultValue?: Dayjs | null;
 	format?: string;
+	minDate?: Dayjs;
+	maxDate?: Dayjs;
 }
 
 const CoreDatePicker = ({

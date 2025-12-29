@@ -1,4 +1,4 @@
-import { GetOrderDetailResponseDTO, ResponseWrapper, OrderReservationResponseDto, SettleTransactionRequestDTO, PayDepositRequestDTO } from '@repo/shared';
+import { GetOrderDetailResponseDTO, ResponseWrapper, OrderReservationResponseDto, SettleTransactionRequestDTO, PayDepositRequestDTO, UpdateOrderExpDateRequestDto, UpdateOrderExpDateResponseDto } from '@repo/shared';
 import { http } from '@/utils/http/instance';
 
 export const getOrderDetail = (orderId: string) => {
@@ -7,6 +7,10 @@ export const getOrderDetail = (orderId: string) => {
 
 export const getOrderReservations = (orderId: string) => {
 	return http.get<ResponseWrapper<OrderReservationResponseDto[]>>(`/api/orders/${orderId}/reservations`);
+};
+
+export const updateOrderExpDate = (orderId: string, data: UpdateOrderExpDateRequestDto) => {
+	return http.patch<ResponseWrapper<UpdateOrderExpDateResponseDto>>(`/api/orders/${orderId}/expdate`, data);
 };
 
 export const settleTransaction = (data: SettleTransactionRequestDTO) => {

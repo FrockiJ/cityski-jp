@@ -13,6 +13,7 @@ import { Order } from 'src/orders/entities/order.entity';
 import { Member } from 'src/members/entities/member.entity';
 import { ReservationHistoryModule } from 'src/reservation-history/reservation-history.module';
 import { CoursePlanSession } from 'src/course-plan-session/entities/course-plan-session.entity';
+import { OrdersModule } from 'src/orders/orders.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { CoursePlanSession } from 'src/course-plan-session/entities/course-plan-
       CoursePlanSession,
     ]),
     forwardRef(() => UsersModule),
+    forwardRef(() => OrdersModule),
     ReservationHistoryModule,
   ],
   controllers: [ReservationsController],

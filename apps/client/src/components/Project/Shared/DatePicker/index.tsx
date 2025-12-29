@@ -71,8 +71,9 @@ type DatePickerProps = {
 	handleCloseModal: () => void;
 	reservedDateTimes?: string[]; // 已預約的日期時間列表 (ISO格式)
 	fullyBookedSlots?: string[]; // 已滿的時段列表 (ISO格式，每時段>=2個預約)
+	maxDate?: Date;
 };
-export default function DatePicker({ value, handleChange, handleCloseModal, reservedDateTimes = [], fullyBookedSlots = [] }: DatePickerProps) {
+export default function DatePicker({ value, handleChange, handleCloseModal, reservedDateTimes = [], fullyBookedSlots = [], maxDate }: DatePickerProps) {
 	console.log('value', value);
 	const [currentDate, setCurrentDate] = useState(new Date());
 	// default selected today
@@ -218,21 +219,28 @@ export default function DatePicker({ value, handleChange, handleCloseModal, rese
 					<div>六</div>
 				</div>
 				<div className='mt-2 grid grid-cols-7 text-sm'>
-					{days.map((day, dayIdx) => (
+						{days.map((day, dayIdx) => {
+						const dayDate = new Date(day.date);
+						const isExpired = maxDate && dayDate > maxDate;
+						const isDisabled =( day.isCurrentMonth === false || day.isPast )=== false || isExpired;
+						return (
 						<div key={day.date} className='py-2'>
 							<button
 								type='button'
-								disabled={day.isCurrentMonth === false || day.isPast}
+								disabled={isDisabled}
 								className={classNames(
 									day.isSelected && 'text-white',
-									!day.isSelected && day.isToday && 'border border-gray-900',
-									!day.isSelected && !day.isToday && day.isCurrentMonth && !day.isPast && 'text-gray-900',
-									!day.isSelected && !day.isToday && !day.isCurrentMonth && 'text-gray-400',
-									!day.isSelected && day.isPast && 'text-gray-400 cursor-not-allowed',
-									day.isSelected && day.isToday && 'bg-gray-900',
-									day.isSelected && !day.isToday && 'bg-gray-900',
+									!day.isSelected && day.isToday && !isExpired  && 'border border-gray-900',
+									!day.isSelected && !day.isToday && day.isCurrentMonth && !isExpired  && 'text-gray-900',
+									!day.isSelected && !day.isToday && !day.isCurrentMonth && !isExpired && 'text-gray-400',
+									!day.isSelected && day.isPast && !isExpired  && 'text-gray-400 cursor-not-allowed',
+
+									day.isSelected && day.isToday && !isExpired && 'bg-gray-900',
+									day.isSelected && !day.isToday && !isExpired && 'bg-gray-900',
 									// !day.isSelected && 'hover:bg-gray-200',
 									(day.isSelected || day.isToday) && 'font-semibold',
+									isExpired && 'cursor-not-allowed opacity-50',
+
 									'mx-auto flex size-8 items-center justify-center rounded-full',
 								)}
 								onClick={() => handleSelectedDay(day)}
@@ -240,7 +248,8 @@ export default function DatePicker({ value, handleChange, handleCloseModal, rese
 								<time dateTime={day.date}>{day.date.split('-').pop().replace(/^0/, '')}</time>
 							</button>
 						</div>
-					))}
+						);
+				})}
 				</div>
 			</div>
 			<section className='p-4 pt-3 flex flex-col h-full'>

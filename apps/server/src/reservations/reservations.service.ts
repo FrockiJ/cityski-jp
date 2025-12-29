@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   Repository,
@@ -24,6 +24,7 @@ import { Course } from 'src/course/entities/course.entity';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { ReservationStatus } from './entities/reservation.entity';
 import { ReservationHistoryService } from 'src/reservation-history/reservation-history.service';
+import { OrdersService } from 'src/orders/orders.service';
 import {
   CreateReservationRequestDto,
   CreateReservationResponseDTO,
@@ -58,6 +59,8 @@ export class ReservationsService {
     private readonly coursePlanSessionRepo: Repository<CoursePlanSession>,
     private readonly dataSource: DataSource,
     private readonly reservationHistoryService: ReservationHistoryService,
+    @Inject(forwardRef(() => OrdersService))
+    private readonly ordersService: OrdersService,
   ) {}
 
   // 獲取預約列表
@@ -309,6 +312,14 @@ export class ReservationsService {
         );
       }
 
+      // Validate that order hasn't expired
+      if (order.expDate && new Date() > order.expDate) {
+        throw new CustomException(
+          `Cannot add reservation: Order has expired on ${order.expDate.toLocaleDateString()}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       // 驗證預約數量是否超過訂單課程數量
       const allOrderReservationsForValidation = await this.orderReservationsRepo.find({
         where: { orderId: body.orderId },
@@ -455,6 +466,12 @@ export class ReservationsService {
       });
 
       await queryRunner.manager.save(newOrderReservation);
+
+      // Recalculate order's expDate since a new reservation was added
+      await this.ordersService.calculateAndUpdateOrderExpDate(
+        body.orderId,
+        queryRunner,
+      );
 
       await queryRunner.commitTransaction();
 
@@ -687,6 +704,21 @@ export class ReservationsService {
       reservation.updatedUser = userId;
 
       const savedReservation = await this.reservationsRepo.save(reservation);
+
+      // Recalculate expDate for all orders affected by this cancellation
+      // Get unique order IDs from reservation members
+      const uniqueOrderIds = [
+        ...new Set(
+          savedReservation.reservationMembers
+            ?.map((rm) => rm.orderMember?.orderId)
+            .filter((id) => id) || [],
+        ),
+      ];
+
+      // Recalculate expDate for each affected order
+      for (const orderId of uniqueOrderIds) {
+        await this.ordersService.calculateAndUpdateOrderExpDate(orderId);
+      }
 
       // 查詢操作者名稱
       let operatorName = '';

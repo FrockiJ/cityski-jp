@@ -1,5 +1,5 @@
 import { FormControl, SxProps } from '@mui/material';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import { useField } from 'formik';
 
 import CoreDatePicker from '@/CIBase/CoreDatePicker';
@@ -18,6 +18,8 @@ interface FormikDatePickerProps {
 	wrapperSxProps?: SxProps;
 	margin?: string;
 	format?: string;
+	minDate?: Dayjs;
+	maxDate?: Dayjs;
 }
 
 const FormikDatePicker = ({
@@ -33,6 +35,8 @@ const FormikDatePicker = ({
 	wrapperSxProps,
 	margin,
 	format,
+	minDate,
+	maxDate,
 }: FormikDatePickerProps) => {
 	const [field, meta, helpers] = useField(name);
 	const invalid = !!meta.error && !!meta.touched;
@@ -58,6 +62,8 @@ const FormikDatePicker = ({
 				size={size}
 				width={width}
 				format={format}
+				minDate={minDate}
+				maxDate={maxDate}
 				value={field.value && dayjs(field.value)}
 				onChange={(date) => {
 					helpers.setTouched(true);

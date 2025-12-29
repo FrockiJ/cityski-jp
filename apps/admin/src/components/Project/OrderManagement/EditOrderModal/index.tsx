@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CourseStatusType, CourseType, DialogAction, GetCoursesResponseDTO, GetOrdersResponseDTO, ModalType } from '@repo/shared';
-import { Dayjs } from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import { Form, Formik, FormikProps } from 'formik';
 import * as Yup from 'yup';
 
@@ -15,6 +15,7 @@ import { useGetOrderDetail } from '@/hooks/useGetOrderDetail';
 import { useOrderReservations } from '@/hooks/useOrderReservations';
 import useModalProvider from '@/hooks/useModalProvider';
 import { showToast } from '@/utils/ui/general';
+import { updateOrderExpDate } from '@/utils/http/api/order';
 import AddEditViewCourseIndoorModal from '@/components/Project/CourseProducts/AddEditViewCourseIndoorModal';
 
 import ConfirmPaymentModal from './PaymentInfoBlock/ConfirmPaymentModal';
@@ -112,21 +113,84 @@ const EditOrderModal = ({
 		}
 	}, [modalType, rowData]);
 
+	useEffect(() => {
+		if (orderDetail?.expDate) {
+			setInitialValues({
+				courseExpiryDate: dayjs(orderDetail.expDate),
+			});
+		}
+	}, [orderDetail]);
+
 	// --- FORMIK ---
 
 	const [initialValues, setInitialValues] = useState<InitialValuesProps>({
 		courseExpiryDate: null,
 	});
 
+	// Calculate system-calculated expDate for minDate validation
+	const calculatedExpDate = useMemo(() => {
+		if (!orderDetail || !reservations || reservations.length === 0) {
+			return null;
+		}
+
+		// Find first scheduled (non-canceled) reservation
+		const activeReservations = reservations
+			.filter((r) => r.reservationStatus !== 9) // Not CANCELED
+			.sort((a, b) => new Date(a.classTime).getTime() - new Date(b.classTime).getTime());
+
+		if (activeReservations.length === 0) {
+			return null;
+		}
+
+		const firstLesson = new Date(activeReservations[0].classTime);
+		const planNumber = orderDetail.planNumber;
+
+		// Apply business rules
+		const expDate = new Date(firstLesson);
+		if (planNumber <= 10) {
+			expDate.setMonth(expDate.getMonth() + 6);
+		} else {
+			expDate.setFullYear(expDate.getFullYear() + 1);
+		}
+
+		return dayjs(expDate);
+	}, [orderDetail, reservations]);
+
 	const validationSchema = Yup.object().shape({
-		courseExpiryDate: Yup.date().nullable().required('必填'),
+		courseExpiryDate: Yup.date()
+			.nullable()
+			.required('必填')
+			.test(
+				'is-after-calculated',
+				'手動設定的期限不可早於系統計算的期限',
+				function (value) {
+					if (!value || !calculatedExpDate) return true;
+					return (
+						dayjs(value).isAfter(calculatedExpDate) || dayjs(value).isSame(calculatedExpDate, 'day')
+					);
+				}
+			),
 	});
 
 	const handleFormSubmit = async (values: InitialValuesProps) => {
-		console.log({ values });
+		if (!orderId || !values.courseExpiryDate) {
+			showToast('無效的表單資料', 'error');
+			return;
+		}
 
-		handleCloseModal?.(DialogAction.CONFIRM);
-		handleRefresh?.();
+		try {
+			await updateOrderExpDate(orderId, {
+				expDate: values.courseExpiryDate.toDate(),
+			});
+
+			showToast('課程使用期限更新成功', 'success');
+			refetchOrderDetail();
+			handleCloseModal?.(DialogAction.CONFIRM);
+			handleRefresh?.();
+		} catch (error: any) {
+			const errorMsg = error?.response?.data?.message || '更新失敗';
+			showToast(errorMsg, 'error');
+		}
 	};
 
 	const handleCourseDetailsClick = (courseId: string) => {
@@ -221,13 +285,17 @@ const EditOrderModal = ({
 								)}
 								<FormikDatePicker
 									name='courseExpiryDate'
-									title='課程使用期限'
+									title='更改課程使用期限'
 									isRequired
 									placeholder='YYYY/MM/DD'
 									width='200px'
 									format='YYYY/MM/DD'
-									// disabled={isReadonly}
-									disablePast
+									minDate={calculatedExpDate || undefined}
+									helperText={
+										calculatedExpDate
+											? `系統計算期限: ${calculatedExpDate.format('YYYY/MM/DD')}`
+											: undefined
+									}
 								/>
 							</CoreBlock>
 							<CoreBlock

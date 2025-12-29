@@ -68,31 +68,112 @@ export class ReservationsService {
     request: GetReservationsRequestDto,
   ): Promise<ResWithPaginationDTO<any[]>> {
     try {
-      // 構建查詢條件
-      let where: any = {};
+      // 使用 QueryBuilder 構建複雜查詢
+      const queryBuilder = this.reservationsRepo
+        .createQueryBuilder('reservation')
+        .leftJoinAndSelect('reservation.department', 'department')
+        .leftJoinAndSelect('reservation.reservationMembers', 'reservationMembers')
+        .leftJoinAndSelect('reservationMembers.orderMember', 'orderMember')
+        .leftJoinAndSelect('orderMember.member', 'member')
+        .leftJoinAndSelect('orderMember.order', 'memberOrder')
+        .leftJoinAndSelect('memberOrder.coursePlan', 'memberCoursePlan')
+        .leftJoinAndSelect('memberCoursePlan.course', 'memberCourse')
+        .leftJoinAndSelect('memberCourse.coursePeople', 'memberCoursePeople')
+        .leftJoinAndSelect('reservation.orderReservations', 'orderReservations')
+        .leftJoinAndSelect('orderReservations.order', 'order')
+        .leftJoinAndSelect('order.coursePlan', 'coursePlan')
+        .leftJoinAndSelect('coursePlan.course', 'course')
+        .leftJoinAndSelect('course.coursePeople', 'coursePeople');
 
-      // 根據部門ID篩選
+      // 篩選：部門ID
       if (request.departmentId) {
-        where.department = { id: request.departmentId };
+        queryBuilder.andWhere('department.id = :departmentId', {
+          departmentId: request.departmentId,
+        });
       }
 
-      // 根據課程狀態篩選
+      // 篩選：預約狀態
       if (
         request.reservationStatus !== undefined &&
         request.reservationStatus !== null
       ) {
-        where.reservationStatus = request.reservationStatus;
+        queryBuilder.andWhere('reservation.reservationStatus = :reservationStatus', {
+          reservationStatus: request.reservationStatus,
+        });
       }
 
-      // 根據關鍵字搜索預約編號或指定教練
+      // 篩選：課程類型（從 Order 表）
+      if (request.courseType) {
+        queryBuilder.andWhere('order.type = :courseType', {
+          courseType: request.courseType,
+        });
+      }
+
+      // 篩選：板類（從 Order 表）
+      if (request.skiType !== undefined && request.skiType !== null) {
+        queryBuilder.andWhere('order.skiType = :skiType', {
+          skiType: request.skiType,
+        });
+      }
+
+      // 篩選：等級
+      if (request.teachingLevel) {
+        const levels = Array.isArray(request.teachingLevel)
+          ? request.teachingLevel
+          : [request.teachingLevel];
+
+        const conditions = levels.map(level => {
+          if (level === '7+') {
+            // 處理「7以上」的情況
+            return 'CAST(reservation.teachingLevel AS INTEGER) >= 7';
+          } else {
+            return `reservation.teachingLevel = '${level}'`;
+          }
+        });
+
+        if (conditions.length > 0) {
+          queryBuilder.andWhere(`(${conditions.join(' OR ')})`);
+        }
+      }
+
+      // 篩選：教練（支援複選）
+      if (request.instructor) {
+        const instructors = Array.isArray(request.instructor)
+          ? request.instructor
+          : [request.instructor];
+
+        const instructorConditions = instructors.map(
+          (instructor) => `reservation.instructor = '${instructor}'`
+        );
+
+        if (instructorConditions.length > 0) {
+          queryBuilder.andWhere(`(${instructorConditions.join(' OR ')})`);
+        }
+      }
+
+      // 篩選：上課時間範圍（起始）
+      if (request.classTimeStart) {
+        queryBuilder.andWhere('reservation.classTime >= :classTimeStart', {
+          classTimeStart: request.classTimeStart,
+        });
+      }
+
+      // 篩選：上課時間範圍（結束）
+      if (request.classTimeEnd) {
+        queryBuilder.andWhere('reservation.classTime <= :classTimeEnd', {
+          classTimeEnd: request.classTimeEnd,
+        });
+      }
+
+      // 篩選：關鍵字（預約編號或教練名稱）
       if (request.keyword) {
-        const keywordConditions = [
-          { ...where, reservationNo: ILike(`%${request.keyword}%`) },
-          { ...where, instructor: ILike(`%${request.keyword}%`) },
-        ];
-        where = Or(...keywordConditions);
+        queryBuilder.andWhere(
+          '(CAST(reservation.reservationNo AS TEXT) ILIKE :keyword OR reservation.instructor ILIKE :keyword)',
+          { keyword: `%${request.keyword}%` },
+        );
       }
 
+      // 分頁參數
       const customPage =
         isNaN(Number(request.page)) || request.page <= 0
           ? 1
@@ -102,31 +183,18 @@ export class ReservationsService {
           ? 10
           : Number(request.limit);
 
-      // 使用 find() 方法
-      const [reservations, total] = await this.reservationsRepo.findAndCount({
-        where,
-        relations: [
-          'reservationMembers',
-          'reservationMembers.orderMember',
-          'reservationMembers.orderMember.member',
-          'reservationMembers.orderMember.order',
-          'reservationMembers.orderMember.order.coursePlan',
-          'reservationMembers.orderMember.order.coursePlan.course',
-          'reservationMembers.orderMember.order.coursePlan.course.coursePeople',
-          'orderReservations',
-          'orderReservations.order',
-          'orderReservations.order.coursePlan',
-          'orderReservations.order.coursePlan.course',
-          'orderReservations.order.coursePlan.course.coursePeople',
-        ],
-        order: {
-          createdTime: 'DESC',
-        },
-        skip: (customPage - 1) * customLimit,
-        take: customLimit,
-      });
+      // 獲取總數（在篩選之後）
+      const total = await queryBuilder.getCount();
 
-      // 為每個預約加入課程名稱、板類和最大人數
+      // 應用分頁和排序
+      queryBuilder
+        .orderBy('reservation.createdTime', 'DESC')
+        .skip((customPage - 1) * customLimit)
+        .take(customLimit);
+
+      const reservations = await queryBuilder.getMany();
+
+      // 為每個預約加入課程名稱、板類、最大人數和剩餘名額
       const reservationsWithCourseName = reservations.map((reservation) => {
         // 優先從 orderReservations 獲取課程資訊（不依賴預約成員）
         let order = reservation.orderReservations?.[0]?.order;
@@ -146,22 +214,40 @@ export class ReservationsService {
 
         const courseName = course?.name || '';
         const skiType = order?.skiType;
-        const maxStudentCount = coursePeople?.maxPeople;
+        const maxStudentCount = coursePeople?.maxPeople || 0;
+        const currentMembers = reservation.reservationMembers?.length || 0;
+        const remainingSlots = maxStudentCount > 0 ? maxStudentCount - currentMembers : 0;
 
         return {
           ...reservation,
           courseName,
           skiType,
           maxStudentCount,
+          currentMembers,
+          remainingSlots,
         };
       });
 
+      // 篩選：剩餘名額（後處理，因為是計算欄位）
+      let filteredReservations = reservationsWithCourseName;
+      if (request.remainingSlots !== undefined && request.remainingSlots !== null) {
+        filteredReservations = reservationsWithCourseName.filter(
+          (r) => r.remainingSlots >= request.remainingSlots,
+        );
+      }
+
       return {
-        data: reservationsWithCourseName,
-        total,
+        data: filteredReservations,
+        total: request.remainingSlots !== undefined && request.remainingSlots !== null
+          ? filteredReservations.length
+          : total,
         page: customPage,
         limit: customLimit,
-        pages: Math.ceil(total / customLimit),
+        pages: Math.ceil(
+          (request.remainingSlots !== undefined && request.remainingSlots !== null
+            ? filteredReservations.length
+            : total) / customLimit
+        ),
       };
     } catch (err) {
       throw new HttpException(err.message, 500);

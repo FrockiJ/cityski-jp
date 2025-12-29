@@ -475,6 +475,10 @@ export const OptionNames = {
   COURSE_STATUS: 'Course Status',
   COURSE_TYPE: 'Course Type',
   COURSE_BOOKING_TYPE: 'Course Booking Type',
+  RESERVATION_STATUS: 'Reservation Status',
+  COURSE_SKI_TYPE: 'Course Ski Type',
+  SKI_SNOWBOARD_LEVEL: 'Ski Snowboard Level',
+  INSTRUCTOR: 'Instructor',
 } as const;
 export type OptionNames = EnumValues<typeof OptionNames>;
 

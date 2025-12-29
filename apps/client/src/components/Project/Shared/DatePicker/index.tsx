@@ -99,8 +99,24 @@ export default function DatePicker({ value, handleChange, handleCloseModal, rese
 		// const selectedDay = new Date(day.date);
 		// console.log('selectedDay', selectedDay);
 		setSelectedDay(day);
-		// 換日時清除已選擇的時段
-		setSelectedTime(undefined);
+
+		// 檢查是否需要清除已選擇的時段
+		if (selectedTime) {
+			const today = new Date();
+			const selectedDate = new Date(day.date);
+
+			// 如果選擇的是今天，檢查當前選擇的時段是否已過去
+			if (selectedDate.toDateString() === today.toDateString()) {
+				const [hour, minute] = selectedTime.split(':').map(Number);
+				const currentHour = today.getHours();
+				const currentMinute = today.getMinutes();
+
+				// 如果選擇的時段已過去，則清除
+				if (hour < currentHour || (hour === currentHour && minute <= currentMinute)) {
+					setSelectedTime(undefined);
+				}
+			}
+		}
 	};
 
 	const handleSelectedTime = (time: string) => {

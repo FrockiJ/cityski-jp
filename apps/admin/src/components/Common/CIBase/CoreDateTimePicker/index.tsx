@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { DateTimePicker, DateTimePickerProps, LocalizationProvider } from '@mui/x-date-pickers';
@@ -44,21 +44,23 @@ const TimeGrid = styled('div')({
 	gap: '8px',
 });
 
-const TimeButton = styled('button')<{ selected?: boolean }>(({ selected }) => ({
+const TimeButton = styled('button')<{ selected?: boolean; disabled?: boolean }>(({ selected, disabled }) => ({
 	padding: '8px',
 	border: '1px solid #E5E7EB',
 	borderRadius: '8px',
 	width: '70px',
 	height: '44px',
-	background: selected ? '#1939B7' : 'white',
-	color: selected ? 'white' : '#1F2937',
-	cursor: 'pointer',
+	background: disabled ? '#EDEDED' : selected ? '#1939B7' : 'white',
+	color: disabled ? '#ACACAC' : selected ? 'white' : '#1F2937',
+	cursor: disabled ? 'not-allowed' : 'pointer',
 	fontSize: '14px',
 	fontStyle: 'normal',
 	fontWeight: 600,
 	fontFamily: '"Public Sans"',
+	opacity: disabled ? 0.4 : 1,
+	pointerEvents: disabled ? 'none' : 'auto',
 	'&:hover': {
-		background: selected ? '#1939B7' : '#F3F4F6',
+		background: disabled ? '#EDEDED' : selected ? '#1939B7' : '#F3F4F6',
 	},
 }));
 
@@ -86,7 +88,54 @@ const CustomTimeView = ({ value, onChange }: TimeViewProps) => {
 		return value.hour() === hours && value.minute() === minutes;
 	};
 
+	const isTimePast = (timeStr: string) => {
+		if (!value) return false;
+
+		const now = dayjs();
+		const selectedDate = value.startOf('day');
+		const today = now.startOf('day');
+
+		// 只有當選擇的日期是今天時，才檢查時段是否過去
+		if (!selectedDate.isSame(today, 'day')) {
+			return false;
+		}
+
+		const [hours, minutes] = timeStr.split(':').map(Number);
+		const timeToCheck = now.hour(hours).minute(minutes).second(0);
+
+		return timeToCheck.isBefore(now) || timeToCheck.isSame(now);
+	};
+
+	// 當日期改變時，檢查當前選擇的時段是否變成過去時段，如果是則清除時間部分
+	useEffect(() => {
+		if (!value) return;
+
+		const now = dayjs();
+		const selectedDate = value.startOf('day');
+		const today = now.startOf('day');
+
+		// 只有當選擇的日期是今天時，才檢查
+		if (selectedDate.isSame(today, 'day')) {
+			const selectedHour = value.hour();
+			const selectedMinute = value.minute();
+			const selectedTimeStr = `${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`;
+
+			// 如果當前選擇的時段已經過去，則清除時間，只保留日期
+			if (isTimePast(selectedTimeStr)) {
+				// 設定一個未來的預設時段（第一個可用的未來時段）
+				const firstAvailableSlot = timeSlots.find((slot) => !isTimePast(slot));
+				if (firstAvailableSlot) {
+					const [hours, minutes] = firstAvailableSlot.split(':').map(Number);
+					const newDate = value.clone().hour(hours).minute(minutes).second(0);
+					onChange(newDate);
+				}
+			}
+		}
+	}, [value?.startOf('day').valueOf()]);
+
 	const handleTimeClick = (timeStr: string) => {
+		if (isTimePast(timeStr)) return;
+
 		const [hours, minutes] = timeStr.split(':').map(Number);
 		const currentDate = value || dayjs();
 		const newDate = currentDate.clone().hour(hours).minute(minutes).second(0);
@@ -98,7 +147,12 @@ const CustomTimeView = ({ value, onChange }: TimeViewProps) => {
 			<TimeGridTitle>選擇時段</TimeGridTitle>
 			<TimeGrid>
 				{timeSlots.map((timeSlot) => (
-					<TimeButton key={timeSlot} selected={isTimeSelected(timeSlot)} onClick={() => handleTimeClick(timeSlot)}>
+					<TimeButton
+						key={timeSlot}
+						selected={isTimeSelected(timeSlot)}
+						disabled={isTimePast(timeSlot)}
+						onClick={() => handleTimeClick(timeSlot)}
+					>
 						{timeSlot}
 					</TimeButton>
 				))}

@@ -135,14 +135,14 @@ const EditOrderModal = ({
 
 		// Find first scheduled (non-canceled) reservation
 		const activeReservations = reservations
-			.filter((r) => r.reservationStatus !== 9) // Not CANCELED
-			.sort((a, b) => new Date(a.classTime).getTime() - new Date(b.classTime).getTime());
+			.filter((r) => r.reservation && r.reservation.reservationStatus !== 9) // Not CANCELED
+			.sort((a, b) => new Date(a.reservation!.classTime).getTime() - new Date(b.reservation!.classTime).getTime());
 
 		if (activeReservations.length === 0) {
 			return null;
 		}
 
-		const firstLesson = new Date(activeReservations[0].classTime);
+		const firstLesson = new Date(activeReservations[0].reservation!.classTime);
 		const planNumber = orderDetail.planNumber;
 
 		// Apply business rules

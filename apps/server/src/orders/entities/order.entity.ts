@@ -90,15 +90,13 @@ export class Order extends UserDate {
   @CreateDateColumn({
     type: 'timestamp',
     name: 'cancel_date',
-    default: () => 'CURRENT_TIMESTAMP(6)',
     nullable: true,
   })
   cancelDate: Date;
 
-  @CreateDateColumn({
+  @Column({
     type: 'timestamp',
     name: 'exp_date',
-    default: () => 'CURRENT_TIMESTAMP(6)',
     nullable: true,
   })
   expDate: Date;

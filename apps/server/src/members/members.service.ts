@@ -20,6 +20,7 @@ import { plainToInstance } from 'class-transformer';
 import { AuthService } from 'src/auth/auth.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { anonymizeMemberData } from 'src/utils/utils';
 
 @Injectable()
 export class MembersService {
@@ -341,14 +342,9 @@ export class MembersService {
         });
       }
 
-      // -- filter: by keyword search --
+      // -- filter: by member number exact search (精準搜尋會員編號) --
       if (keyword) {
-        queryBuilder.andWhere(
-          'member.name ILIKE :keyword OR member.phone LIKE :keyword',
-          {
-            keyword: `%${keyword}%`,
-          },
-        );
+        queryBuilder.andWhere('member.no = :keyword', { keyword: keyword.trim() });
       }
 
       // --- sorting ---
@@ -375,13 +371,16 @@ export class MembersService {
       // convert to DTO
       const memberDtos = plainToInstance(MemberResponseDto, members);
 
+      // 對會員資料進行去識別化處理
+      const anonymizedMemberDtos = memberDtos.map((member) => anonymizeMemberData(member));
+
       // get total pages
       const pages = Math.ceil(total / limit);
 
       console.log('members data from DB:', members);
 
       return {
-        data: memberDtos,
+        data: anonymizedMemberDtos,
         total,
         page,
         limit,

@@ -438,6 +438,32 @@ export default function OrderDetail() {
 											</div>
 										</div>
 									)}
+									{orderDetail.status === OrderStatus.ORDER_SUCCESSFUL && orderReservations.length > 0 && (
+										<div className='inline-flex justify-start items-center gap-1'>
+											<div className="justify-start text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+												訂單有效時間
+											</div>
+											<div className="justify-start text-zinc-500 text-sm font-normal font-['Poppins'] leading-6">
+												{(() => {
+													// Find the first reservation's classTime
+													const firstReservation = orderReservations
+														.filter(or => or.reservation?.classTime)
+														.sort((a, b) => {
+															const dateA = new Date(a.reservation!.classTime).getTime();
+															const dateB = new Date(b.reservation!.classTime).getTime();
+															return dateA - dateB;
+														})[0];
+
+													if (firstReservation?.reservation?.classTime) {
+														const startDate = new Date(firstReservation.reservation.classTime);
+														const endDate = new Date(orderDetail.expDate);
+														return `${startDate.toLocaleDateString('sv-SE')} - ${endDate.toLocaleDateString('sv-SE')}`;
+													}
+													return '';
+												})()}
+											</div>
+										</div>
+									)}
 									{orderDetail.transaction?.status === 2 &&
 									 orderDetail.transaction?.balancePaymentMethod === 'ATM' &&
 									 !orderDetail.transaction?.balanceDate && (

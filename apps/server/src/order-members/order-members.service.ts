@@ -22,6 +22,7 @@ import { ReservationMembersService } from 'src/reservation-members/reservation-m
 import { ReservationStatus } from 'src/reservations/entities/reservation.entity';
 import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
 import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
+import { anonymizeMemberData } from 'src/utils/utils';
 
 @Injectable()
 export class OrderMembersService {
@@ -378,12 +379,9 @@ export class OrderMembersService {
         .leftJoin('order.orderReservations', 'orderReservations')
         .where('om.active = :active', { active: true });
 
-      // Keyword search (name, phone, or email)
+      // Member number exact search (精準搜尋會員編號)
       if (keyword && keyword.trim()) {
-        queryBuilder.andWhere(
-          '(member.name LIKE :keyword OR member.phone LIKE :keyword OR member.email LIKE :keyword)',
-          { keyword: `%${keyword}%` },
-        );
+        queryBuilder.andWhere('member.no = :keyword', { keyword: keyword.trim() });
       }
 
       // Order type filter
@@ -428,7 +426,7 @@ export class OrderMembersService {
       }
 
       // Reload with full relations for the response DTO
-      return await this.orderMembersRepo.find({
+      const results = await this.orderMembersRepo.find({
         where: { id: In(filteredResults.map((r) => r.id)) },
         relations: {
           member: true,
@@ -443,6 +441,12 @@ export class OrderMembersService {
           },
         },
       });
+
+      // 對會員資料進行去識別化處理
+      return results.map((orderMember) => ({
+        ...orderMember,
+        member: orderMember.member ? anonymizeMemberData(orderMember.member) : orderMember.member,
+      }));
     } catch (err) {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }

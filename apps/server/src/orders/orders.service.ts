@@ -796,7 +796,7 @@ export class OrdersService {
             ) // 去重
             .sort((a, b) => a.index - b.index);
 
-          const existingReservations = existingOrderReservations.map(
+          const existingReservations = existingOrderReservations.filter(res => res.reservation.reservationStatus != ReservationStatus.CANCELED ).map(
             (or) => or.reservation,
           );
 

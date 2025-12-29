@@ -43,7 +43,7 @@ export const departmentItems = [
   {
     id: '1585de44-57a9-4380-bfaa-add716e43194',
     sequence: 2,
-    name: '台北店',
+    name: '高雄店',
     phone: null,
     address: null,
     status: DepartmentStatus.ACTIVE,

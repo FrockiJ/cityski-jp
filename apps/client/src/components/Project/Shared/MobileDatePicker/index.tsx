@@ -210,8 +210,26 @@ export default function DatePicker({ value, handleBack, handleChange, mode, rese
 				return `${hours}:${minutes}`;
 			});
 
-		// 3. 合併兩個列表並去重
-		return Array.from(new Set([...reservedTimes, ...fullyBookedTimes]));
+		// 3. 獲取過去的時段（僅限今天）
+		const pastTimes: string[] = [];
+		const today = new Date();
+		const selectedDate = new Date(selectedDay.date);
+
+		// 如果選擇的是今天，則禁用已過去的時段
+		if (selectedDate.toDateString() === today.toDateString()) {
+			const currentHour = today.getHours();
+			const currentMinute = today.getMinutes();
+
+			times.forEach(time => {
+				const [hour, minute] = time.split(':').map(Number);
+				if (hour < currentHour || (hour === currentHour && minute <= currentMinute)) {
+					pastTimes.push(time);
+				}
+			});
+		}
+
+		// 4. 合併三個列表並去重
+		return Array.from(new Set([...reservedTimes, ...fullyBookedTimes, ...pastTimes]));
 	}, [selectedDay.date, reservedDateTimes, fullyBookedSlots]);
 
 	const handleSubmit = () => {
@@ -307,21 +325,26 @@ export default function DatePicker({ value, handleBack, handleChange, mode, rese
 						<div>六</div>
 					</div>
 					<div className='mt-2 grid grid-cols-7 text-sm'>
-						{(mode === 1 ? weekDays : days).map((day, dayIdx) => (
+						{(mode === 1 ? weekDays : days).map((day, dayIdx) => {
+							const isDisabled = day.isCurrentMonth === false || day.isPast;
+							return (
 							<div key={day.date} className='py-2'>
 								<button
 									type='button'
-									disabled={day.isCurrentMonth === false || day.isPast}
+									disabled={isDisabled}
 									className={classNames(
-										day.isSelected && 'text-white',
-										!day.isSelected && day.isToday && 'border border-gray-900',
-										!day.isSelected && !day.isToday && day.isCurrentMonth && !day.isPast && 'text-gray-900',
-										!day.isSelected && !day.isToday && !day.isCurrentMonth && 'text-gray-400',
-										!day.isSelected && day.isPast && 'text-gray-400 cursor-not-allowed',
-										day.isSelected && day.isToday && 'bg-gray-900',
-										day.isSelected && !day.isToday && 'bg-gray-900',
+										day.isSelected && !isDisabled && 'text-white',
+										!day.isSelected && day.isToday && !isDisabled && 'border border-gray-900',
+										!day.isSelected && !day.isToday && day.isCurrentMonth && !isDisabled && 'text-gray-900',
+										!day.isSelected && !day.isToday && !day.isCurrentMonth && !isDisabled && 'text-gray-400',
+
+										day.isSelected && day.isToday && !isDisabled && 'bg-gray-900',
+										day.isSelected && !day.isToday && !isDisabled && 'bg-gray-900',
 										// !day.isSelected && 'hover:bg-gray-200',
-										(day.isSelected || day.isToday) && 'font-semibold',
+										(day.isSelected || day.isToday) && !isDisabled && 'font-semibold',
+
+										isDisabled && 'text-gray-300 cursor-not-allowed opacity-40',
+
 										'mx-auto flex size-8 items-center justify-center rounded-full',
 									)}
 									onClick={() => handleSelectedDay(day)}
@@ -329,7 +352,8 @@ export default function DatePicker({ value, handleBack, handleChange, mode, rese
 									<time dateTime={day.date}>{day.date.split('-').pop().replace(/^0/, '')}</time>
 								</button>
 							</div>
-						))}
+							);
+						})}
 					</div>
 				</div>
 				<section className='pt-3 flex flex-col h-full'>

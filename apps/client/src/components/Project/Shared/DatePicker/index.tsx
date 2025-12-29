@@ -156,8 +156,26 @@ export default function DatePicker({ value, handleChange, handleCloseModal, rese
 				return `${hours}:${minutes}`;
 			});
 
-		// 3. 合併兩個列表並去重
-		return Array.from(new Set([...reservedTimes, ...fullyBookedTimes]));
+		// 3. 獲取過去的時段（僅限今天）
+		const pastTimes: string[] = [];
+		const today = new Date();
+		const selectedDate = new Date(selectedDay.date);
+
+		// 如果選擇的是今天，則禁用已過去的時段
+		if (selectedDate.toDateString() === today.toDateString()) {
+			const currentHour = today.getHours();
+			const currentMinute = today.getMinutes();
+
+			times.forEach(time => {
+				const [hour, minute] = time.split(':').map(Number);
+				if (hour < currentHour || (hour === currentHour && minute <= currentMinute)) {
+					pastTimes.push(time);
+				}
+			});
+		}
+
+		// 4. 合併三個列表並去重
+		return Array.from(new Set([...reservedTimes, ...fullyBookedTimes, ...pastTimes]));
 	}, [selectedDay.date, reservedDateTimes, fullyBookedSlots]);
 
 	const handleSubmit = () => {
@@ -222,24 +240,24 @@ export default function DatePicker({ value, handleChange, handleCloseModal, rese
 						{days.map((day, dayIdx) => {
 						const dayDate = new Date(day.date);
 						const isExpired = maxDate && dayDate > maxDate;
-						const isDisabled =( day.isCurrentMonth === false || day.isPast )=== false || isExpired;
+						const isDisabled = day.isCurrentMonth === false || day.isPast || isExpired;
 						return (
 						<div key={day.date} className='py-2'>
 							<button
 								type='button'
 								disabled={isDisabled}
 								className={classNames(
-									day.isSelected && 'text-white',
-									!day.isSelected && day.isToday && !isExpired  && 'border border-gray-900',
-									!day.isSelected && !day.isToday && day.isCurrentMonth && !isExpired  && 'text-gray-900',
-									!day.isSelected && !day.isToday && !day.isCurrentMonth && !isExpired && 'text-gray-400',
-									!day.isSelected && day.isPast && !isExpired  && 'text-gray-400 cursor-not-allowed',
+									day.isSelected && !isDisabled && 'text-white',
+									!day.isSelected && day.isToday && !isDisabled && 'border border-gray-900',
+									!day.isSelected && !day.isToday && day.isCurrentMonth && !isDisabled && 'text-gray-900',
+									!day.isSelected && !day.isToday && !day.isCurrentMonth && !isDisabled && 'text-gray-400',
 
-									day.isSelected && day.isToday && !isExpired && 'bg-gray-900',
-									day.isSelected && !day.isToday && !isExpired && 'bg-gray-900',
+									day.isSelected && day.isToday && !isDisabled && 'bg-gray-900',
+									day.isSelected && !day.isToday && !isDisabled && 'bg-gray-900',
 									// !day.isSelected && 'hover:bg-gray-200',
-									(day.isSelected || day.isToday) && 'font-semibold',
-									isExpired && 'cursor-not-allowed opacity-50',
+									(day.isSelected || day.isToday) && !isDisabled && 'font-semibold',
+
+									isDisabled && 'text-gray-300 cursor-not-allowed opacity-40',
 
 									'mx-auto flex size-8 items-center justify-center rounded-full',
 								)}

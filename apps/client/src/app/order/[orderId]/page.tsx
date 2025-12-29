@@ -1263,9 +1263,12 @@ export default function OrderDetail() {
 											<span className="text-zinc-500 text-base font-normal font-['Noto_Sans_TC'] leading-6">
 												請參考
 											</span>
-											<span className="text-blue-600 text-base font-normal font-['Noto_Sans_TC'] leading-6">
+											<button
+												className="text-blue-600 text-base font-normal font-['Noto_Sans_TC'] leading-6 hover:underline cursor-pointer"
+												onClick={() => window.open('/terms-and-conditions', '_blank')}
+											>
 												課程約定事項
-											</span>
+											</button>
 											<span className="text-zinc-500 text-base font-normal font-['Noto_Sans_TC'] leading-6">。</span>
 										</div>
 									</div>

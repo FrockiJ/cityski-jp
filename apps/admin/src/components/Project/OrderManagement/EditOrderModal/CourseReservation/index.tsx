@@ -146,7 +146,7 @@ const CourseReservation = ({
 				show: true,
 			},
 			{
-				width: '150px',
+				width: 'auto',
 				show: true,
 				component: (
 					<Button
@@ -206,7 +206,7 @@ const CourseReservation = ({
 					},
 					{
 						label: ' ',
-						width: '150px',
+						width: 'auto',
 						show: true,
 					},
 				]}

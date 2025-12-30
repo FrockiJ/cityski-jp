@@ -880,19 +880,30 @@ export default function OrderDetail() {
 								planNumber={orderDetail.planNumber}
 								canAddReservation={orderDetail.status !== OrderStatus.ORDER_CANCELED}
 								onReservationCreated={async () => {
-									// 重新獲取訂單預約資訊
+									// 重新獲取訂單預約資訊和訂單詳情
 									try {
-										const response = await api.get<ResponseWrapper<OrderReservationResponseDto[]>>(
-											`/api/orders/${orderId}/reservations`,
-											{
-												headers: {
-													Authorization: `Bearer ${accessToken}`,
+										const [reservationsResponse, orderResponse] = await Promise.all([
+											api.get<ResponseWrapper<OrderReservationResponseDto[]>>(
+												`/api/orders/${orderId}/reservations`,
+												{
+													headers: {
+														Authorization: `Bearer ${accessToken}`,
+													},
 												},
-											},
-										);
-										setOrderReservations(response.data.result);
+											),
+											api.get<ResponseWrapper<GetOrderDetailResponseDTO>>(
+												`/api/orders/${orderId}`,
+												{
+													headers: {
+														Authorization: `Bearer ${accessToken}`,
+													},
+												},
+											),
+										]);
+										setOrderReservations(reservationsResponse.data.result);
+										setOrderDetail(orderResponse.data.result);
 									} catch (error) {
-										console.error('Failed to refresh order reservations:', error);
+										console.error('Failed to refresh order data:', error);
 									}
 								}}
 							/>

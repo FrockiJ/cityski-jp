@@ -169,7 +169,7 @@ const CourseDetailPage = () => {
 							title='取消辦法'
 							description='請參考'
 							linkText='課程約定事項'
-							linkHref='/course-terms'
+							linkHref='/terms-and-conditions'
 						/>
 					</div>
 					<div className='hidden xs:block sticky top-[150px] w-[400px] h-[440px]'>

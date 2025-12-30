@@ -853,7 +853,7 @@ const AddEditReservationIndoorModal = ({
 												isRequired={values.pickTrainer === 'Y'}
 												placeholder='請選擇教練'
 												options={coaches}
-												disabled={isBasicInfoDisabled || coachesLoading || values.pickTrainer === 'N'}
+												disabled={isBasicInfoDisabled || coachesLoading }
 											/>
 										</BlockArea>
 									</Stack>

@@ -82,9 +82,8 @@ export class GetReservationsRequestDto extends PaginationRequestDTO {
     if (!value) return undefined;
     return Array.isArray(value) ? value : [value];
   })
-  @IsString()
   @Expose()
-  teachingLevel?: SkiAndSnowboardLevelEnum | SkiAndSnowboardLevelEnum[];
+  teachingLevel?: (SkiAndSnowboardLevelEnum | '7+') | (SkiAndSnowboardLevelEnum | '7+')[];
 
   // 5. 教練篩選
   @Filter({
@@ -99,7 +98,6 @@ export class GetReservationsRequestDto extends PaginationRequestDTO {
     if (!value) return undefined;
     return Array.isArray(value) ? value : [value];
   })
-  @IsString()
   @Expose()
   instructor?: string | string[];
 

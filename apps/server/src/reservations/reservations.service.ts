@@ -68,6 +68,12 @@ export class ReservationsService {
     request: GetReservationsRequestDto,
   ): Promise<ResWithPaginationDTO<any[]>> {
     try {
+      console.log('[DEBUG] ===== getReservations called =====');
+      console.log('[DEBUG] Full request object:', JSON.stringify(request, null, 2));
+      console.log('[DEBUG] teachingLevel type:', typeof request.teachingLevel);
+      console.log('[DEBUG] teachingLevel isArray:', Array.isArray(request.teachingLevel));
+      console.log('[DEBUG] teachingLevel value:', request.teachingLevel);
+
       // 使用 QueryBuilder 構建複雜查詢
       const queryBuilder = this.reservationsRepo
         .createQueryBuilder('reservation')
@@ -134,24 +140,35 @@ export class ReservationsService {
           ? request.teachingLevel
           : [request.teachingLevel];
 
+        console.log('[DEBUG] teachingLevel filter received:', levels);
+
         // 分離出「7+」和普通等級
-        const normalLevels = levels.filter(level => level !== '7+');
-        const has7Plus = levels.includes('7+');
+        const normalLevels = levels.filter((level): level is SkiAndSnowboardLevelEnum => level !== '7+');
+        const has7Plus = levels.includes('7+' as any);
+
+        console.log('[DEBUG] normalLevels:', normalLevels, 'has7Plus:', has7Plus);
 
         const conditions: string[] = [];
+        const params: Record<string, any> = {};
 
         // 處理普通等級
         if (normalLevels.length > 0) {
           conditions.push('reservation.teachingLevel IN (:...normalLevels)');
+          params.normalLevels = normalLevels;
         }
 
         // 處理「7以上」的情況
+        // 只匹配純數字字段且 >= 7
         if (has7Plus) {
-          conditions.push('CAST(reservation.teachingLevel AS INTEGER) >= 7');
+          conditions.push(`(
+            reservation.teachingLevel IN ('7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20')
+          )`);
         }
 
         if (conditions.length > 0) {
-          queryBuilder.andWhere(`(${conditions.join(' OR ')})`, { normalLevels });
+          const whereClause = `(${conditions.join(' OR ')})`;
+          console.log('[DEBUG] WHERE clause:', whereClause, 'params:', params);
+          queryBuilder.andWhere(whereClause, params);
         }
       }
 
@@ -206,6 +223,10 @@ export class ReservationsService {
         .orderBy('reservation.createdTime', 'DESC')
         .skip((customPage - 1) * customLimit)
         .take(customLimit);
+
+      // 打印完整的 SQL 查詢（用於調試）
+      console.log('[DEBUG] SQL Query:', queryBuilder.getSql());
+      console.log('[DEBUG] Query Parameters:', queryBuilder.getParameters());
 
       const reservations = await queryBuilder.getMany();
 

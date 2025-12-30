@@ -22,7 +22,6 @@ import { ReservationMembersService } from 'src/reservation-members/reservation-m
 import { ReservationStatus } from 'src/reservations/entities/reservation.entity';
 import { ReservationMember } from 'src/reservation-members/entities/reservation-member.entity';
 import { OrderReservation } from 'src/order-reservations/entities/order-reservation.entity';
-import { anonymizeMemberData } from 'src/utils/utils';
 
 @Injectable()
 export class OrderMembersService {
@@ -442,11 +441,7 @@ export class OrderMembersService {
         },
       });
 
-      // 對會員資料進行去識別化處理
-      return results.map((orderMember) => ({
-        ...orderMember,
-        member: orderMember.member ? anonymizeMemberData(orderMember.member) : orderMember.member,
-      }));
+      return results;
     } catch (err) {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }

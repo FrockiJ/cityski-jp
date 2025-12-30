@@ -39,6 +39,7 @@ import { SMTPService } from 'src/smtp/smtp.service';
 import { ConfigService } from '@nestjs/config';
 import { User } from 'src/users/entities/user.entity';
 import { ReservationHistory } from 'src/reservation-history/entities/reservation-history.entity';
+import { anonymizePhone } from 'src/utils/utils';
 
 @Injectable()
 export class OrdersService {
@@ -259,7 +260,7 @@ export class OrdersService {
           id: om.id,
           memberId: om.memberId,
           memberName: om.member?.name || '',
-          memberPhone: om.member?.phone || '',
+          memberPhone: anonymizePhone(om.member?.phone || ''),
           memberBirthday: om.member?.birthday,
           snowboard: om.member?.snowboard || 1,
           skis: om.member?.skis || 1,
@@ -964,7 +965,25 @@ export class OrdersService {
         order: { index: 'ASC' },
       });
 
-      return orderReservations;
+      // 對會員電話號碼進行遮罩處理
+      const maskedOrderReservations = orderReservations.map(or => ({
+        ...or,
+        reservation: or.reservation ? {
+          ...or.reservation,
+          reservationMembers: or.reservation.reservationMembers?.map(rm => ({
+            ...rm,
+            orderMember: rm.orderMember ? {
+              ...rm.orderMember,
+              member: rm.orderMember.member ? {
+                ...rm.orderMember.member,
+                phone: anonymizePhone(rm.orderMember.member.phone),
+              } : rm.orderMember.member,
+            } : rm.orderMember,
+          })),
+        } : or.reservation,
+      }));
+
+      return maskedOrderReservations;
     } catch (err) {
       if (err instanceof CustomException) {
         throw err;

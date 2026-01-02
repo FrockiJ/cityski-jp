@@ -117,6 +117,17 @@ export default function VideoSection() {
 		setTouchStart(null);
 		setTouchEnd(null);
 	};
+	let formatVideos = videos.map((video) => {
+		let embed = '';
+		if (video.url.includes('si=')) {
+			const splitUrl = video.url.split('/');
+			embed = splitUrl.at(-1).split('?si=')[0];
+		}
+		return {
+			...video,
+			embed: embed,
+		};
+	});
 	return (
 		<FadeIn className='py-[100px] px-[16px]'>
 			<div>
@@ -143,7 +154,7 @@ export default function VideoSection() {
 						},
 					}}
 				>
-					{videos.map((video, index) => (
+					{formatVideos.map((video) => (
 						<SwiperSlide
 							key={video.id}
 							style={{
@@ -156,7 +167,14 @@ export default function VideoSection() {
 									onClick={() => handleOpenDialog(video)}
 								>
 									<div className='absolute top-0 left-0 w-[100%] h-[100%] z-10'></div>
-									<YoutubeVideo size='sm' videoId={getYoutubeEmbedCode(video.url)} />
+									{/* <YoutubeVideo size='sm' videoId={getYoutubeEmbedCode(video.url)} /> */}
+									<div>
+										<img
+											src={`https://img.youtube.com/vi/${video.embed}/hqdefault.jpg`}
+											alt='youtube image'
+											className='w-[227px] h-[403px] object-cover object-center'
+										></img>
+									</div>
 								</div>
 								<p className='mt-[8px] text-sm xs:text-basic'>
 									{video.name.length > 60 ? video.name.substring(0, video.name.length / 2) + '...' : video.name}
@@ -228,7 +246,7 @@ export default function VideoSection() {
 												</div>
 											</div>
 										)}
-										<div className='absolute top-0 left-0 w-[100%] h-[100%] z-10'></div>
+										<div className='absolute top-0 left-0 w-[96%] h-[100%] z-10'></div>
 										<YoutubeVideo size='lg' videoId={getYoutubeEmbedCode(video.url)} autoPlay loop />
 									</div>
 								</div>
@@ -238,7 +256,7 @@ export default function VideoSection() {
 							className={`h-40 px-[42px] ${windowSize?.[0] <= 480 ? 'w-[calc(100vw)] flex-col justify-center' : 'w-[460px] flex-col justify-center'}`}
 						>
 							<div className='flex flex-col w-[376px]'>
-								<div className='text-white mt-8'>
+								<div className='text-white'>
 									{video?.name?.length > 60 ? video?.name?.substring(0, video?.name?.length / 2) + '...' : video?.name}
 								</div>
 								<button

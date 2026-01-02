@@ -174,7 +174,7 @@ export default function VideoSection() {
 									</div>
 								</div>
 								<p className='mt-[8px] text-sm xs:text-basic'>
-									{video.name.length > 60 ? video.name.substring(0, video.name.length / 2) + '...' : video.name}
+									<div className='text-white truncate'>{video?.name}</div>
 								</p>
 							</div>
 						</SwiperSlide>

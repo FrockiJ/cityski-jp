@@ -118,11 +118,8 @@ export default function VideoSection() {
 		setTouchEnd(null);
 	};
 	let formatVideos = videos.map((video) => {
-		let embed = '';
-		if (video.url.includes('si=')) {
-			const splitUrl = video.url.split('/');
-			embed = splitUrl.at(-1).split('?si=')[0];
-		}
+		const splitUrl = video.url.split('/');
+		let embed = splitUrl.at(-1).split('?si=')[0];
 		return {
 			...video,
 			embed: embed,

@@ -253,9 +253,7 @@ export default function VideoSection() {
 							className={`h-40 px-[42px] ${windowSize?.[0] <= 480 ? 'w-[calc(100vw)] flex-col justify-center' : 'w-[460px] flex-col justify-center'}`}
 						>
 							<div className='flex flex-col w-[376px]'>
-								<div className='text-white'>
-									{video?.name?.length > 60 ? video?.name?.substring(0, video?.name?.length / 2) + '...' : video?.name}
-								</div>
+								<div className='text-white truncate'>{video?.name}</div>
 								<button
 									className='bg-white text-black px-4 py-2 rounded-full w-fit text-center mt-3 flex items-center justify-center gap-1'
 									onClick={() => {

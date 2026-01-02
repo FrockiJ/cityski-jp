@@ -32,26 +32,26 @@ export default function BranchSection() {
 			walking_url: '/image/contact-us/walk.png',
 			parking_url: '/image/contact-us/file_example_MP4_1920_18MG.mp4',
 		},
-		{
-			name: '新竹店',
-			address: '台中市西屯區四川路87號B1-38 (115) ',
-			google_map_url:
-				'https://www.google.com/maps/place/City+Ski+%E5%9F%8E%E5%B8%82%E6%BB%91%E9%9B%AA%E5%AD%B8%E6%A0%A1/@24.1612269,120.652367,17z/data=!4m6!3m5!1s0x34693d1b80ddbc4b:0x9b39b7fa0387bc6a!8m2!3d24.1612269!4d120.6549419!16s%2Fg%2F11t7bvlnlz?authuser=0&entry=ttu&g_ep=EgoyMDI0MTExMy4xIKXMDSoASAFQAw%3D%3D',
-			business_time: [
-				{ week: '週一至五', time: '12:00 PM - 9:00 PM' },
-				{ week: '週六日', time: '10:00 AM - 9:00 PM' },
-			],
-			tel: '(04)2312-1516',
-			mail: 'cityski.tc@gmail.com',
-			parking: [
-				'如欲停B2臨停停車場，請跟車道警衛說要找「商辦115」即可下去停車。',
-				'下去停車場之後請按指示牌前往「收費臨停」區域。',
-				'上來B1的電梯在靠近車道出口的位置。',
-				'電梯請按右手邊(無障礙) 的樓層按鈕。',
-			],
-			walking_url: '/image/contact-us/walk.png',
-			parking_url: '/image/contact-us/file_example_MP4_1920_18MG.mp4',
-		},
+		// {
+		// 	name: '新竹店',
+		// 	address: '台中市西屯區四川路87號B1-38 (115) ',
+		// 	google_map_url:
+		// 		'https://www.google.com/maps/place/City+Ski+%E5%9F%8E%E5%B8%82%E6%BB%91%E9%9B%AA%E5%AD%B8%E6%A0%A1/@24.1612269,120.652367,17z/data=!4m6!3m5!1s0x34693d1b80ddbc4b:0x9b39b7fa0387bc6a!8m2!3d24.1612269!4d120.6549419!16s%2Fg%2F11t7bvlnlz?authuser=0&entry=ttu&g_ep=EgoyMDI0MTExMy4xIKXMDSoASAFQAw%3D%3D',
+		// 	business_time: [
+		// 		{ week: '週一至五', time: '12:00 PM - 9:00 PM' },
+		// 		{ week: '週六日', time: '10:00 AM - 9:00 PM' },
+		// 	],
+		// 	tel: '(04)2312-1516',
+		// 	mail: 'cityski.tc@gmail.com',
+		// 	parking: [
+		// 		'如欲停B2臨停停車場，請跟車道警衛說要找「商辦115」即可下去停車。',
+		// 		'下去停車場之後請按指示牌前往「收費臨停」區域。',
+		// 		'上來B1的電梯在靠近車道出口的位置。',
+		// 		'電梯請按右手邊(無障礙) 的樓層按鈕。',
+		// 	],
+		// 	walking_url: '/image/contact-us/walk.png',
+		// 	parking_url: '/image/contact-us/file_example_MP4_1920_18MG.mp4',
+		// },
 	];
 
 	const handleOpenWalkModal = (url: string) => {

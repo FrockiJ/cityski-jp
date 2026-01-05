@@ -12,6 +12,7 @@ import JoinLineOaModal from '../Line/JoinLineOaModal';
 import { showToast } from '../Utils/Toast';
 
 import ChangePhoneModal from './ChangePhoneModal';
+import LevelInfoModal from './LevelInfoModal';
 
 const PersonalInfo = () => {
 	const userInfo = useSelector(selectUserInfo);
@@ -19,6 +20,7 @@ const PersonalInfo = () => {
 	const searchParams = useSearchParams();
 	const checkLineOa = searchParams.get('checkLineOa');
 	const [isChangePhoneModalOpen, setIsChangePhoneModalOpen] = useState(false);
+	const [isLevelInfoModalOpen, setIsLevelInfoModalOpen] = useState(false);
 	// console.log('checkLineOa', checkLineOa);
 
 	// console.log('searchParams', searchParams.get('connected'));
@@ -94,7 +96,10 @@ const PersonalInfo = () => {
 								<div className='self-stretch my-auto text-base text-zinc-800'>
 									單板第{userInfo?.snowboard}級 / 雙板第{userInfo?.skis}級
 								</div>
-								<button className='flex overflow-hidden gap-1 items-center self-stretch px-3 py-2 my-auto text-sm leading-6 text-center text-blue-600 whitespace-nowrap rounded-lg'>
+								<button
+									className='flex overflow-hidden gap-1 items-center self-stretch px-3 py-2 my-auto text-sm leading-6 text-center text-blue-600 whitespace-nowrap rounded-lg'
+									onClick={() => setIsLevelInfoModalOpen(true)}
+								>
 									<img
 										loading='lazy'
 										src='https://cdn.builder.io/api/v1/image/assets/TEMP/2854f16019e0ede7a960774d86e8f9deb537742aa708811e0aacbf6d05c51ef9?placeholderIfAbsent=true&apiKey=94845a89f25540f0bbe6b080603a926f'
@@ -165,6 +170,12 @@ const PersonalInfo = () => {
 			</div>
 			{checkLineOa === 'true' && userInfo.lineId && !userInfo.lineOa && <JoinLineOaModal />}
 			<ChangePhoneModal isOpen={isChangePhoneModalOpen} onClose={() => setIsChangePhoneModalOpen(false)} />
+			<LevelInfoModal
+				isOpen={isLevelInfoModalOpen}
+				onClose={() => setIsLevelInfoModalOpen(false)}
+				snowboardLevel={userInfo?.snowboard || 1}
+				skiLevel={userInfo?.skis || 1}
+			/>
 		</main>
 	);
 };

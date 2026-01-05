@@ -243,7 +243,6 @@ export default function VideoSection() {
 												</div>
 											</div>
 										)}
-										<div className='absolute top-0 left-0 w-[96%] h-[100%] z-10'></div>
 										<YoutubeVideo size='lg' videoId={getYoutubeEmbedCode(video.url)} autoPlay loop />
 									</div>
 								</div>

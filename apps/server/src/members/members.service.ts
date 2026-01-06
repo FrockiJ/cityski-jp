@@ -11,7 +11,6 @@ import {
   MemberResponseDto,
   MemberStatus,
   MemberType,
-  OrderByType,
   ResWithPaginationDTO,
 } from '@repo/shared';
 import { CreateLineMember } from 'src/shared/types/auth';
@@ -359,8 +358,9 @@ export class MembersService {
       };
 
       const dbSortCol = columnMap[sort] || sort;
+      const orderDirection = order === 'ASC' ? 'ASC' : 'DESC';
 
-      queryBuilder.orderBy(`member.${dbSortCol}`, OrderByType[order]);
+      queryBuilder.orderBy(`member.${dbSortCol}`, orderDirection);
 
       // --- pagination ---
       queryBuilder.skip((page - 1) * limit).take(limit);
@@ -547,8 +547,9 @@ export class MembersService {
       };
 
       const dbSortCol = columnMap[sort] || sort;
+      const orderDirection = order === 'ASC' ? 'ASC' : 'DESC';
 
-      queryBuilder.orderBy(`member.${dbSortCol}`, OrderByType[order]);
+      queryBuilder.orderBy(`member.${dbSortCol}`, orderDirection);
 
       // --- pagination ---
       queryBuilder.skip((page - 1) * limit).take(limit);

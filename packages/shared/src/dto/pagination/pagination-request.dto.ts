@@ -5,7 +5,7 @@ import {
   IsUUID,
   Matches,
 } from "class-validator";
-import { OrderType } from "../../constants/enums";
+import { OrderByType } from "../../constants/enums";
 import { Transform } from "class-transformer";
 
 export class PaginationRequestDTO {
@@ -26,7 +26,7 @@ export class PaginationRequestDTO {
   sort?: string;
 
   @IsOptional()
-  order?: OrderType;
+  order?: string;
   // sorting end
 
   // filter start

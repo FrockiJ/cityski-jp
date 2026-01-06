@@ -77,7 +77,10 @@ export default class Http {
 				const config = error?.config;
 
 				// 如果回應是 401 Unauthorized 且前一個請求還沒重試
-				if (error.response?.data.statusCode === HttpStatusCode.Unauthorized && !config?.sent) {
+				const isUnauthorized =
+					error.response?.status === HttpStatusCode.Unauthorized ||
+					error.response?.data?.statusCode === HttpStatusCode.Unauthorized;
+				if (isUnauthorized && !config?.sent) {
 					console.log('如果回應是 401 Unauthorized 且前一個請求還沒重試');
 					config.sent = true;
 

@@ -18,7 +18,6 @@ import {
   GetCoursesRequestDTO,
   GetCoursesResponseDTO,
   GetPublishedCoursesResponseDTO,
-  OrderByType,
   ResWithPaginationDTO,
   UpdateCourseManagementVenuesRequestDTO,
   UpdateCourseRequestDTO,
@@ -115,6 +114,7 @@ export class CoursesService {
       endUpdatedTime,
     } = request;
     try {
+      console.log('getCourses');
       const queryBuilder = this.courseRepo.createQueryBuilder('course');
 
       // check page and limit, default to 1 and 10 if not present.
@@ -209,10 +209,11 @@ export class CoursesService {
         removalDate: 'removal_date',
         updatedTime: 'updated_time',
       };
-
+      console.log('sort', sort);
       const dbSortCol = columnMap[sort] || sort;
+      const orderDirection = order === 'ASC' ? 'ASC' : 'DESC';
 
-      queryBuilder.orderBy(`course.${dbSortCol}`, OrderByType[order]);
+      queryBuilder.orderBy(`course.${dbSortCol}`, orderDirection);
 
       // --- pagination ---
       queryBuilder.skip((customPage - 1) * customLimit).take(customLimit);

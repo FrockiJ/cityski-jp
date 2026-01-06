@@ -16,7 +16,6 @@ import {
   GetUsersRequestDTO,
   GetUsersResponseDTO,
   IsSuperAdmin,
-  OrderType,
   ResWithPaginationDTO,
   UpdateUserRequestDTO,
   UserIsDefPassword,
@@ -188,25 +187,16 @@ export class UsersService {
           'department.status',
         ]);
 
+      const orderDirection = getUsersRequestDTO.order === 'ASC' ? 'ASC' : 'DESC';
+
       if (getUsersRequestDTO.sort === 'roles') {
-        queryBuilder.orderBy(
-          'role.name',
-          getUsersRequestDTO.order
-            ? getUsersRequestDTO.order.toLocaleLowerCase() === OrderType.ASC
-              ? 'ASC'
-              : 'DESC'
-            : 'DESC',
-        );
+        queryBuilder.orderBy('role.name', orderDirection);
       } else {
         queryBuilder.orderBy(
           getUsersRequestDTO.sort
             ? `user.${getUsersRequestDTO.sort}`
             : 'user.updatedTime',
-          getUsersRequestDTO.order
-            ? getUsersRequestDTO.order.toLocaleLowerCase() === OrderType.ASC
-              ? 'ASC'
-              : 'DESC'
-            : 'DESC',
+          orderDirection,
         );
       }
 

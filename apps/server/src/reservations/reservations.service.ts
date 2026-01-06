@@ -219,8 +219,12 @@ export class ReservationsService {
       const total = await queryBuilder.getCount();
 
       // 應用分頁和排序
+      const orderDirection = request.order === 'ASC' ? 'ASC' : 'DESC';
       queryBuilder
-        .orderBy('reservation.createdTime', 'DESC')
+        .orderBy(
+          request.sort ? `reservation.${request.sort}` : 'reservation.createdTime',
+          orderDirection,
+        )
         .skip((customPage - 1) * customLimit)
         .take(customLimit);
 

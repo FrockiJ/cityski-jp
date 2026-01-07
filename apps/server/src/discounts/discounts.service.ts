@@ -7,7 +7,6 @@ import {
   ResWithPaginationDTO,
   GetDiscountRequestDTO,
   GetDiscountResponseDTO,
-  OrderType,
   UpdateDiscountRequestDTO,
   CheckDiscountCodeRequestDTO,
   DiscountType,
@@ -114,9 +113,10 @@ export class DiscountsService {
       }
 
       // sort
+      const orderDirection = query.order === 'ASC' ? 'ASC' : 'DESC';
       queryBuilder.orderBy(
         query.sort ? `discount.${query.sort}` : 'discount.createdTime',
-        query.order ? (query.order === OrderType.ASC ? 'ASC' : 'DESC') : 'DESC',
+        orderDirection,
       );
 
       // pagination

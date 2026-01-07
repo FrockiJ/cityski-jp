@@ -137,8 +137,12 @@ export class OrdersService {
         },
       );
 
-      // 排序：最新的訂單在前
-      queryBuilder.orderBy('o.createdTime', 'DESC');
+      // 排序
+      const orderDirection = request.order === 'ASC' ? 'ASC' : 'DESC';
+      queryBuilder.orderBy(
+        request.sort ? `o.${request.sort}` : 'o.createdTime',
+        orderDirection,
+      );
       const orders = await queryBuilder.getMany();
 
       const customPage =

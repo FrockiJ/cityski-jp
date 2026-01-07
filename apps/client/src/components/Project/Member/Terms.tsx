@@ -11,19 +11,19 @@ const Terms = () => {
 					<h2 className='self-start text-2xl font-medium tracking-tight leading-loose text-zinc-800 max-xs:hidden'>
 						課程約定事項
 					</h2>
-					<div className='flex items-center gap-1 max-xs:hidden'>
+					<a href='/pdf/Terms.pdf' download className='flex items-center gap-1 max-xs:hidden'>
 						<img src='/image/terms/dl-docs.svg' alt='download-document' />
-						<a href='' className='text-blue-600 hover:text-blue-700 text-sm'>
+						<span className='text-blue-600 hover:text-blue-700 text-sm'>
 							下載文件
-						</a>
-					</div>
+						</span>
+					</a>
 					<Button variant='secondary' className='w-full h-10 xs:hidden'>
-						<div className='flex items-center gap-1'>
+						<a href='/pdf/Terms.pdf' download className='flex items-center gap-1'>
 							<img src='/image/terms/dl-docs.svg' alt='download-document' />
-							<a href='' className='text-blue-600 hover:text-blue-700 text-sm'>
+							<span className='text-blue-600 hover:text-blue-700 text-sm'>
 								下載文件
-							</a>
-						</div>
+							</span>
+						</a>
 					</Button>
 				</div>
 

@@ -23,13 +23,13 @@ export const httpWithToken = new Http({
 			return config;
 		},
 		requestInterceptorCatch(err) {
-			return err;
+			return Promise.reject(err);
 		},
 		responseInterceptor(res) {
 			return res;
 		},
 		async responseInterceptorCatch(err) {
-			return err;
+			return Promise.reject(err);
 		},
 	},
 });

@@ -15,7 +15,6 @@ import {
   GetRoleDetailResponseDTO,
   GetRolesRequestDTO,
   IsSuperAdmin,
-  OrderType,
   ResWithPaginationDTO,
   Roles,
   RoleStatus,
@@ -117,23 +116,16 @@ export class RolesService {
         );
 
       // sort
+      const orderDirection = getRolesRequestDTO.order === 'ASC' ? 'ASC' : 'DESC';
+
       if (getRolesRequestDTO.sort === 'usageCount') {
-        queryBuilder.orderBy(
-          'usageCount',
-          getRolesRequestDTO.order.toLocaleLowerCase() === OrderType.ASC
-            ? 'ASC'
-            : 'DESC',
-        );
+        queryBuilder.orderBy('usageCount', orderDirection);
       } else {
         queryBuilder.orderBy(
           getRolesRequestDTO.sort
             ? `role.${getRolesRequestDTO.sort}`
             : 'role.updatedTime',
-          getRolesRequestDTO.order
-            ? getRolesRequestDTO.order.toLocaleLowerCase() === OrderType.ASC
-              ? 'ASC'
-              : 'DESC'
-            : 'DESC',
+          orderDirection,
         );
       }
 

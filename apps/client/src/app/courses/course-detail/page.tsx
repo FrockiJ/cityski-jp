@@ -161,7 +161,12 @@ const CourseDetailPage = () => {
 					<div className='flex-1 max-xs:px-5 w-full'>
 						{/* Left column */}
 						<CourseSummary data={courseDetail} />
-						<CoursePricing title='方案詳情' courseOptions={plans} courseType={courseDetail?.type} />
+						<CoursePricing
+							title='方案詳情'
+							courseOptions={plans}
+							courseType={courseDetail?.type}
+							bkgType={courseDetail?.bkgType}
+						/>
 						<CourseInfoSection title='課程資訊' items={infos} />
 						<NoticeSection />
 						<LeavePolicy title='請假辦法' bkgType={courseDetail?.bkgType} data={policy} />

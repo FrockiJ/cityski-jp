@@ -1,19 +1,22 @@
 import React from 'react';
-import { CoursePlanResponseDTO, CourseType } from '@repo/shared';
+import { CourseBkgType, CoursePlanResponseDTO, CourseType } from '@repo/shared';
 
 import PrivateCourseIcon from '@/components/Icon/PrivateCourseIcon';
 import TimeIcon from '@/components/Icon/TimeIcon';
 
 import { CourseOption } from './CourseOption';
+import FixedCourseTimeline from './FixedCourseTimeline';
 
 interface CoursePricingProps {
 	title: string;
 	courseOptions: CoursePlanResponseDTO[];
 	courseType: CourseType;
+	bkgType?: number;
 }
 
-const CoursePricing = ({ title, courseOptions, courseType }: CoursePricingProps) => {
+const CoursePricing = ({ title, courseOptions, courseType, bkgType }: CoursePricingProps) => {
 	const hasLessTenLessons = courseOptions.some((plan) => plan.number <= 10);
+	const isFixedTimeCourse = bkgType === CourseBkgType.FIXED || bkgType === 2;
 
 	const formatCourseOptions = [];
 	const eachRowCount = 5;
@@ -42,26 +45,30 @@ const CoursePricing = ({ title, courseOptions, courseType }: CoursePricingProps)
 					)}
 				</div>
 
-				<div className='rounded-xl overflow-hidden mt-4'>
-					{formatCourseOptions.map((row, rowIndex) => (
-						<div
-							key={rowIndex}
-							className={`
-							hidden xs:flex flex-wrap items-center py-14 w-full bg-[#f7f7f7] max-xs:max-w-full 
+				{isFixedTimeCourse ? (
+					<FixedCourseTimeline coursePlans={courseOptions} />
+				) : (
+					<div className='rounded-xl overflow-hidden mt-4'>
+						{formatCourseOptions.map((row, rowIndex) => (
+							<div
+								key={rowIndex}
+								className={`
+							hidden xs:flex flex-wrap items-center py-14 w-full bg-[#f7f7f7] max-xs:max-w-full
 						${rowLen - 1 !== rowIndex ? 'border-b border-solid border-b-[#ededed]' : ''}`}
-						>
-							{row.map((option) => (
+							>
+								{row.map((option) => (
+									<CourseOption key={option.id} {...option} />
+								))}
+							</div>
+						))}
+
+						<div className='block xs:hidden bg-[#f7f7f7]'>
+							{courseOptions.map((option) => (
 								<CourseOption key={option.id} {...option} />
 							))}
 						</div>
-					))}
-
-					<div className='block xs:hidden bg-[#f7f7f7]'>
-						{courseOptions.map((option) => (
-							<CourseOption key={option.id} {...option} />
-						))}
 					</div>
-				</div>
+				)}
 			</div>
 		</section>
 	);

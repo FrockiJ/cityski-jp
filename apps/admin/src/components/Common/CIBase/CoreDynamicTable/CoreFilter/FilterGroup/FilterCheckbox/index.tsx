@@ -26,7 +26,7 @@ const FilterCheckbox = ({ tableId, options, filterKey, clear }: FilterCheckboxPr
 		<>
 			{options.map((opt: Option) => (
 				<FormControlLabel
-					key={key}
+					key={`${key}-${opt.value}`}
 					value={opt.value}
 					checked={data.some((o) => o.value === opt.value)}
 					onChange={(event: any, checked) => {

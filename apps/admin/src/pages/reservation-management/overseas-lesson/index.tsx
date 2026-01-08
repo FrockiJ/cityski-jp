@@ -14,9 +14,12 @@ import TablePageLayout from '@/components/Common/CIBase/CoreDynamicTable/TablePa
 import AddEditReservationIndoorModal from '@/components/Project/ReservationManagement/AddEditReservationIndoorModal';
 import { useCourseFormatTableData } from '@/hooks/tableData/useCourseFormatTableData';
 import useModalProvider from '@/hooks/useModalProvider';
+import { setTableSort } from '@/state/slices/tableSlice';
+import { useAppDispatch } from '@/state/store';
 
 const OverseasLessonPage = () => {
 	const modal = useModalProvider();
+	const dispatch = useAppDispatch();
 	const [keyword, setKeyword] = useState<string>('');
 	const [departmentId, setDepartmentId] = useState<string>('');
 	const handleSearch = debounce((e: any) => {
@@ -24,6 +27,18 @@ const OverseasLessonPage = () => {
 	}, 300);
 
 	// --- EFFECT ---
+
+	// Reset table sort when component unmounts (user leaves the page)
+	useEffect(() => {
+		return () => {
+			dispatch(
+				setTableSort({
+					order: null,
+					orderBy: '',
+				}),
+			);
+		};
+	}, [dispatch]);
 
 	useEffect(() => {
 		const departmentId = localStorage.getItem('departmentId');

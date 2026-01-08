@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Box, TableCell as MuiTableCell, TableCellProps as MuiTableCellProps } from '@mui/material';
 import { OrderByType, SortType } from '@repo/shared';
 
@@ -35,17 +34,6 @@ const TableCell = ({
 }: TableCellProps<ListResultI>) => {
 	const dispatch = useAppDispatch();
 	const tableSort = useAppSelector((state) => state.table.tableSort);
-
-	useEffect(() => {
-		return () => {
-			dispatch(
-				setTableSort({
-					order: null,
-					orderBy: '',
-				}),
-			);
-		};
-	}, [dispatch]);
 
 	return (
 		<MuiTableCell

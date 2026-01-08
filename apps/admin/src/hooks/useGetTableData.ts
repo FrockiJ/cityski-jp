@@ -73,7 +73,7 @@ export default function useGetTableData<T extends ListResultI>({
 
 	// re-dispatch and reset page numbers when filter changes include keyword
 	useEffect(() => {
-		if (tableId && conditions?.hasOwnProperty('keyword') && conditions?.keyword.length > 0) {
+		if (tableId && conditions?.hasOwnProperty('keyword') && conditions?.keyword && conditions.keyword.length > 0) {
 			dispatch(
 				setNewTableInfo({
 					[`table${tableId}`]: {
@@ -106,11 +106,11 @@ export default function useGetTableData<T extends ListResultI>({
 		Object.keys(conditionQuery).forEach((key) => {
 			const value = conditionQuery[key];
 
-			if (value !== '') {
+			if (value !== '' && value !== undefined && value !== null) {
 				// 如果值是陣列，則為每個值生成一個查詢參數
 				if (Array.isArray(value)) {
 					value.forEach((v) => {
-						if (v !== '') {
+						if (v !== '' && v !== undefined && v !== null) {
 							filterStr += `&${key}=${encodeURIComponent(v)}`;
 						}
 					});

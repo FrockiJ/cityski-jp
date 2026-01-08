@@ -14,10 +14,13 @@ import TablePageLayout from '@/components/Common/CIBase/CoreDynamicTable/TablePa
 import AddEditReservationIndoorModal from '@/components/Project/ReservationManagement/AddEditReservationIndoorModal';
 import { useReservationFormatTableData } from '@/hooks/tableData/useReservationFormatTableData';
 import useModalProvider from '@/hooks/useModalProvider';
+import { setTableSort } from '@/state/slices/tableSlice';
+import { useAppDispatch } from '@/state/store';
 
 const IndoorCoursePage = () => {
 	const modal = useModalProvider();
 	const router = useRouter();
+	const dispatch = useAppDispatch();
 	const times = useRef(0);
 	const [keyword, setKeyword] = useState<string>('');
 	const [departmentId, setDepartmentId] = useState<string>('');
@@ -28,6 +31,18 @@ const IndoorCoursePage = () => {
 	console.log('IndoorCoursePage rendered', router.isReady);
 
 	// --- EFFECT ---
+
+	// Reset table sort when component unmounts (user leaves the page)
+	useEffect(() => {
+		return () => {
+			dispatch(
+				setTableSort({
+					order: null,
+					orderBy: '',
+				}),
+			);
+		};
+	}, [dispatch]);
 
 	useEffect(() => {
 		const departmentId = localStorage.getItem('departmentId');
@@ -101,7 +116,10 @@ const IndoorCoursePage = () => {
 	// --- API ---
 	const { formatTableData, tableData, tableDataCount, tableDataLoading, handleRefresh } = useReservationFormatTableData(
 		{
-			query: { keyword, departmentId },
+			query: {
+				keyword: keyword || undefined,
+				departmentId: departmentId || undefined
+			},
 			type: 'indoor',
 		},
 	);

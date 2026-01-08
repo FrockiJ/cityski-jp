@@ -29,11 +29,31 @@ export const useReservationFormatTableData = (options?: Props) => {
 	const tableSort = useAppSelector((state) => state.table.tableSort);
 	const isOverseas = options?.type === 'overseas';
 
+	// Map frontend field names to backend database column names
+	const fieldMapping: Record<string, string> = {
+		'no': 'reservationNo',
+		'name': 'classTime',  // courseName is computed, use classTime as fallback
+		'status': 'reservationStatus',
+		'boardType': 'teachingLevel',  // skiType is from order table, use teachingLevel as fallback
+		'level': 'teachingLevel',
+		'instructor': 'instructor',
+		'number': 'classTime',  // currentMembers is computed, use classTime as fallback
+		'remaining': 'classTime',  // remainingSlots is computed, use classTime as fallback
+		'beginTime': 'classTime',
+	};
+
+	const backendSortField = tableSort.orderBy ? (fieldMapping[tableSort.orderBy] || tableSort.orderBy) : '';
+	console.log('[useReservationFormatTableData] Sort mapping:', {
+		frontendField: tableSort.orderBy,
+		backendField: backendSortField,
+		order: tableSort.order
+	});
+
 	const { tableData, tableDataCount, tableDataLoading, handleRefresh } = useGetTableData<ReservationResponseDto>({
 		queryUrl: '/api/reservations',
 		tableId: isOverseas ? configReservationsOverseasTable.tableId : configReservationsIndoorTable.tableId,
 		conditions: options?.query,
-		sort: { type: tableSort.orderBy, order: tableSort.order ?? OrderByType.desc },
+		sort: { type: backendSortField, order: tableSort.order ?? OrderByType.desc },
 	});
 
 	const [formatTableData, setFormatTableData] = useState<

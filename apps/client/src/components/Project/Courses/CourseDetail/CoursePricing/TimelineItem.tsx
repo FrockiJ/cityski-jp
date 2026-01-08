@@ -89,7 +89,7 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({ plan, isFirst, isLas
 					</div>
 
 					{/* Right: Total Price */}
-					<div className='flex items-center pl-4 pr-8'>
+					<div className='flex items-center pr-8'>
 						<div className='flex items-baseline flex-shrink-0'>
 							<span className='text-2xl font-medium text-[#2b2b2b]'>
 								{plan.price && plan.number ? (plan.price * plan.number).toLocaleString() : '---'}

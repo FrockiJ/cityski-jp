@@ -41,10 +41,18 @@ const OrderManagementIndoorCoursePage = () => {
 		}
 	};
 
-	const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+	const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
 		const status = getStatusFromTabIndex(newValue);
 		setSelectedStatus(status);
 	};
+
+	// 為每個 tab 生成獨立的 tableId
+	const getTableIdForStatus = (status: number | undefined): string => {
+		if (status === undefined) return `${configOrdersTable.tableId}_all`;
+		return `${configOrdersTable.tableId}_status_${status}`;
+	};
+
+	const currentTableId = getTableIdForStatus(selectedStatus);
 
 	// --- EFFECT ---
 
@@ -77,6 +85,7 @@ const OrderManagementIndoorCoursePage = () => {
 
 	const { formatTableData, tableData, tableDataCount, tableDataLoading, handleRefresh } = useOrderFormatTableData({
 		query: queryParams,
+		tableId: currentTableId,
 	});
 
 	useEffect(() => {
@@ -151,7 +160,7 @@ const OrderManagementIndoorCoursePage = () => {
 			/>
 			<StyledSearchFilterWrapper>
 				<CoreFilter
-					tableId={configOrdersTable.tableId}
+					tableId={currentTableId}
 					tableDataCount={tableDataCount}
 					searchOptions={{ onKeyDown: handleSearch, value: keyword, placeholder: '搜尋會員姓名或訂單編號' }}
 					unused={configOrdersTable?.unfilteredFields}
@@ -160,7 +169,7 @@ const OrderManagementIndoorCoursePage = () => {
 			</StyledSearchFilterWrapper>
 
 			<CoreDynamicTable
-				id={configOrdersTable.tableId}
+				id={currentTableId}
 				headData={configOrdersTable.columns}
 				dataCount={tableDataCount}
 				isLoading={isLoading}

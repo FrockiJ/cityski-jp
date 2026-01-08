@@ -93,12 +93,35 @@ function CoreFilter<T extends object>({
 
 			if (unusedProperties.find((p) => p === key)) return accumulator;
 
+			// 針對訂單管理：只有「等待確認」(status_1) 和「訂購成功」(status_2) 顯示付訂時間
+			if (!tableId.includes('status_1') && !tableId.includes('status_2') &&
+				(key === 'depositTimeStart' || key === 'depositTimeEnd')) {
+				return accumulator;
+			}
+
+			// 針對訂單管理：只有「訂購取消」(status_9) 顯示取消時間
+			if (!tableId.includes('status_9') &&
+				(key === 'cancelTimeStart' || key === 'cancelTimeEnd')) {
+				return accumulator;
+			}
+
 			if (filterInfo) {
+				let options = (optionData as { [key in OptionNames]?: MultiValue<SelectOption> })?.[filterInfo.options] ?? [];
+
+				// 針對訂單管理的進階篩選，根據 tableId 過濾選項
+				if (filterInfo.options === OptionNames.ORDER_ADVANCED_FILTER) {
+					// 「全部」(_all) 和「訂購成功」(status_2) 顯示兩個進階篩選選項
+					// 其他分頁只顯示 "只能併班的團體預約式課程"
+					if (!tableId.includes('_all') && !tableId.includes('status_2')) {
+						options = options.filter((opt: SelectOption) => opt.value === 'groupFlexibleOnly');
+					}
+				}
+
 				accumulator.push({
 					key,
 					label: filterInfo.label ?? '',
 					type: filterInfo.type ?? FilterType.SELECT,
-					options: (optionData as { [key in OptionNames]?: MultiValue<SelectOption> })?.[filterInfo.options] ?? [],
+					options,
 					sequence: filterInfo.sequence ?? 0,
 					placeholder: filterInfo.placeholder,
 					startDateKey: filterInfo.startDateKey,

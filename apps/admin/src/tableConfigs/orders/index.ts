@@ -1,4 +1,4 @@
-import { ColumnType, GetCoursesRequestDTO, OrderTableListResult, TableColumnType, TableConfig } from '@repo/shared';
+import { ColumnType, GetOrdersRequestDTO, OrderTableListResult, TableColumnType, TableConfig } from '@repo/shared';
 
 import { blueTheme, greyTheme, paymentStatusTheme, redTheme, whiteTextTheme, yellowTheme } from '@/components/Common/CIBase/Tag/styles';
 
@@ -85,8 +85,7 @@ export const getOrdersTableConfigColumn: TableColumnType<any>[] = [
 	},
 ];
 
-export const configOrdersTable: TableConfig<any, GetCoursesRequestDTO> = {
+export const configOrdersTable: TableConfig<any, GetOrdersRequestDTO> = {
 	tableId: 'ordersTableList',
 	columns: getOrdersTableConfigColumn,
-	unfilteredFields: (_query) => [],
 };

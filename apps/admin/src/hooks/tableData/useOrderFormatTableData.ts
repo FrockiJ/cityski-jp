@@ -9,6 +9,7 @@ import { configOrdersTable } from 'src/tableConfigs/orders';
 type Props = {
 	query?: GetOrdersRequestDTO;
 	sort?: SortType;
+	tableId?: string;
 };
 
 export const useOrderFormatTableData = (options?: Props) => {
@@ -31,7 +32,7 @@ export const useOrderFormatTableData = (options?: Props) => {
 
 	const { tableData, tableDataCount, tableDataLoading, handleRefresh } = useGetTableData<GetOrdersResponseDTO>({
 		queryUrl: '/api/orders',
-		tableId: configOrdersTable.tableId,
+		tableId: options?.tableId || configOrdersTable.tableId,
 		conditions: options?.query,
 		sort: { type: backendSortField, order: tableSort.order ?? OrderByType.desc },
 		options: { noFetch: !options?.query?.departmentId },

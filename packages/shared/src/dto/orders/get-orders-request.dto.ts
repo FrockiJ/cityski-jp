@@ -80,12 +80,64 @@ export class GetOrdersRequestDTO extends PaginationRequestDTO {
   @Expose()
   orderTimeEnd?: Date;
 
-  // 5. 進階篩選
+  // 5. 付訂時間（起始）
+  @Filter({
+    type: FilterType.DATETIME,
+    endDateKey: 'depositTimeEnd',
+    label: '付訂時間',
+    options: OptionNames.DATETIME,
+    sequence: 5,
+    placeholder: '選擇開始時間',
+  })
+  @IsOptional()
+  @Expose()
+  depositTimeStart?: Date;
+
+  // 6. 付訂時間（結束）
+  @Filter({
+    type: FilterType.DATETIME_END,
+    startDateKey: 'depositTimeStart',
+    label: '付訂時間',
+    options: OptionNames.DATETIME,
+    sequence: 6,
+    placeholder: '選擇結束時間',
+  })
+  @IsOptional()
+  @Expose()
+  depositTimeEnd?: Date;
+
+  // 7. 取消時間（起始）
+  @Filter({
+    type: FilterType.DATETIME,
+    endDateKey: 'cancelTimeEnd',
+    label: '取消時間',
+    options: OptionNames.DATETIME,
+    sequence: 5,
+    placeholder: '選擇開始時間',
+  })
+  @IsOptional()
+  @Expose()
+  cancelTimeStart?: Date;
+
+  // 8. 取消時間（結束）
+  @Filter({
+    type: FilterType.DATETIME_END,
+    startDateKey: 'cancelTimeStart',
+    label: '取消時間',
+    options: OptionNames.DATETIME,
+    sequence: 6,
+    placeholder: '選擇結束時間',
+  })
+  @IsOptional()
+  @Expose()
+  cancelTimeEnd?: Date;
+
+  // 9. 進階篩選
   @Filter({
     type: FilterType.CHECKBOX,
     label: '進階篩選',
     options: OptionNames.ORDER_ADVANCED_FILTER,
-    sequence: 5,
+    sequence: 7,
   })
   @IsOptional()
   @Transform(({ value }) => {

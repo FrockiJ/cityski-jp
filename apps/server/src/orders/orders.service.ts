@@ -148,6 +148,32 @@ export class OrdersService {
         });
       }
 
+      // 根據付訂時間篩選
+      if (request.depositTimeStart) {
+        queryBuilder.andWhere('transaction.depositPaidTime >= :depositTimeStart', {
+          depositTimeStart: request.depositTimeStart,
+        });
+      }
+
+      if (request.depositTimeEnd) {
+        queryBuilder.andWhere('transaction.depositPaidTime <= :depositTimeEnd', {
+          depositTimeEnd: request.depositTimeEnd,
+        });
+      }
+
+      // 根據取消時間篩選
+      if (request.cancelTimeStart) {
+        queryBuilder.andWhere('o.cancelDate >= :cancelTimeStart', {
+          cancelTimeStart: request.cancelTimeStart,
+        });
+      }
+
+      if (request.cancelTimeEnd) {
+        queryBuilder.andWhere('o.cancelDate <= :cancelTimeEnd', {
+          cancelTimeEnd: request.cancelTimeEnd,
+        });
+      }
+
       // 進階篩選
       if (request.advancedFilters && Array.isArray(request.advancedFilters)) {
         // 已付訂金但尚未預約課程

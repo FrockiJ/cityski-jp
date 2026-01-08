@@ -14,13 +14,16 @@ import EditOrderModal from '@/components/Project/OrderManagement/EditOrderModal'
 import MonthlyQuotaUsageModal from '@/components/Project/OrderManagement/MonthlyQuotaUsageModal';
 import { useOrderFormatTableData } from '@/hooks/tableData/useOrderFormatTableData';
 import useModalProvider from '@/hooks/useModalProvider';
+import { setTableSort } from '@/state/slices/tableSlice';
+import { useAppDispatch } from '@/state/store';
 
 const OrderManagementIndoorCoursePage = () => {
 	const modal = useModalProvider();
+	const dispatch = useAppDispatch();
 	const [keyword, setKeyword] = useState<string>('');
 	const [departmentId, setDepartmentId] = useState<string>('');
 	const [selectedStatus, setSelectedStatus] = useState<number | undefined>(undefined);
-	
+
 	const handleSearch = debounce((e: any) => {
 		setKeyword(e.target.value.trim());
 	}, 300);
@@ -42,9 +45,21 @@ const OrderManagementIndoorCoursePage = () => {
 		const status = getStatusFromTabIndex(newValue);
 		setSelectedStatus(status);
 	};
-	
-		// --- EFFECT ---
-	
+
+	// --- EFFECT ---
+
+	// Reset table sort when component unmounts (user leaves the page)
+	useEffect(() => {
+		return () => {
+			dispatch(
+				setTableSort({
+					order: null,
+					orderBy: '',
+				}),
+			);
+		};
+	}, [dispatch]);
+
 	useEffect(() => {
 		const departmentId = localStorage.getItem('departmentId');
 

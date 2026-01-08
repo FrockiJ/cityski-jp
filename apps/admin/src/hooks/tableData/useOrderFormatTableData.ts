@@ -14,11 +14,26 @@ type Props = {
 export const useOrderFormatTableData = (options?: Props) => {
 	const tableSort = useAppSelector((state) => state.table.tableSort);
 
+	// Map frontend field names to backend database column names
+	const fieldMapping: Record<string, string> = {
+		'orderTime': 'createdTime',
+		'no': 'no',
+		'name': 'courseName',
+		'amount': 'price',
+		'status': 'status',
+		'payStatus': 'paymentStatus',
+		'lessons': 'number',
+		'people': 'people',
+		'progress': 'process',
+	};
+
+	const backendSortField = tableSort.orderBy ? (fieldMapping[tableSort.orderBy] || tableSort.orderBy) : '';
+
 	const { tableData, tableDataCount, tableDataLoading, handleRefresh } = useGetTableData<GetOrdersResponseDTO>({
 		queryUrl: '/api/orders',
 		tableId: configOrdersTable.tableId,
 		conditions: options?.query,
-		sort: { type: tableSort.orderBy, order: tableSort.order ?? OrderByType.desc },
+		sort: { type: backendSortField, order: tableSort.order ?? OrderByType.desc },
 		options: { noFetch: !options?.query?.departmentId },
 	});
 

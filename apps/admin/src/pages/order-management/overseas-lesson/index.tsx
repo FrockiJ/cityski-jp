@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { debounce } from '@mui/material';
 import { GetCoursesRequestDTO, ModalType, OrderTableListResult } from '@repo/shared';
 import { configOrdersTable } from 'src/tableConfigs/orders';
@@ -12,14 +12,29 @@ import TablePageLayout from '@/components/Common/CIBase/CoreDynamicTable/TablePa
 import TabsHeader from '@/components/Common/CIBase/CoreDynamicTable/TabsHeader';
 import EditOrderModal from '@/components/Project/OrderManagement/EditOrderModal';
 import useModalProvider from '@/hooks/useModalProvider';
+import { setTableSort } from '@/state/slices/tableSlice';
+import { useAppDispatch } from '@/state/store';
 
 const OrderManagementOverseasLessonPage = () => {
 	const modal = useModalProvider();
+	const dispatch = useAppDispatch();
 	const [keyword, setKeyword] = useState<string>('');
 	const [departmentId, setDepartmentId] = useState<string>('');
 	const handleSearch = debounce((e: any) => {
 		setKeyword(e.target.value.trim());
 	}, 300);
+
+	// Reset table sort when component unmounts (user leaves the page)
+	useEffect(() => {
+		return () => {
+			dispatch(
+				setTableSort({
+					order: null,
+					orderBy: '',
+				}),
+			);
+		};
+	}, [dispatch]);
 
 	return (
 		<TablePageLayout

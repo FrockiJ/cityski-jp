@@ -5,6 +5,7 @@ import { useSelector } from 'react-redux';
 import { CourseBkgType, CourseSkiType, CourseType, GetCourseDetailResponseDTO } from '@repo/shared';
 import { useRouter } from 'next/navigation';
 
+import { showToast } from '@/components/Project/Utils/Toast';
 import { selectToken } from '@/state/slices/authSlice';
 import { selectUserInfo } from '@/state/slices/authSlice';
 
@@ -73,6 +74,12 @@ const CourseBookingForm = ({ data, onSubmit }: CourseBookingFormProps) => {
 		// check if user is logged in
 		if (!userInfo && !accessToken) {
 			router.push('/login');
+			return;
+		}
+
+		// 驗證單堂體驗課必須選擇日期
+		if (formData.planType === 1 && !formData.date) {
+			showToast('請選擇課程日期', 'error');
 			return;
 		}
 

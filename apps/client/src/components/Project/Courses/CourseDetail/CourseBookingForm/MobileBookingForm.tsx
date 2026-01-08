@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { CourseSkiType, CourseType, GetCourseDetailResponseDTO } from '@repo/shared';
+import { CourseBkgType, CourseSkiType, CourseType, GetCourseDetailResponseDTO } from '@repo/shared';
 import { X } from 'lucide-react';
+
+import { showToast } from '@/components/Project/Utils/Toast';
 
 import {
 	Drawer,
@@ -64,6 +66,13 @@ const MobileBookingForm = ({ data, onSubmit }: CourseBookingFormProps) => {
 
 	const handleSubmit = (event: React.FormEvent) => {
 		event.preventDefault();
+
+		// 驗證單堂體驗課必須選擇日期
+		if (formData.planType === 1 && !formData.date) {
+			showToast('請選擇課程日期', 'error');
+			return;
+		}
+
 		onSubmit(formData);
 	};
 
@@ -149,11 +158,14 @@ const MobileBookingForm = ({ data, onSubmit }: CourseBookingFormProps) => {
 												handleClick={() => handleSetBookingFormArea(BookingFormArea.SELECT_PARTICIPANT)}
 											/>
 											{/* 日期 */}
-											<MobileDateField
-												label='日期'
-												value={formData.date}
-												handleClick={() => handleSetBookingFormArea(BookingFormArea.SELECT_DATE_TIME)}
-											/>
+											{(formData.planType === 1 || data?.bkgType === CourseBkgType.FIXED) && (
+												<MobileDateField
+													label='日期'
+													value={formData.date}
+													handleClick={() => handleSetBookingFormArea(BookingFormArea.SELECT_DATE_TIME)}
+													disabled={data?.bkgType === CourseBkgType.FIXED}
+												/>
+											)}
 											<div className='flex gap-2 justify-end items-center pt-4 mt-5 w-full whitespace-nowrap border-t border-solid border-t-gray-200 text-zinc-800'>
 												<div className='flex gap-2 items-center self-stretch my-auto'>
 													<span className='self-stretch my-auto text-base font-medium'>總計</span>

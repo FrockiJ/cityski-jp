@@ -36,8 +36,20 @@ function FilterConditionOnTable({
 		value: MultiValue<Option> | SingleValue<Option> | string | Date,
 		type: FilterType,
 	) => {
-		// FIXME: not include FilterType.RADIO and FilterType.CHECKBOX
 		switch (type) {
+			case FilterType.CHECKBOX:
+				// checkbox - similar to multiple-select
+				return (value as SelectOption[]).map((option, i) => (
+					<FilterConditionItemName
+						key={i}
+						label={option.label}
+						onClick={() => {
+							const restFilteredData = (filteredData[key] as Option[]).filter((f) => f.value !== option.value) ?? [];
+
+							dispatch(deleteFilterItem({ tableId, key, option: restFilteredData }));
+						}}
+					/>
+				));
 			case FilterType.SELECT:
 				// single-select
 				return [

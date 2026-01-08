@@ -142,7 +142,7 @@ function CoreFilter<T extends object>({
 					<List>{filterList()}</List>
 				</Nav>
 
-				<Box mx={3} mt={3}>
+				<Box mx={3} mt={3} mb={4}>
 					<CoreButton
 						color='default'
 						iconType='filterClear'

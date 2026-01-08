@@ -119,6 +119,54 @@ export class OrdersService {
         );
       }
 
+      // 根據課程類型篩選
+      if (request.courseType) {
+        const courseTypes = Array.isArray(request.courseType)
+          ? request.courseType
+          : [request.courseType];
+        queryBuilder.andWhere('o.type IN (:...courseTypes)', { courseTypes });
+      }
+
+      // 根據課程預約形式篩選
+      if (request.bkgType) {
+        const bkgTypes = Array.isArray(request.bkgType)
+          ? request.bkgType
+          : [request.bkgType];
+        queryBuilder.andWhere('o.bkgType IN (:...bkgTypes)', { bkgTypes });
+      }
+
+      // 根據訂購時間篩選
+      if (request.orderTimeStart) {
+        queryBuilder.andWhere('o.createdTime >= :orderTimeStart', {
+          orderTimeStart: request.orderTimeStart,
+        });
+      }
+
+      if (request.orderTimeEnd) {
+        queryBuilder.andWhere('o.createdTime <= :orderTimeEnd', {
+          orderTimeEnd: request.orderTimeEnd,
+        });
+      }
+
+      // 進階篩選
+      if (request.advancedFilters && Array.isArray(request.advancedFilters)) {
+        // 已付訂金但尚未預約課程
+        if (request.advancedFilters.includes('paidButNotReserved')) {
+          queryBuilder.andWhere(
+            'transaction.status >= :paidStatus AND (orderReservations.id IS NULL OR orderReservations.reservation IS NULL)',
+            { paidStatus: TransactionStatus.DEPOSIT_PAID },
+          );
+        }
+
+        // 只能併班的團體預約式課程
+        if (request.advancedFilters.includes('groupFlexibleOnly')) {
+          queryBuilder.andWhere('o.type = :groupType', { groupType: 'G' });
+          queryBuilder.andWhere('o.bkgType = :flexibleType', { flexibleType: 1 });
+          // 這裡需要檢查是否人數未達開班標準，需要根據 coursePlan 的 minPeople 判斷
+          // 先加上基本條件，具體邏輯可能需要調整
+        }
+      }
+
       // 隱藏信用卡支付且待付訂金的訂單
       queryBuilder.andWhere(
         '(transaction.depositPaymentMethod IS NULL OR transaction.status IS NULL OR transaction.depositPaymentMethod != :creditMethod OR transaction.status != :pendingStatus)',

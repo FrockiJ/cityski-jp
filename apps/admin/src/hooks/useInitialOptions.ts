@@ -128,6 +128,12 @@ const fetchOptionManager = async () => {
 		// reservation-management > filter Select Options (教練)
 		// 延遲載入：在打開篩選抽屜時動態載入，這裡先設為空陣列
 		checkOptionsAndAdd(optionManager, OptionNames.INSTRUCTOR, () => []),
+
+		// order-management > filter Checkbox Options (進階篩選)
+		checkOptionsAndAdd(optionManager, OptionNames.ORDER_ADVANCED_FILTER, () => [
+			{ label: '已付訂金但尚未預約課程', value: 'paidButNotReserved' },
+			{ label: '只能併班的團體預約式課程', value: 'groupFlexibleOnly' },
+		]),
 	]);
 	return optionManager;
 };

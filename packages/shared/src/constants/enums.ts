@@ -479,6 +479,7 @@ export const OptionNames = {
   COURSE_SKI_TYPE: 'Course Ski Type',
   SKI_SNOWBOARD_LEVEL: 'Ski Snowboard Level',
   INSTRUCTOR: 'Instructor',
+  ORDER_ADVANCED_FILTER: 'Order Advanced Filter',
 } as const;
 export type OptionNames = EnumValues<typeof OptionNames>;
 

@@ -1,22 +1,22 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef,useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
-	CourseType,
 	CourseSkiType,
+	CourseType,
 	GetCourseDetailResponseDTO,
 	GetOrderDetailResponseDTO,
+	OrderReservationResponseDto,
 	OrderStatus,
 	ResponseWrapper,
-	OrderReservationResponseDto,
 } from '@repo/shared';
 import { useParams, useRouter } from 'next/navigation';
-import CancelOrderModal from '@/components/Project/OrderDetail/CancelOrderModal';
 
 import ProfileIcon from '@/components/Icon/ProfileIcon';
 import SnowBoardIcon from '@/components/Icon/SnowBoardIcon';
 import { orderStatusMapper } from '@/components/Project/Member/CurrentOrders';
+import CancelOrderModal from '@/components/Project/OrderDetail/CancelOrderModal';
 import CourseReservation from '@/components/Project/OrderDetail/CourseReservation';
 import MemberList from '@/components/Project/OrderDetail/MemberList';
 import { showToast } from '@/components/Project/Utils/Toast';
@@ -132,14 +132,11 @@ export default function OrderDetail() {
 
 		// 先獲取最新的訂單狀態來記錄初始的 balancePaymentInitiatedAt
 		try {
-			const initialResponse = await api.get<ResponseWrapper<GetOrderDetailResponseDTO>>(
-				`/api/orders/${orderId}`,
-				{
-					headers: {
-						Authorization: `Bearer ${accessToken}`,
-					},
-				}
-			);
+			const initialResponse = await api.get<ResponseWrapper<GetOrderDetailResponseDTO>>(`/api/orders/${orderId}`, {
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+				},
+			});
 			const initialOrder = initialResponse.data.result;
 			previousBalancePaymentInitiatedAtRef.current = initialOrder.transaction?.balancePaymentInitiatedAt;
 		} catch (error) {
@@ -148,14 +145,11 @@ export default function OrderDetail() {
 
 		pollingIntervalRef.current = setInterval(async () => {
 			try {
-				const response = await api.get<ResponseWrapper<GetOrderDetailResponseDTO>>(
-					`/api/orders/${orderId}`,
-					{
-						headers: {
-							Authorization: `Bearer ${accessToken}`,
-						},
-					}
-				);
+				const response = await api.get<ResponseWrapper<GetOrderDetailResponseDTO>>(`/api/orders/${orderId}`, {
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+				});
 
 				const updatedOrder = response.data.result;
 
@@ -178,10 +172,7 @@ export default function OrderDetail() {
 
 				// 檢查是否支付失敗或 timeout（balancePaymentInitiatedAt 被清除）
 				// 之前有值，現在變成 null/undefined，表示後端清除了
-				if (
-					previousBalancePaymentInitiatedAtRef.current &&
-					!updatedOrder.transaction?.balancePaymentInitiatedAt
-				) {
+				if (previousBalancePaymentInitiatedAtRef.current && !updatedOrder.transaction?.balancePaymentInitiatedAt) {
 					stopPolling();
 
 					// 檢查 lastPaymentAttemptResult 來區分支付失敗和 timeout
@@ -228,7 +219,7 @@ export default function OrderDetail() {
 					headers: {
 						Authorization: `Bearer ${accessToken}`,
 					},
-				}
+				},
 			);
 
 			if (response.data.result?.success) {
@@ -236,14 +227,11 @@ export default function OrderDetail() {
 				setIsCancelModalOpen(false);
 
 				// Refresh order detail to show updated status
-				const updatedOrder = await api.get<ResponseWrapper<GetOrderDetailResponseDTO>>(
-					`/api/orders/${orderId}`,
-					{
-						headers: {
-							Authorization: `Bearer ${accessToken}`,
-						},
-					}
-				);
+				const updatedOrder = await api.get<ResponseWrapper<GetOrderDetailResponseDTO>>(`/api/orders/${orderId}`, {
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+				});
 				setOrderDetail(updatedOrder.data.result);
 
 				// Also refresh reservations
@@ -253,7 +241,7 @@ export default function OrderDetail() {
 						headers: {
 							Authorization: `Bearer ${accessToken}`,
 						},
-					}
+					},
 				);
 				setOrderReservations(updatedReservations.data.result);
 			}
@@ -261,10 +249,7 @@ export default function OrderDetail() {
 			console.error('取消訂單失敗:', error);
 
 			// Handle specific error messages
-			const errorMessage =
-				error.response?.data?.message ||
-				error.response?.data?.error ||
-				'取消訂單失敗，請重試';
+			const errorMessage = error.response?.data?.message || error.response?.data?.error || '取消訂單失敗，請重試';
 
 			showToast(errorMessage, 'error');
 		}
@@ -336,7 +321,7 @@ export default function OrderDetail() {
 						headers: {
 							'Content-Type': 'application/json',
 						},
-					}
+					},
 				);
 
 				console.log('Payment initialization response:', response.data);
@@ -374,7 +359,7 @@ export default function OrderDetail() {
 							'Content-Type': 'application/json',
 							Authorization: `Bearer ${accessToken}`,
 						},
-					}
+					},
 				);
 
 				// 2. 儲存 ATM 支付資料到 localStorage
@@ -429,7 +414,7 @@ export default function OrderDetail() {
 											<div className="justify-start text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 												訂單保留期限
 											</div>
-											<div className="justify-start text-zinc-500 text-sm font-normal font-['Poppins'] leading-6">
+											<div className='justify-start text-zinc-500 text-sm font-normal font-poppins leading-6'>
 												{new Date(orderDetail.expDate).toLocaleDateString('sv-SE')}{' '}
 												{new Date(orderDetail.expDate).toLocaleTimeString('sv-SE', {
 													hour: '2-digit',
@@ -443,11 +428,11 @@ export default function OrderDetail() {
 											<div className="justify-start text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 												訂單有效時間
 											</div>
-											<div className="justify-start text-zinc-500 text-sm font-normal font-['Poppins'] leading-6">
+											<div className='justify-start text-zinc-500 text-sm font-normal font-poppins leading-6'>
 												{(() => {
 													// Find the first reservation's classTime
 													const firstReservation = orderReservations
-														.filter(or => or.reservation?.classTime)
+														.filter((or) => or.reservation?.classTime)
 														.sort((a, b) => {
 															const dateA = new Date(a.reservation!.classTime).getTime();
 															const dateB = new Date(b.reservation!.classTime).getTime();
@@ -465,28 +450,31 @@ export default function OrderDetail() {
 										</div>
 									)}
 									{orderDetail.transaction?.status === 2 &&
-									 orderDetail.transaction?.balancePaymentMethod === 'ATM' &&
-									 !orderDetail.transaction?.balanceDate && (
-										<div className='inline-flex justify-start items-center gap-1'>
-											<div className="justify-start text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
-												匯款帳號有效時間
+										orderDetail.transaction?.balancePaymentMethod === 'ATM' &&
+										!orderDetail.transaction?.balanceDate && (
+											<div className='inline-flex justify-start items-center gap-1'>
+												<div className="justify-start text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+													匯款帳號有效時間
+												</div>
+												<div className='justify-start text-zinc-500 text-sm font-normal font-poppins leading-6'>
+													{(() => {
+														const baseDate = orderDetail.transaction.balancePaymentInitiatedAt
+															? new Date(orderDetail.transaction.balancePaymentInitiatedAt)
+															: new Date();
+														const validUntil = new Date(baseDate);
+														validUntil.setDate(validUntil.getDate() + 3);
+														return (
+															validUntil.toLocaleDateString('sv-SE') +
+															' ' +
+															validUntil.toLocaleTimeString('sv-SE', {
+																hour: '2-digit',
+																minute: '2-digit',
+															})
+														);
+													})()}
+												</div>
 											</div>
-											<div className="justify-start text-zinc-500 text-sm font-normal font-['Poppins'] leading-6">
-												{(() => {
-													const baseDate = orderDetail.transaction.balancePaymentInitiatedAt
-														? new Date(orderDetail.transaction.balancePaymentInitiatedAt)
-														: new Date();
-													const validUntil = new Date(baseDate);
-													validUntil.setDate(validUntil.getDate() + 3);
-													return validUntil.toLocaleDateString('sv-SE') + ' ' +
-														validUntil.toLocaleTimeString('sv-SE', {
-															hour: '2-digit',
-															minute: '2-digit',
-														});
-												})()}
-											</div>
-										</div>
-									)}
+										)}
 								</div>
 								{/* 訂金 ATM 轉帳資訊 */}
 								{orderDetail.status === OrderStatus.PENDING_DEPOSIT && (
@@ -523,7 +511,7 @@ export default function OrderDetail() {
 													</div>
 												</div>
 												<div className='inline-flex justify-start items-center gap-0.5'>
-													<div className="justify-start text-zinc-800 text-3xl font-semibold font-['Poppins'] leading-8">
+													<div className='justify-start text-zinc-800 text-3xl font-semibold font-poppins leading-8'>
 														{deposit}
 													</div>
 													<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
@@ -536,7 +524,7 @@ export default function OrderDetail() {
 													總金額
 												</div>
 												<div className='flex justify-start items-center'>
-													<div className="justify-start text-zinc-500 text-sm font-normal font-['Poppins'] leading-5">
+													<div className='justify-start text-zinc-500 text-sm font-normal font-poppins leading-5'>
 														{price}
 													</div>
 													<div className="w-3.5 h-3.5 justify-center text-zinc-500 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
@@ -552,13 +540,11 @@ export default function OrderDetail() {
 														<span className="text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
 															台中銀行{' '}
 														</span>
-														<span className="text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
-															(053)
-														</span>
+														<span className='text-zinc-800 text-base font-medium font-poppins leading-6'>(053)</span>
 													</div>
 												</div>
 												<div className='self-stretch inline-flex justify-between items-center'>
-													<div className="justify-start text-zinc-800 text-xl font-semibold font-['Poppins'] leading-7">
+													<div className='justify-start text-zinc-800 text-xl font-semibold font-poppins leading-7'>
 														77777-25115541-7
 													</div>
 													<button
@@ -601,9 +587,7 @@ export default function OrderDetail() {
 														</div>
 													</div>
 													<div className='justify-start'>
-														<span className="text-zinc-500 text-sm font-normal font-['Poppins'] leading-6">
-															CitySki
-														</span>
+														<span className='text-zinc-500 text-sm font-normal font-poppins leading-6'>CitySki</span>
 														<span className="text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 															城市滑雪學校-台中分校
 														</span>
@@ -628,93 +612,14 @@ export default function OrderDetail() {
 
 								{/* 尾款 ATM 轉帳資訊 */}
 								{orderDetail.transaction?.status === 2 &&
-								 orderDetail.transaction?.balancePaymentMethod === 'ATM' &&
-								 !orderDetail.transaction?.balanceDate && (
-									<div className='self-stretch rounded-xl outline outline-2 outline-offset-[-2px] outline-zinc-800 inline-flex justify-start items-start overflow-hidden'>
-										<div className='flex-1 m-0.5 self-stretch relative border-r border-zinc-300 overflow-hidden'>
-											<div className='left-[24px] top-[24px] absolute inline-flex flex-col justify-center items-start gap-0.5'>
-												<div className='inline-flex justify-start items-center gap-1'>
-													<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
-														應繳尾款
-													</div>
-													<div data-svg-wrapper className='relative'>
-														<svg
-															width='16'
-															height='16'
-															viewBox='0 0 16 16'
-															fill='none'
-															xmlns='http://www.w3.org/2000/svg'
-														>
-															<path
-																d='M8.00038 11.3333C8.36857 11.3333 8.66704 11.0348 8.66704 10.6666V7.33325C8.66704 6.96506 8.36857 6.66659 8.00038 6.66659C7.63219 6.66659 7.33371 6.96506 7.33371 7.33325V10.6666C7.33371 11.0348 7.63219 11.3333 8.00038 11.3333Z'
-																fill='#0F72ED'
-															/>
-															<path
-																d='M8.00038 5.99992C7.63219 5.99992 7.33371 5.70144 7.33371 5.33325C7.33371 4.96506 7.63219 4.66659 8.00038 4.66659C8.36857 4.66659 8.66704 4.96506 8.66704 5.33325C8.66704 5.70144 8.36857 5.99992 8.00038 5.99992Z'
-																fill='#0F72ED'
-															/>
-															<path
-																fillRule='evenodd'
-																clipRule='evenodd'
-																d='M8.00038 1.33325C4.31848 1.33325 1.33371 4.31802 1.33371 7.99992C1.33371 11.6818 4.31848 14.6666 8.00038 14.6666C11.6823 14.6666 14.667 11.6818 14.667 7.99992C14.667 6.23181 13.9647 4.53612 12.7144 3.28587C11.4642 2.03563 9.76849 1.33325 8.00038 1.33325ZM2.53371 7.99992C2.53371 4.98076 4.98122 2.53325 8.00038 2.53325C9.45022 2.53325 10.8407 3.1092 11.8659 4.1344C12.8911 5.1596 13.467 6.55007 13.467 7.99992C13.467 11.0191 11.0195 13.4666 8.00038 13.4666C4.98122 13.4666 2.53371 11.0191 2.53371 7.99992Z'
-																fill='#0F72ED'
-															/>
-														</svg>
-													</div>
-												</div>
-												<div className='inline-flex justify-start items-center gap-0.5'>
-													<div className="justify-start text-zinc-800 text-3xl font-semibold font-['Poppins'] leading-8">
-														{orderDetail.transaction.balanceAmt?.toLocaleString()}
-													</div>
-													<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
-														元
-													</div>
-												</div>
-											</div>
-											<div className='left-[24px] top-[134px] absolute inline-flex justify-start items-center gap-1'>
-												<div className="justify-start text-zinc-500 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
-													總金額
-												</div>
-												<div className='flex justify-start items-center'>
-													<div className="justify-start text-zinc-500 text-sm font-normal font-['Poppins'] leading-5">
-														{orderDetail.transaction.totalAmt?.toLocaleString()}
-													</div>
-													<div className="w-3.5 h-3.5 justify-center text-zinc-500 text-xs font-['Noto_Sans_TC'] leading-5">
-														元
-													</div>
-												</div>
-											</div>
-										</div>
-										<div className='flex-1 p-6 inline-flex flex-col justify-start items-start gap-6'>
-											<div className='self-stretch flex flex-col justify-start items-start gap-1'>
-												<div className='self-stretch h-6 inline-flex justify-start items-center gap-2'>
-													<div className='flex-1 justify-end'>
-														<span className="text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
-															台中銀行{' '}
-														</span>
-														<span className="text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
-															(053)
-														</span>
-													</div>
-												</div>
-												<div className='self-stretch inline-flex justify-between items-center'>
-													<div className="justify-start text-zinc-800 text-xl font-semibold font-['Poppins'] leading-7">
-														77777-25115541-7
-													</div>
-													<button
-														className='rounded-lg flex justify-center items-center gap-1 overflow-hidden cursor-pointer px-2 py-1 transition-colors'
-														onClick={() => {
-															navigator.clipboard
-																.writeText('77777-25115541-7')
-																.then(() => showToast('已複製帳號號碼', 'success'))
-																.catch((err) => {
-																	console.error('複製失敗:', err);
-																	showToast('複製失敗，請重試', 'error');
-																});
-														}}
-													>
-														<div className="text-center justify-start text-blue-600 text-sm font-medium font-['Noto_Sans_TC'] leading-6">
-															複製
+									orderDetail.transaction?.balancePaymentMethod === 'ATM' &&
+									!orderDetail.transaction?.balanceDate && (
+										<div className='self-stretch rounded-xl outline outline-2 outline-offset-[-2px] outline-zinc-800 inline-flex justify-start items-start overflow-hidden'>
+											<div className='flex-1 m-0.5 self-stretch relative border-r border-zinc-300 overflow-hidden'>
+												<div className='left-[24px] top-[24px] absolute inline-flex flex-col justify-center items-start gap-0.5'>
+													<div className='inline-flex justify-start items-center gap-1'>
+														<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+															應繳尾款
 														</div>
 														<div data-svg-wrapper className='relative'>
 															<svg
@@ -725,46 +630,121 @@ export default function OrderDetail() {
 																xmlns='http://www.w3.org/2000/svg'
 															>
 																<path
-																	d='M13.2 1.33325H6.13333C5.69333 1.33325 5.33333 1.69325 5.33333 2.13325V3.99992H2.8C2.36 3.99992 2 4.35992 2 4.79992V13.8666C2 14.3066 2.36 14.6666 2.8 14.6666H9.86667C10.3067 14.6666 10.6667 14.3066 10.6667 13.8666V11.9999H13.2C13.64 11.9999 14 11.6399 14 11.1999V2.13325C14 1.69325 13.64 1.33325 13.2 1.33325ZM9.6 13.5999H3.06667V5.06659H9.6V13.5999ZM12.9333 10.9333H10.6667V4.79992C10.6667 4.35992 10.3067 3.99992 9.86667 3.99992H6.4V2.39992H12.9333V10.9333Z'
+																	d='M8.00038 11.3333C8.36857 11.3333 8.66704 11.0348 8.66704 10.6666V7.33325C8.66704 6.96506 8.36857 6.66659 8.00038 6.66659C7.63219 6.66659 7.33371 6.96506 7.33371 7.33325V10.6666C7.33371 11.0348 7.63219 11.3333 8.00038 11.3333Z'
+																	fill='#0F72ED'
+																/>
+																<path
+																	d='M8.00038 5.99992C7.63219 5.99992 7.33371 5.70144 7.33371 5.33325C7.33371 4.96506 7.63219 4.66659 8.00038 4.66659C8.36857 4.66659 8.66704 4.96506 8.66704 5.33325C8.66704 5.70144 8.36857 5.99992 8.00038 5.99992Z'
+																	fill='#0F72ED'
+																/>
+																<path
+																	fillRule='evenodd'
+																	clipRule='evenodd'
+																	d='M8.00038 1.33325C4.31848 1.33325 1.33371 4.31802 1.33371 7.99992C1.33371 11.6818 4.31848 14.6666 8.00038 14.6666C11.6823 14.6666 14.667 11.6818 14.667 7.99992C14.667 6.23181 13.9647 4.53612 12.7144 3.28587C11.4642 2.03563 9.76849 1.33325 8.00038 1.33325ZM2.53371 7.99992C2.53371 4.98076 4.98122 2.53325 8.00038 2.53325C9.45022 2.53325 10.8407 3.1092 11.8659 4.1344C12.8911 5.1596 13.467 6.55007 13.467 7.99992C13.467 11.0191 11.0195 13.4666 8.00038 13.4666C4.98122 13.4666 2.53371 11.0191 2.53371 7.99992Z'
 																	fill='#0F72ED'
 																/>
 															</svg>
 														</div>
-													</button>
+													</div>
+													<div className='inline-flex justify-start items-center gap-0.5'>
+														<div className='justify-start text-zinc-800 text-3xl font-semibold font-poppins leading-8'>
+															{orderDetail.transaction.balanceAmt?.toLocaleString()}
+														</div>
+														<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
+															元
+														</div>
+													</div>
+												</div>
+												<div className='left-[24px] top-[134px] absolute inline-flex justify-start items-center gap-1'>
+													<div className="justify-start text-zinc-500 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
+														總金額
+													</div>
+													<div className='flex justify-start items-center'>
+														<div className='justify-start text-zinc-500 text-sm font-normal font-poppins leading-5'>
+															{orderDetail.transaction.totalAmt?.toLocaleString()}
+														</div>
+														<div className="w-3.5 h-3.5 justify-center text-zinc-500 text-xs font-['Noto_Sans_TC'] leading-5">
+															元
+														</div>
+													</div>
 												</div>
 											</div>
-											<div className='self-stretch flex flex-col justify-start items-start gap-2'>
-												<div className='inline-flex justify-start items-center gap-2'>
-													<div className='px-1.5 py-0.5 bg-gray-200 rounded flex justify-start items-start'>
-														<div className="text-center justify-start text-zinc-800 text-xs font-medium font-['Noto_Sans_TC'] leading-4">
-															戶名
+											<div className='flex-1 p-6 inline-flex flex-col justify-start items-start gap-6'>
+												<div className='self-stretch flex flex-col justify-start items-start gap-1'>
+													<div className='self-stretch h-6 inline-flex justify-start items-center gap-2'>
+														<div className='flex-1 justify-end'>
+															<span className="text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
+																台中銀行{' '}
+															</span>
+															<span className='text-zinc-800 text-base font-medium font-poppins leading-6'>(053)</span>
 														</div>
 													</div>
-													<div className='justify-start'>
-														<span className="text-zinc-500 text-sm font-normal font-['Poppins'] leading-6">
-															CitySki
-														</span>
-														<span className="text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
-															城市滑雪學校-台中分校
-														</span>
+													<div className='self-stretch inline-flex justify-between items-center'>
+														<div className='justify-start text-zinc-800 text-xl font-semibold font-poppins leading-7'>
+															77777-25115541-7
+														</div>
+														<button
+															className='rounded-lg flex justify-center items-center gap-1 overflow-hidden cursor-pointer px-2 py-1 transition-colors'
+															onClick={() => {
+																navigator.clipboard
+																	.writeText('77777-25115541-7')
+																	.then(() => showToast('已複製帳號號碼', 'success'))
+																	.catch((err) => {
+																		console.error('複製失敗:', err);
+																		showToast('複製失敗，請重試', 'error');
+																	});
+															}}
+														>
+															<div className="text-center justify-start text-blue-600 text-sm font-medium font-['Noto_Sans_TC'] leading-6">
+																複製
+															</div>
+															<div data-svg-wrapper className='relative'>
+																<svg
+																	width='16'
+																	height='16'
+																	viewBox='0 0 16 16'
+																	fill='none'
+																	xmlns='http://www.w3.org/2000/svg'
+																>
+																	<path
+																		d='M13.2 1.33325H6.13333C5.69333 1.33325 5.33333 1.69325 5.33333 2.13325V3.99992H2.8C2.36 3.99992 2 4.35992 2 4.79992V13.8666C2 14.3066 2.36 14.6666 2.8 14.6666H9.86667C10.3067 14.6666 10.6667 14.3066 10.6667 13.8666V11.9999H13.2C13.64 11.9999 14 11.6399 14 11.1999V2.13325C14 1.69325 13.64 1.33325 13.2 1.33325ZM9.6 13.5999H3.06667V5.06659H9.6V13.5999ZM12.9333 10.9333H10.6667V4.79992C10.6667 4.35992 10.3067 3.99992 9.86667 3.99992H6.4V2.39992H12.9333V10.9333Z'
+																		fill='#0F72ED'
+																	/>
+																</svg>
+															</div>
+														</button>
 													</div>
 												</div>
-												<div className='inline-flex justify-start items-center gap-2'>
-													<div className='px-1.5 py-0.5 bg-gray-200 rounded flex justify-start items-start'>
-														<div className="text-center justify-start text-zinc-800 text-xs font-medium font-['Noto_Sans_TC'] leading-4">
-															分行
+												<div className='self-stretch flex flex-col justify-start items-start gap-2'>
+													<div className='inline-flex justify-start items-center gap-2'>
+														<div className='px-1.5 py-0.5 bg-gray-200 rounded flex justify-start items-start'>
+															<div className="text-center justify-start text-zinc-800 text-xs font-medium font-['Noto_Sans_TC'] leading-4">
+																戶名
+															</div>
+														</div>
+														<div className='justify-start'>
+															<span className='text-zinc-500 text-sm font-normal font-poppins leading-6'>CitySki</span>
+															<span className="text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+																城市滑雪學校-台中分校
+															</span>
 														</div>
 													</div>
-													<div className='h-6 flex justify-start items-center gap-0.5'>
-														<div className="justify-end text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
-															台中銀行西屯分行
+													<div className='inline-flex justify-start items-center gap-2'>
+														<div className='px-1.5 py-0.5 bg-gray-200 rounded flex justify-start items-start'>
+															<div className="text-center justify-start text-zinc-800 text-xs font-medium font-['Noto_Sans_TC'] leading-4">
+																分行
+															</div>
+														</div>
+														<div className='h-6 flex justify-start items-center gap-0.5'>
+															<div className="justify-end text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
+																台中銀行西屯分行
+															</div>
 														</div>
 													</div>
 												</div>
 											</div>
 										</div>
-									</div>
-								)}
+									)}
 
 								<div
 									className='self-stretch inline-flex justify-start items-center gap-5 cursor-pointer'
@@ -883,22 +863,16 @@ export default function OrderDetail() {
 									// 重新獲取訂單預約資訊和訂單詳情
 									try {
 										const [reservationsResponse, orderResponse] = await Promise.all([
-											api.get<ResponseWrapper<OrderReservationResponseDto[]>>(
-												`/api/orders/${orderId}/reservations`,
-												{
-													headers: {
-														Authorization: `Bearer ${accessToken}`,
-													},
+											api.get<ResponseWrapper<OrderReservationResponseDto[]>>(`/api/orders/${orderId}/reservations`, {
+												headers: {
+													Authorization: `Bearer ${accessToken}`,
 												},
-											),
-											api.get<ResponseWrapper<GetOrderDetailResponseDTO>>(
-												`/api/orders/${orderId}`,
-												{
-													headers: {
-														Authorization: `Bearer ${accessToken}`,
-													},
+											}),
+											api.get<ResponseWrapper<GetOrderDetailResponseDTO>>(`/api/orders/${orderId}`, {
+												headers: {
+													Authorization: `Bearer ${accessToken}`,
 												},
-											),
+											}),
 										]);
 										setOrderReservations(reservationsResponse.data.result);
 										setOrderDetail(orderResponse.data.result);
@@ -974,7 +948,7 @@ export default function OrderDetail() {
 															<span className="text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
 																請提早
 															</span>
-															<span className="text-zinc-800 text-base font-medium font-['Poppins'] leading-6">5</span>
+															<span className='text-zinc-800 text-base font-medium font-poppins leading-6'>5</span>
 															<span className="text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
 																分鐘報到
 															</span>
@@ -983,7 +957,7 @@ export default function OrderDetail() {
 															<span className="text-zinc-500 text-base font-normal font-['Noto_Sans_TC'] leading-6">
 																課程於整點開始上課，請提早
 															</span>
-															<span className="text-zinc-500 text-base font-normal font-['Poppins'] leading-6">5</span>
+															<span className='text-zinc-500 text-base font-normal font-poppins leading-6'>5</span>
 															<span className="text-zinc-500 text-base font-normal font-['Noto_Sans_TC'] leading-6">
 																分鐘報到並穿著裝備及暖身完畢。如因個人因素遲到而無法跟上課程進度，恕不負責請見諒。
 															</span>
@@ -1039,9 +1013,7 @@ export default function OrderDetail() {
 															<span className="text-zinc-500 text-base font-normal font-['Noto_Sans_TC'] leading-6">
 																室內為一般冷氣房(約
 															</span>
-															<span className="text-zinc-500 text-base font-normal font-['Poppins'] leading-6">
-																21-24℃
-															</span>
+															<span className='text-zinc-500 text-base font-normal font-poppins leading-6'>21-24℃</span>
 															<span className="text-zinc-500 text-base font-normal font-['Noto_Sans_TC'] leading-6">
 																)，穿著輕便運動服裝即可，請勿穿著牛仔褲，會不好伸展噢！
 															</span>
@@ -1071,13 +1043,11 @@ export default function OrderDetail() {
 															<span className="text-zinc-500 text-base font-normal font-['Noto_Sans_TC'] leading-6">
 																因雪鞋(靴)為共用配備，衛生考量，請另自備長度至小腿的長襪到現場更換。如果未帶襪子，現場有代售一雙棉襪
 															</span>
-															<span className="text-zinc-500 text-base font-normal font-['Poppins'] leading-6">50</span>
+															<span className='text-zinc-500 text-base font-normal font-poppins leading-6'>50</span>
 															<span className="text-zinc-500 text-base font-normal font-['Noto_Sans_TC'] leading-6">
 																元、雪襪
 															</span>
-															<span className="text-zinc-500 text-base font-normal font-['Poppins'] leading-6">
-																500
-															</span>
+															<span className='text-zinc-500 text-base font-normal font-poppins leading-6'>500</span>
 															<span className="text-zinc-500 text-base font-normal font-['Noto_Sans_TC'] leading-6">
 																元。
 															</span>
@@ -1186,7 +1156,7 @@ export default function OrderDetail() {
 														<div className="justify-start text-neutral-700 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 															課程前
 														</div>
-														<div className="justify-start text-neutral-700 text-xl font-medium font-['Poppins'] leading-7">
+														<div className='justify-start text-neutral-700 text-xl font-medium font-poppins leading-7'>
 															7
 														</div>
 														<div className="justify-start text-neutral-700 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
@@ -1197,7 +1167,7 @@ export default function OrderDetail() {
 														<span className="text-neutral-700 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 															可免費更改時段，以{' '}
 														</span>
-														<span className="text-neutral-700 text-sm font-normal font-['Poppins'] leading-6">1</span>
+														<span className='text-neutral-700 text-sm font-normal font-poppins leading-6'>1</span>
 														<span className="text-neutral-700 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 															次為限。
 														</span>
@@ -1208,7 +1178,7 @@ export default function OrderDetail() {
 														<div className="justify-start text-neutral-700 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 															課程前
 														</div>
-														<div className="justify-start text-neutral-700 text-xl font-medium font-['Poppins'] leading-7">
+														<div className='justify-start text-neutral-700 text-xl font-medium font-poppins leading-7'>
 															4-7
 														</div>
 														<div className="justify-start text-neutral-700 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
@@ -1219,7 +1189,7 @@ export default function OrderDetail() {
 														<span className="text-neutral-700 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 															更改時段酌收時段費
 														</span>
-														<span className="text-neutral-700 text-sm font-normal font-['Poppins'] leading-6">300</span>
+														<span className='text-neutral-700 text-sm font-normal font-poppins leading-6'>300</span>
 														<span className="text-neutral-700 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 															元/人，於上課當日繳交。
 														</span>
@@ -1230,7 +1200,7 @@ export default function OrderDetail() {
 														<div className="justify-start text-neutral-700 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 															課程前
 														</div>
-														<div className="justify-start text-neutral-700 text-xl font-medium font-['Poppins'] leading-7">
+														<div className='justify-start text-neutral-700 text-xl font-medium font-poppins leading-7'>
 															3
 														</div>
 														<div className="justify-start text-neutral-700 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
@@ -1241,9 +1211,7 @@ export default function OrderDetail() {
 														<span className="text-neutral-700 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 															更改時段酌收時段場地費
 														</span>
-														<span className="text-neutral-700 text-sm font-normal font-['Poppins'] leading-6">
-															1,200
-														</span>
+														<span className='text-neutral-700 text-sm font-normal font-poppins leading-6'>1,200</span>
 														<span className="text-neutral-700 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 															元/人，於上課當日繳交。
 														</span>
@@ -1309,17 +1277,10 @@ export default function OrderDetail() {
 										</div>
 									</div>
 									{/* 尾款 ATM 支付提示 */}
-									{orderDetail.transaction?.status === 2 &&
-									 orderDetail.transaction?.balancePaymentMethod === 'ATM' && (
+									{orderDetail.transaction?.status === 2 && orderDetail.transaction?.balancePaymentMethod === 'ATM' && (
 										<div className='self-stretch p-3 bg-blue-50 rounded-lg flex items-center gap-2'>
 											<div data-svg-wrapper className='relative'>
-												<svg
-													width='16'
-													height='16'
-													viewBox='0 0 16 16'
-													fill='none'
-													xmlns='http://www.w3.org/2000/svg'
-												>
+												<svg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'>
 													<path
 														d='M8.00038 11.3333C8.36857 11.3333 8.66704 11.0348 8.66704 10.6666V7.33325C8.66704 6.96506 8.36857 6.66659 8.00038 6.66659C7.63219 6.66659 7.33371 6.96506 7.33371 7.33325V10.6666C7.33371 11.0348 7.63219 11.3333 8.00038 11.3333Z'
 														fill='#0F72ED'
@@ -1349,8 +1310,10 @@ export default function OrderDetail() {
 											訂單金額
 										</div>
 										<div className='flex justify-start items-center gap-0.5'>
-											<div className="justify-start text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
-												{(orderDetail.transaction?.totalAmt + (orderDetail.transaction?.discountFee || 0)).toLocaleString() || price.toLocaleString()}
+											<div className='justify-start text-zinc-800 text-base font-medium font-poppins leading-6'>
+												{(
+													orderDetail.transaction?.totalAmt + (orderDetail.transaction?.discountFee || 0)
+												).toLocaleString() || price.toLocaleString()}
 											</div>
 											<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
 												元
@@ -1365,7 +1328,7 @@ export default function OrderDetail() {
 												優惠折扣
 											</div>
 											<div className='flex justify-start items-center gap-0.5'>
-												<div className="justify-start text-emerald-600 text-base font-medium font-['Poppins'] leading-6">
+												<div className='justify-start text-emerald-600 text-base font-medium font-poppins leading-6'>
 													-{orderDetail.transaction?.discountFee.toLocaleString()}
 												</div>
 												<div className="justify-start text-emerald-600 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
@@ -1382,7 +1345,7 @@ export default function OrderDetail() {
 												已付訂金
 											</div>
 											<div className='flex justify-start items-center gap-0.5'>
-												<div className="justify-start text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
+												<div className='justify-start text-zinc-800 text-base font-medium font-poppins leading-6'>
 													-{orderDetail.transaction?.depositAmt.toLocaleString()}
 												</div>
 												<div className="justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] leading-6">
@@ -1399,7 +1362,7 @@ export default function OrderDetail() {
 												尾款
 											</div>
 											<div className='flex justify-start items-center gap-1'>
-												<div className="justify-start text-zinc-800 text-2xl font-semibold font-['Poppins'] leading-7">
+												<div className='justify-start text-zinc-800 text-2xl font-semibold font-poppins leading-7'>
 													{orderDetail.transaction?.balanceAmt.toLocaleString()}
 												</div>
 												<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
@@ -1411,21 +1374,21 @@ export default function OrderDetail() {
 
 									{/* 線上支付尾款按鈕 - 僅在待結清且尚未選擇支付方式時顯示，且訂單未取消 */}
 									{orderDetail.status !== OrderStatus.ORDER_CANCELED &&
-									 orderDetail.transaction?.status === 2 &&
-									 !orderDetail.transaction?.balancePaymentMethod && (
-										<div className='self-stretch flex flex-col gap-3 pt-4'>
-											<button
-												className='self-stretch overflow-hidden gap-2.5 px-6 py-2 text-base font-bold text-white whitespace-nowrap rounded-lg bg-zinc-900 w-full transition-all duration-300 hover:bg-zinc-800 hover:shadow-lg'
-												onClick={handlePayBalanceClick}
-												aria-label='線上支付尾款'
-											>
-												線上支付尾款
-											</button>
-											<div className="text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-5">
-												您可以點擊上方按鈕線上刷卡/ATM轉帳，或至CitySki現場以現金/信用卡付款。
+										orderDetail.transaction?.status === 2 &&
+										!orderDetail.transaction?.balancePaymentMethod && (
+											<div className='self-stretch flex flex-col gap-3 pt-4'>
+												<button
+													className='self-stretch overflow-hidden gap-2.5 px-6 py-2 text-base font-bold text-white whitespace-nowrap rounded-lg bg-zinc-900 w-full transition-all duration-300 hover:bg-zinc-800 hover:shadow-lg'
+													onClick={handlePayBalanceClick}
+													aria-label='線上支付尾款'
+												>
+													線上支付尾款
+												</button>
+												<div className="text-zinc-500 text-sm font-normal font-['Noto_Sans_TC'] leading-5">
+													您可以點擊上方按鈕線上刷卡/ATM轉帳，或至CitySki現場以現金/信用卡付款。
+												</div>
 											</div>
-										</div>
-									)}
+										)}
 								</div>
 							</div>
 
@@ -1447,7 +1410,7 @@ export default function OrderDetail() {
 											<div className="justify-start text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
 												訂單編號
 											</div>
-											<div className="justify-start text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
+											<div className='justify-start text-zinc-800 text-base font-medium font-poppins leading-6'>
 												{orderDetail.no}
 											</div>
 										</div>
@@ -1455,7 +1418,7 @@ export default function OrderDetail() {
 											<div className="justify-start text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
 												訂購日期
 											</div>
-											<div className="justify-start text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
+											<div className='justify-start text-zinc-800 text-base font-medium font-poppins leading-6'>
 												{new Date(orderDetail.createdTime).toLocaleDateString('sv-SE')}
 											</div>
 										</div>
@@ -1466,7 +1429,7 @@ export default function OrderDetail() {
 												<div className="justify-start text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
 													訂金付款日期
 												</div>
-												<div className="justify-start text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
+												<div className='justify-start text-zinc-800 text-base font-medium font-poppins leading-6'>
 													{new Date(orderDetail.transaction.depositDate).toLocaleDateString('sv-SE')}
 												</div>
 											</div>
@@ -1479,10 +1442,13 @@ export default function OrderDetail() {
 													訂金付款方式
 												</div>
 												<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
-													{orderDetail.transaction.depositPaymentMethod === 'ATM' ? '線上ATM' :
-													 orderDetail.transaction.depositPaymentMethod === 'CREDIT' ? '線上信用卡' :
-													 orderDetail.transaction.depositPaymentMethod === 'CASH' ? '現場付現' :
-													 orderDetail.transaction.depositPaymentMethod || '未記錄'}
+													{orderDetail.transaction.depositPaymentMethod === 'ATM'
+														? '線上ATM'
+														: orderDetail.transaction.depositPaymentMethod === 'CREDIT'
+															? '線上信用卡'
+															: orderDetail.transaction.depositPaymentMethod === 'CASH'
+																? '現場付現'
+																: orderDetail.transaction.depositPaymentMethod || '未記錄'}
 												</div>
 											</div>
 										)}
@@ -1493,7 +1459,7 @@ export default function OrderDetail() {
 												<div className="justify-start text-zinc-800 text-base font-normal font-['Noto_Sans_TC'] leading-6">
 													尾款付款日期
 												</div>
-												<div className="justify-start text-zinc-800 text-base font-medium font-['Poppins'] leading-6">
+												<div className='justify-start text-zinc-800 text-base font-medium font-poppins leading-6'>
 													{new Date(orderDetail.transaction.balanceDate).toLocaleDateString('sv-SE')}
 												</div>
 											</div>
@@ -1506,36 +1472,39 @@ export default function OrderDetail() {
 													尾款付款方式
 												</div>
 												<div className="justify-start text-zinc-800 text-base font-medium font-['Noto_Sans_TC'] leading-6">
-													{orderDetail.transaction.balancePaymentMethod === 'ATM' ? '線上ATM' :
-													 orderDetail.transaction.balancePaymentMethod === 'CREDIT' ? '線上信用卡' :
-													 orderDetail.transaction.balancePaymentMethod === 'CASH' ? '現場付現' :
-													 orderDetail.transaction.balancePaymentMethod || '未記錄'}
+													{orderDetail.transaction.balancePaymentMethod === 'ATM'
+														? '線上ATM'
+														: orderDetail.transaction.balancePaymentMethod === 'CREDIT'
+															? '線上信用卡'
+															: orderDetail.transaction.balancePaymentMethod === 'CASH'
+																? '現場付現'
+																: orderDetail.transaction.balancePaymentMethod || '未記錄'}
 												</div>
 											</div>
 										)}
 									</div>
 								</div>
-							{orderDetail &&
-				orderDetail.status !== OrderStatus.ORDER_CANCELED &&
-				orderReservations.every(
-					(or) =>
-						!or.reservation ||
-						or.reservation.reservationStatus === 1 ||
-						or.reservation.reservationStatus === 9
-				) && (
-					<button
-						onClick={() => setIsCancelModalOpen(true)}
-						className="mt-4 justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] underline leading-6 hover:text-blue-600 transition-colors cursor-pointer"
-					>
-						申請取消訂單
-					</button>
-				)}
+								{orderDetail &&
+									orderDetail.status !== OrderStatus.ORDER_CANCELED &&
+									orderReservations.every(
+										(or) =>
+											!or.reservation ||
+											or.reservation.reservationStatus === 1 ||
+											or.reservation.reservationStatus === 9,
+									) && (
+										<button
+											onClick={() => setIsCancelModalOpen(true)}
+											className="mt-4 justify-start text-zinc-800 text-sm font-normal font-['Noto_Sans_TC'] underline leading-6 hover:text-blue-600 transition-colors cursor-pointer"
+										>
+											申請取消訂單
+										</button>
+									)}
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
-		
+
 			<CancelOrderModal
 				isOpen={isCancelModalOpen}
 				onClose={() => setIsCancelModalOpen(false)}

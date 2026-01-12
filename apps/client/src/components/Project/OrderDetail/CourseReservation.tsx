@@ -1,5 +1,12 @@
-import { useState, useEffect } from 'react';
-import { CoursePeople, CourseType, OrderMemberDetailDTO, OrderReservationResponseDto, ReservationStatus, ResponseWrapper } from '@repo/shared';
+import { useEffect,useState } from 'react';
+import {
+	CoursePeople,
+	CourseType,
+	OrderMemberDetailDTO,
+	OrderReservationResponseDto,
+	ReservationStatus,
+	ResponseWrapper,
+} from '@repo/shared';
 
 import DatePicker from '@/components/Project/Shared/DatePicker';
 import { showToast } from '@/components/Project/Utils/Toast';
@@ -63,7 +70,7 @@ export default function CourseReservation({
 	const totalOrderCount = adultCount + childCount;
 	// 計算當前 active 預約數量
 	const activeReservationCount = orderReservations.filter(
-		(or) => or.reservation && or.reservation.reservationStatus !== ReservationStatus.CANCELED
+		(or) => or.reservation && or.reservation.reservationStatus !== ReservationStatus.CANCELED,
 	).length;
 
 	const toggleMemberSelection = (memberId: string) => {
@@ -136,7 +143,7 @@ export default function CourseReservation({
 						headers: {
 							Authorization: `Bearer ${accessToken}`,
 						},
-					}
+					},
 				);
 
 				if (response.data.result) {
@@ -239,7 +246,6 @@ export default function CourseReservation({
 			setIsLoading(false);
 		}
 	};
-
 
 	return (
 		<>
@@ -364,7 +370,7 @@ export default function CourseReservation({
 																<span className="text-orange-500 text-xs font-normal font-['Noto_Sans_TC'] leading-4">
 																	單板{' '}
 																</span>
-																<span className="text-orange-500 text-xs font-semibold font-['Poppins'] leading-[19px]">
+																<span className='text-orange-500 text-xs font-semibold font-poppins leading-[19px]'>
 																	LV.{member.snowboard}
 																</span>
 															</div>
@@ -374,14 +380,14 @@ export default function CourseReservation({
 																<span className="text-blue-700 text-xs font-normal font-['Noto_Sans_TC'] leading-4">
 																	雙板{' '}
 																</span>
-																<span className="text-blue-700 text-xs font-semibold font-['Poppins'] leading-[19px]">
+																<span className='text-blue-700 text-xs font-semibold font-poppins leading-[19px]'>
 																	LV.{member.skis}
 																</span>
 															</div>
 														)}
 													</div>
 												</div>
-												<div className="text-neutral-500 text-xs font-normal font-['Poppins'] leading-4">
+												<div className='text-neutral-500 text-xs font-normal font-poppins leading-4'>
 													{member.memberPhone}
 												</div>
 											</div>
@@ -551,7 +557,7 @@ export default function CourseReservation({
 																	<div className="justify-start text-zinc-800 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
 																		第
 																	</div>
-																	<div className="justify-start text-zinc-800 text-4xl font-medium font-['Poppins'] leading-9">
+																	<div className='justify-start text-zinc-800 text-4xl font-medium font-poppins leading-9'>
 																		{orderRes.index + 1}
 																	</div>
 																	<div className="justify-start text-zinc-800 text-xs font-normal font-['Noto_Sans_TC'] leading-5">
@@ -568,7 +574,9 @@ export default function CourseReservation({
 																		>
 																			<img
 																				className='w-6 h-6 left-0 top-0 absolute rounded-[99px]'
-																				src={resMember.orderMember?.member?.avatar || '/image/profile/default-avatar.png'}
+																				src={
+																					resMember.orderMember?.member?.avatar || '/image/profile/default-avatar.png'
+																				}
 																				alt={resMember.orderMember?.member?.name || 'Member'}
 																			/>
 																		</div>
@@ -577,7 +585,7 @@ export default function CourseReservation({
 															</div>
 														</div>
 													</div>
-													<div className="justify-start text-zinc-800 text-sm font-normal font-['Poppins'] leading-6 border-t border-gray-200 pt-2">
+													<div className='justify-start text-zinc-800 text-sm font-normal font-poppins leading-6 border-t border-gray-200 pt-2'>
 														{formattedDate}
 													</div>
 												</div>
@@ -628,9 +636,7 @@ export default function CourseReservation({
 					<div className='w-[400px] h-[354px] bg-white rounded-[20px] shadow-[0px_10px_26px_0px_rgba(0,0,0,0.13)] flex flex-col items-center justify-between overflow-hidden'>
 						{/* 彈窗標題 */}
 						<div className='self-stretch h-16 relative bg-white flex items-center justify-between px-8'>
-							<div className="text-zinc-800 text-xl font-medium font-['Noto_Sans_TC'] leading-7">
-								取消預約
-							</div>
+							<div className="text-zinc-800 text-xl font-medium font-['Noto_Sans_TC'] leading-7">取消預約</div>
 							<button
 								onClick={() => {
 									setShowCancelModal(false);
@@ -667,17 +673,13 @@ export default function CourseReservation({
 									}}
 									placeholder='輸入取消原因'
 									className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 resize-none text-zinc-800 font-normal font-['Noto_Sans_TC'] ${
-										showCancelReasonError
-											? 'border-red-500 focus:ring-red-500'
-											: 'border-gray-300 focus:ring-blue-500'
+										showCancelReasonError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
 									}`}
 									rows={1}
 								/>
 								<div className='h-6'>
 									{showCancelReasonError && (
-										<div className="text-red-500 text-sm font-normal font-['Noto_Sans_TC'] mt-2">
-											必填欄位
-										</div>
+										<div className="text-red-500 text-sm font-normal font-['Noto_Sans_TC'] mt-2">必填欄位</div>
 									)}
 								</div>
 							</div>
@@ -706,7 +708,6 @@ export default function CourseReservation({
 					</div>
 				</div>
 			)}
-
 		</>
 	);
 }

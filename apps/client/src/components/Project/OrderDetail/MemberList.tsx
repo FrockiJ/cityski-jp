@@ -1,6 +1,13 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useCallback,useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { OrderMemberDetailDTO, CourseType, CourseSkiType, OrderInvitationResponseDto, OrderReservationResponseDto } from '@repo/shared';
+import {
+	CourseSkiType,
+	CourseType,
+	OrderInvitationResponseDto,
+	OrderMemberDetailDTO,
+	OrderReservationResponseDto,
+} from '@repo/shared';
+
 import api from '@/lib/api';
 import { selectToken } from '@/state/slices/authSlice';
 
@@ -78,7 +85,7 @@ export default function MemberList({
 			}
 
 			const memberInReservation = orderReservation.reservation.reservationMembers.some(
-				(rm) => rm.orderMemberId === orderMemberId
+				(rm) => rm.orderMemberId === orderMemberId,
 			);
 
 			if (memberInReservation) {
@@ -93,7 +100,8 @@ export default function MemberList({
 	const currentMemberCount = orderMembers.length + pendingInvitations.length + newMemberSlots.length;
 
 	// 判斷是否應該隱藏新增按鈕（團體課且人數已達上限，或訂單已取消）
-	const shouldHideAddButton = !canAddMember || (courseType === CourseType.GROUP && currentMemberCount >= purchasedQuantity);
+	const shouldHideAddButton =
+		!canAddMember || (courseType === CourseType.GROUP && currentMemberCount >= purchasedQuantity);
 
 	// 点击外部关闭选择器
 	useEffect(() => {
@@ -513,7 +521,7 @@ export default function MemberList({
 													<div className="justify-start text-red-400 text-xs font-normal font-['Noto_Sans_TC'] leading-4">
 														單板{' '}
 													</div>
-													<div className="justify-start text-red-400 text-xs font-semibold font-['Poppins'] leading-5">
+													<div className='justify-start text-red-400 text-xs font-semibold font-poppins leading-5'>
 														LV.{member.snowboard}
 													</div>
 												</div>
@@ -526,14 +534,14 @@ export default function MemberList({
 													<div className="justify-start text-cyan-600 text-xs font-normal font-['Noto_Sans_TC'] leading-4">
 														雙板{' '}
 													</div>
-													<div className="justify-start text-cyan-600 text-xs font-semibold font-['Poppins'] leading-5">
+													<div className='justify-start text-cyan-600 text-xs font-semibold font-poppins leading-5'>
 														LV.{member.skis}
 													</div>
 												</div>
 											)}
 										</div>
 									</div>
-									<div className="self-stretch h-6 justify-center text-zinc-500 text-xs font-normal font-['Poppins'] leading-5">
+									<div className='self-stretch h-6 justify-center text-zinc-500 text-xs font-normal font-poppins leading-5'>
 										{member.memberPhone || '無電話號碼'}
 									</div>
 								</div>
@@ -541,7 +549,7 @@ export default function MemberList({
 									<div className="text-right justify-start text-zinc-500 text-sm font-medium font-['Noto_Sans_TC'] leading-6">
 										已預約
 									</div>
-									<div className="text-right justify-start text-zinc-500 text-sm font-medium font-['Poppins'] leading-6">
+									<div className='text-right justify-start text-zinc-500 text-sm font-medium font-poppins leading-6'>
 										{calculateReservedLessons(member.id)}/{planNumber}
 									</div>
 									<div className="text-right justify-start text-zinc-500 text-sm font-medium font-['Noto_Sans_TC'] leading-6">
@@ -698,7 +706,7 @@ export default function MemberList({
 											<span className="text-zinc-500 text-base font-medium font-['Noto_Sans_TC'] leading-6">
 												參加人員
 											</span>
-											<span className="text-zinc-500 text-base font-medium font-['Poppins'] leading-6">
+											<span className='text-zinc-500 text-base font-medium font-poppins leading-6'>
 												{orderMembers.length + index + 1}
 											</span>
 										</div>
@@ -900,7 +908,7 @@ export default function MemberList({
 																			<span className="text-red-400 text-xs font-normal font-['Noto_Sans_TC'] leading-4">
 																				單板{' '}
 																			</span>
-																			<span className="text-red-400 text-xs font-semibold font-['Poppins'] leading-5">
+																			<span className='text-red-400 text-xs font-semibold font-poppins leading-5'>
 																				LV.{member.snowboard}
 																			</span>
 																		</div>
@@ -910,14 +918,14 @@ export default function MemberList({
 																			<span className="text-cyan-600 text-xs font-normal font-['Noto_Sans_TC'] leading-4">
 																				雙板{' '}
 																			</span>
-																			<span className="text-cyan-600 text-xs font-semibold font-['Poppins'] leading-5">
+																			<span className='text-cyan-600 text-xs font-semibold font-poppins leading-5'>
 																				LV.{member.skis}
 																			</span>
 																		</div>
 																	)}
 																</div>
 															</div>
-															<div className="text-zinc-500 text-xs font-normal font-['Poppins'] leading-5">
+															<div className='text-zinc-500 text-xs font-normal font-poppins leading-5'>
 																{member.phone || '無電話'}
 															</div>
 														</div>
@@ -1040,7 +1048,7 @@ export default function MemberList({
 										</div>
 										<div className='flex justify-start items-center gap-2.5'>
 											<div className='flex justify-start items-center gap-0.5'>
-												<div className="text-center justify-start text-white text-base font-bold font-['Poppins'] leading-6">
+												<div className='text-center justify-start text-white text-base font-bold font-poppins leading-6'>
 													LINE
 												</div>
 												<div className="text-center justify-start text-white text-base font-bold font-['Noto_Sans_TC'] leading-6">
@@ -1066,7 +1074,7 @@ export default function MemberList({
 													value={inviteEmail}
 													onChange={(e) => setInviteEmail(e.target.value)}
 													placeholder='Email'
-													className="flex-1 justify-start text-zinc-800 text-base font-normal font-['Poppins'] leading-6 outline-none bg-transparent placeholder:text-zinc-400"
+													className='flex-1 justify-start text-zinc-800 text-base font-normal font-poppins leading-6 outline-none bg-transparent placeholder:text-zinc-400'
 												/>
 												<div className='w-6 h-6 relative opacity-0 overflow-hidden'>
 													<div className='w-5 h-4 left-[1.44px] top-[3.25px] absolute bg-neutral-400' />
@@ -1089,7 +1097,7 @@ export default function MemberList({
 									<div className='self-stretch h-6 relative overflow-hidden'>
 										<div className='w-80 h-0 left-[1px] top-[12px] absolute outline outline-1 outline-offset-[-0.50px] outline-zinc-300'></div>
 										<div className='w-10 px-2 left-[148px] top-[4px] absolute bg-white inline-flex flex-col justify-center items-center gap-2.5'>
-											<div className="self-stretch text-center justify-start text-neutral-400 text-xs font-normal font-['Poppins'] leading-4">
+											<div className='self-stretch text-center justify-start text-neutral-400 text-xs font-normal font-poppins leading-4'>
 												OR
 											</div>
 										</div>
@@ -1099,7 +1107,7 @@ export default function MemberList({
 											連結分享
 										</div>
 										<div className='w-80 inline-flex justify-between items-center'>
-											<div className="w-60 justify-start text-zinc-800 text-sm font-normal font-['Poppins'] leading-6">
+											<div className='w-60 justify-start text-zinc-800 text-sm font-normal font-poppins leading-6'>
 												cityski.com.tw/invite?12345
 											</div>
 											<div

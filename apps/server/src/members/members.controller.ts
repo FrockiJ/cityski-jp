@@ -68,8 +68,9 @@ export class MembersController {
   @Get()
   getMembers(
     @Query() getMembersRequestDto: GetMembersRequestDto,
+    @Req() request: CustomRequest,
   ): Promise<ResWithPaginationDTO<MemberResponseDto[]>> {
-    return this.membersService.getMembers(getMembersRequestDto);
+    return this.membersService.getMembers(getMembersRequestDto, request);
   }
 
   /**

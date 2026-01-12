@@ -244,6 +244,7 @@ export class MembersService {
    **/
   async getMembers(
     requestDto: GetMembersRequestDto,
+    request?: any,
   ): Promise<ResWithPaginationDTO<MemberResponseDto[]>> {
     try {
       let {
@@ -371,8 +372,12 @@ export class MembersService {
       // convert to DTO
       const memberDtos = plainToInstance(MemberResponseDto, members);
 
-      // 對會員資料進行去識別化處理
-      const anonymizedMemberDtos = memberDtos.map((member) => anonymizeMemberData(member));
+      // 只在前台會員查詢時進行去識別化處理
+      // 後台管理員查詢時顯示完整資料
+      const userType = request?.['userType'];
+      const finalMemberDtos = userType === 'member'
+        ? memberDtos.map((member) => anonymizeMemberData(member))
+        : memberDtos;
 
       // get total pages
       const pages = Math.ceil(total / limit);
@@ -380,7 +385,7 @@ export class MembersService {
       console.log('members data from DB:', members);
 
       return {
-        data: anonymizedMemberDtos,
+        data: finalMemberDtos,
         total,
         page,
         limit,

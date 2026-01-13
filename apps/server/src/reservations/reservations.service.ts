@@ -197,10 +197,10 @@ export class ReservationsService {
         });
       }
 
-      // 篩選：關鍵字（預約編號或教練名稱）
+      // 篩選：關鍵字（學員姓名、課程名稱）
       if (request.keyword) {
         queryBuilder.andWhere(
-          '(CAST(reservation.reservationNo AS TEXT) ILIKE :keyword OR reservation.instructor ILIKE :keyword)',
+          '(member.name ILIKE :keyword OR course.name ILIKE :keyword)',
           { keyword: `%${request.keyword}%` },
         );
       }

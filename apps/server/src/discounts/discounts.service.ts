@@ -19,7 +19,6 @@ import { User } from 'src/users/entities/user.entity';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { Cron } from '@nestjs/schedule';
 import { log } from 'console';
-// import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class DiscountsService {
@@ -59,8 +58,8 @@ export class DiscountsService {
       });
 
       // filter status
-      if (query.status && query.status.trim()) {
-        const statusArr = query.status.split(',').map(Number);
+      const statusArr = query.status;
+      if (statusArr?.length > 0) {
         const hasExpiredStatus = statusArr.includes(DiscountStatus.EXPIRED);
         const filteredStatusArr = statusArr.filter(
           (status) => status !== DiscountStatus.EXPIRED,

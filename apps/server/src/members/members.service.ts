@@ -277,21 +277,21 @@ export class MembersService {
 
       // --- filters ---
 
-      // -- filter: by date --
+      // -- filter: by date (建立日期) --
       if (startUpdatedTime) {
-        queryBuilder.andWhere('member.updatedTime >= :startUpdatedTime', {
+        queryBuilder.andWhere('member.created_time >= :startUpdatedTime', {
           startUpdatedTime,
         });
       }
       if (endUpdatedTime) {
-        queryBuilder.andWhere('member.updatedTime <= :endUpdatedTime', {
+        queryBuilder.andWhere('member.created_time <= :endUpdatedTime', {
           endUpdatedTime,
         });
       }
 
       // -- filter: by member no --
       if (no) {
-        queryBuilder.andWhere('member.no = :no', { no });
+        queryBuilder.andWhere('member.no LIKE :no', { no: `%${no}%` });
       }
 
       // -- filter: by email --
@@ -307,55 +307,37 @@ export class MembersService {
       }
 
       // -- filter: by member's snowboard level --
-      const snowboardLevelArray = String(snowboardLevel)
-        .split(',')
-        .map((level) => Number(level))
-        .filter((level) => !isNaN(level)); // Filter out invalid numbers
-
-      if (snowboardLevelArray.length > 0) {
-        queryBuilder.andWhere('member.snowboard IN (:...snowboardLevelArray)', {
-          snowboardLevelArray,
+      if (snowboardLevel?.length > 0) {
+        queryBuilder.andWhere('member.snowboard IN (:...snowboardLevel)', {
+          snowboardLevel,
         });
       }
 
       // -- filter: by member's ski level --
-      const skiLevelArray = String(skiLevel)
-        .split(',')
-        .map((level) => Number(level))
-        .filter((level) => !isNaN(level)); // Filter out invalid numbers
-
-      if (skiLevelArray.length > 0) {
-        queryBuilder.andWhere('member.skis IN (:...skiLevelArray)', {
-          skiLevelArray,
+      if (skiLevel?.length > 0) {
+        queryBuilder.andWhere('member.skis IN (:...skiLevel)', {
+          skiLevel,
         });
       }
 
       // -- filter: by status --
-      const statusArray = String(status)
-        .split(',')
-        .map((level) => Number(level))
-        .filter((level) => !isNaN(level)); // Filter out invalid numbers
-
-      if (statusArray.length > 0) {
-        queryBuilder.andWhere('member.status IN (:...statusArray)', {
-          statusArray,
+      if (status?.length > 0) {
+        queryBuilder.andWhere('member.status IN (:...status)', {
+          status,
         });
       }
 
-      // -- filter: by member number exact search (精準搜尋會員編號) --
+      // -- filter: by keyword search (搜尋姓名或手機) --
       if (keyword) {
-        queryBuilder.andWhere('member.no = :keyword', { keyword: keyword.trim() });
+        queryBuilder.andWhere(
+          '(member.name ILIKE :keyword OR member.phone LIKE :keyword)',
+          { keyword: `%${keyword.trim()}%` },
+        );
       }
 
       // --- sorting ---
       const columnMap = {
-        // default columns
-        createdAt: 'created_time',
-        updatedAt: 'updated_time',
-
-        // entity-specific columns
-        skiLevel: 'ski',
-        snowboardLevel: 'snowboard',
+        createTime: 'created_time',
       };
 
       const dbSortCol = columnMap[sort] || sort;
@@ -375,9 +357,10 @@ export class MembersService {
       // 只在前台會員查詢時進行去識別化處理
       // 後台管理員查詢時顯示完整資料
       const userType = request?.['userType'];
-      const finalMemberDtos = userType === 'member'
-        ? memberDtos.map((member) => anonymizeMemberData(member))
-        : memberDtos;
+      const finalMemberDtos =
+        userType === 'member'
+          ? memberDtos.map((member) => anonymizeMemberData(member))
+          : memberDtos;
 
       // get total pages
       const pages = Math.ceil(total / limit);
@@ -541,14 +524,8 @@ export class MembersService {
       }
 
       // --- sorting ---
-
       const columnMap = {
-        // default columns
-        createdAt: 'created_time',
-        updatedAt: 'updated_time',
-
-        // entity-specific columns
-        skiLevel: 'ski',
+        createTime: 'created_time',
       };
 
       const dbSortCol = columnMap[sort] || sort;

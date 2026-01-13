@@ -7,7 +7,8 @@ import {
 } from "../../constants/enums";
 import { PaginationRequestDTO } from "../pagination/pagination-request.dto";
 import { Filter } from "../../decorators/filter";
-import { Expose } from "class-transformer";
+import { Expose, Transform } from "class-transformer";
+import { toNumberArray } from "../../utils/transform";
 
 export class GetMembersRequestDto extends PaginationRequestDTO {
   @IsString()
@@ -46,10 +47,10 @@ export class GetMembersRequestDto extends PaginationRequestDTO {
     sequence: 3,
     placeholder: "選擇",
   })
+  @Transform(({ value }) => toNumberArray(value))
   @IsOptional()
-  @IsString()
   @Expose()
-  skiLevel?: string;
+  skiLevel?: number[];
 
   @Filter({
     type: FilterType.SELECT_MULTI,
@@ -58,10 +59,10 @@ export class GetMembersRequestDto extends PaginationRequestDTO {
     sequence: 2,
     placeholder: "選擇",
   })
+  @Transform(({ value }) => toNumberArray(value))
   @IsOptional()
-  @IsString()
   @Expose()
-  snowboardLevel?: string;
+  snowboardLevel?: number[];
 
   @Filter({
     type: FilterType.SELECT,
@@ -85,10 +86,10 @@ export class GetMembersRequestDto extends PaginationRequestDTO {
     placeholder: "選擇",
     menuPlacement: "top",
   })
-  @IsString()
+  @Transform(({ value }) => toNumberArray(value))
   @IsOptional()
   @Expose()
-  status?: string;
+  status?: number[];
 
   @Filter({
     type: FilterType.DATETIME,

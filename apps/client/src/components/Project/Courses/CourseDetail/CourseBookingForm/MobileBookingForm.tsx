@@ -28,6 +28,7 @@ interface CourseBookingFormProps {
 }
 interface FormData {
 	plan: string;
+	planType?: number;
 	boardType: number;
 	participants: { adult: number; minor: number };
 	date?: string;

@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { debounce } from '@mui/material';
-import { ReservationOverseasTableListResult } from '@repo/shared';
-import { ModalType } from '@repo/shared';
-import { GetCoursesRequestDTO } from '@repo/shared/dist/dto/courses/get-courses-request.dto';
+import { GetReservationsRequestDto, ModalType, ReservationOverseasTableListResult } from '@repo/shared';
 import { configReservationsOverseasTable } from 'src/tableConfigs/reservations-overseas';
 
 import CoreButton from '@/components/Common/CIBase/CoreButton';
@@ -80,7 +78,7 @@ const OverseasLessonPage = () => {
 					tableDataCount={0}
 					searchOptions={{ onKeyDown: handleSearch, value: keyword, placeholder: '搜尋學員或課程名稱' }}
 					unused={configReservationsOverseasTable?.unfilteredFields}
-					queryDto={() => GetCoursesRequestDTO}
+					queryDto={() => GetReservationsRequestDto}
 				/>
 			</StyledSearchFilterWrapper>
 

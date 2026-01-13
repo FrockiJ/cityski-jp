@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { debounce } from '@mui/material';
-import { GetCoursesRequestDTO, ModalType, OrderTableListResult } from '@repo/shared';
+import { GetOrdersRequestDTO, ModalType, OrderTableListResult } from '@repo/shared';
 import { configOrdersTable } from 'src/tableConfigs/orders';
 
 import CoreButton from '@/components/Common/CIBase/CoreButton';
@@ -66,7 +66,7 @@ const OrderManagementOverseasLessonPage = () => {
 					tableDataCount={0}
 					searchOptions={{ onKeyDown: handleSearch, value: keyword, placeholder: '搜尋會員姓名或訂單編號' }}
 					unused={configOrdersTable?.unfilteredFields}
-					queryDto={() => GetCoursesRequestDTO}
+					queryDto={() => GetOrdersRequestDTO}
 				/>
 			</StyledSearchFilterWrapper>
 

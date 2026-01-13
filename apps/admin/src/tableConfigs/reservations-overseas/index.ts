@@ -1,6 +1,6 @@
 import {
 	ColumnType,
-	GetCoursesRequestDTO,
+	GetReservationsRequestDto,
 	ReservationOverseasTableListResult,
 	TableColumnType,
 	TableConfig,
@@ -76,7 +76,10 @@ export const getReservationsOverseasTableConfigColumn: TableColumnType<Reservati
 	},
 ];
 
-export const configReservationsOverseasTable: TableConfig<ReservationOverseasTableListResult, GetCoursesRequestDTO> = {
+export const configReservationsOverseasTable: TableConfig<
+	ReservationOverseasTableListResult,
+	GetReservationsRequestDto
+> = {
 	tableId: 'ReservationsOverseasTableListResult',
 	columns: getReservationsOverseasTableConfigColumn,
 	unfilteredFields: (_query) => [],

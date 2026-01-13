@@ -2,7 +2,8 @@ import { IsOptional, IsString } from "class-validator";
 import { FilterType, OptionNames } from "../../constants/enums";
 import { PaginationRequestDTO } from "../pagination/pagination-request.dto";
 import { Filter } from "../../decorators/filter";
-import { Expose } from "class-transformer";
+import { Expose, Transform } from "class-transformer";
+import { toStringArray } from "../../utils/transform";
 
 export class GetUsersRequestDTO extends PaginationRequestDTO {
   @IsString()
@@ -17,10 +18,10 @@ export class GetUsersRequestDTO extends PaginationRequestDTO {
     options: OptionNames.USER_ROLE,
     sequence: 1,
   })
-  @IsString()
+  @Transform(({ value }) => toStringArray(value))
   @IsOptional()
   @Expose()
-  roles?: string;
+  roles?: string[];
 
   @Filter({
     type: FilterType.DATETIME,

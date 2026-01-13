@@ -1,8 +1,9 @@
 import { IsOptional, IsString, IsUUID } from "class-validator";
 import { DiscountStatus, FilterType, OptionNames } from "../../constants/enums";
-import { Expose } from "class-transformer";
+import { Expose, Transform } from "class-transformer";
 import { Filter } from "../../decorators/filter";
 import { PaginationRequestDTO } from "../pagination/pagination-request.dto";
+import { toNumberArray } from "../../utils/transform";
 
 export class GetDiscountRequestDTO extends PaginationRequestDTO {
   @IsUUID()
@@ -21,9 +22,10 @@ export class GetDiscountRequestDTO extends PaginationRequestDTO {
     sequence: 1,
     placeholder: "選擇",
   })
+  @Transform(({ value }) => toNumberArray(value))
   @IsOptional()
   @Expose()
-  status?: string;
+  status?: DiscountStatus[];
 
   @Filter({
     type: FilterType.DATETIME,

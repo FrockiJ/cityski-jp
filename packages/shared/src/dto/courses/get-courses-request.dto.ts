@@ -1,5 +1,5 @@
-import { Expose } from "class-transformer";
-import { IsNumber, IsOptional, IsString, IsUUID } from "class-validator";
+import { Expose, Transform } from "class-transformer";
+import { IsOptional, IsString, IsUUID } from "class-validator";
 import {
   CourseBkgType,
   CourseStatusType,
@@ -9,6 +9,7 @@ import {
 } from "../../constants/enums";
 import { Filter } from "../../decorators/filter";
 import { PaginationRequestDTO } from "../pagination/pagination-request.dto";
+import { toNumberArray, toStringArray } from "../../utils/transform";
 
 export class GetCoursesRequestDTO extends PaginationRequestDTO {
   @IsUUID()
@@ -27,10 +28,10 @@ export class GetCoursesRequestDTO extends PaginationRequestDTO {
     options: OptionNames.COURSE_STATUS,
     sequence: 1,
   })
-  @IsString()
+  @Transform(({ value }) => toNumberArray(value))
   @IsOptional()
   @Expose()
-  status?: CourseStatusType;
+  status?: CourseStatusType[];
 
   @Filter({
     type: FilterType.SELECT_MULTI,
@@ -39,10 +40,10 @@ export class GetCoursesRequestDTO extends PaginationRequestDTO {
     options: OptionNames.COURSE_TYPE,
     sequence: 2,
   })
-  @IsString()
+  @Transform(({ value }) => toStringArray(value))
   @IsOptional()
   @Expose()
-  type?: CourseType;
+  type?: CourseType[];
 
   @Filter({
     type: FilterType.SELECT_MULTI,
@@ -51,10 +52,10 @@ export class GetCoursesRequestDTO extends PaginationRequestDTO {
     options: OptionNames.COURSE_BOOKING_TYPE,
     sequence: 3,
   })
-  @IsString()
+  @Transform(({ value }) => toNumberArray(value))
   @IsOptional()
   @Expose()
-  bkgType?: CourseBkgType;
+  bkgType?: CourseBkgType[];
 
   @Filter({
     type: FilterType.DATETIME,

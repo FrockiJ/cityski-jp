@@ -206,10 +206,9 @@ export class UsersService {
       });
 
       // filter role only
-      if (getUsersRequestDTO.roles) {
-        queryBuilder.andWhere('role.id IN (:...roleIds)', {
-          roleIds: getUsersRequestDTO.roles.split(','),
-        });
+      const roles = getUsersRequestDTO.roles;
+      if (roles?.length > 0) {
+        queryBuilder.andWhere('role.id IN (:...roles)', { roles });
       }
 
       // filter updatedTime

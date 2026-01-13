@@ -162,37 +162,18 @@ export class CoursesService {
       }
 
       // -- filter: by status --
-      const statusArray = String(status)
-        .split(',')
-        .map((status) => Number(status))
-        .filter((status) => !isNaN(status)); // Filter out invalid numbers
-
-      if (statusArray.length > 0) {
-        queryBuilder.andWhere('course.status IN (:...statusArray)', {
-          statusArray,
-        });
+      if (status?.length > 0) {
+        queryBuilder.andWhere('course.status IN (:...status)', { status });
       }
 
       // -- filter: by type --
-      if (type) {
-        const typeArray = String(type).split(',');
-        if (typeArray.length > 0) {
-          queryBuilder.andWhere('course.type IN (:...typeArray)', {
-            typeArray,
-          });
-        }
+      if (type?.length > 0) {
+        queryBuilder.andWhere('course.type IN (:...type)', { type });
       }
 
       // -- filter: by bkgType --
-      const bkgTypeArray = String(bkgType)
-        .split(',')
-        .map((bkgType) => Number(bkgType))
-        .filter((bkgType) => !isNaN(bkgType)); // Filter out invalid numbers
-
-      if (bkgTypeArray.length > 0) {
-        queryBuilder.andWhere('course.bkgType IN (:...bkgTypeArray)', {
-          bkgTypeArray,
-        });
+      if (bkgType?.length > 0) {
+        queryBuilder.andWhere('course.bkgType IN (:...bkgType)', { bkgType });
       }
 
       // -- filter: by keyword search --

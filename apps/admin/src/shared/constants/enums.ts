@@ -123,4 +123,5 @@ export enum ColumnType {
 	EMPTY = 'empty',
 	LIST_AND_TOOLTIP = 'listAndTooltip',
 	MANAGEMENT = 'management',
+	SELECT = 'select',
 }

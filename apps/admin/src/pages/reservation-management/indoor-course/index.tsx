@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { debounce } from '@mui/material';
 import { useRouter } from 'next/router';
 import { ReservationIndoorTableListResult, GetReservationsRequestDto } from '@repo/shared';
 import { ModalType } from '@repo/shared';
-import { configReservationsIndoorTable } from 'src/tableConfigs/reservations-indoor';
+import { createReservationsIndoorTableConfig } from 'src/tableConfigs/reservations-indoor';
 
 import CoreButton from '@/components/Common/CIBase/CoreButton';
 import CoreDynamicTable from '@/components/Common/CIBase/CoreDynamicTable';
@@ -13,6 +13,7 @@ import { StyledSearchFilterWrapper } from '@/components/Common/CIBase/CoreDynami
 import TablePageLayout from '@/components/Common/CIBase/CoreDynamicTable/TablePageLayout';
 import AddEditReservationIndoorModal from '@/components/Project/ReservationManagement/AddEditReservationIndoorModal';
 import { useReservationFormatTableData } from '@/hooks/tableData/useReservationFormatTableData';
+import { useInstructorSelect } from '@/hooks/useInstructorSelect';
 import useModalProvider from '@/hooks/useModalProvider';
 import { setTableSort } from '@/state/slices/tableSlice';
 import { useAppDispatch } from '@/state/store';
@@ -27,8 +28,6 @@ const IndoorCoursePage = () => {
 	const handleSearch = debounce((e: any) => {
 		setKeyword(e.target.value.trim());
 	}, 300);
-
-	console.log('IndoorCoursePage rendered', router.isReady);
 
 	// --- EFFECT ---
 
@@ -54,21 +53,16 @@ const IndoorCoursePage = () => {
 	useEffect(() => {
 		if (!router.isReady) return;
 		times.current += 1;
-		console.log('IndoorCoursePage rendered', times.current);
 		// 編輯模式：有 reservationId
 		if (router.query.reservationId) {
 			const reservationId = router.query.reservationId as string;
 			handleEditReservation(reservationId);
-			// 清除 URL 參數
-			// router.replace('/reservation-management/indoor-course', undefined, { shallow: true });
 		}
 		// 新增模式：action=add 且有 orderId 和 index
 		else if (router.query.action === 'add' && router.query.orderId && router.query.index !== undefined) {
 			const orderId = router.query.orderId as string;
 			const index = parseInt(router.query.index as string, 10);
 			handleAddReservation(orderId, index);
-			// 清除 URL 參數
-			// router.replace('/reservation-management/indoor-course', undefined, { shallow: true });
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [router.isReady]);
@@ -124,6 +118,47 @@ const IndoorCoursePage = () => {
 		},
 	);
 
+	// 使用教練選單Hook
+	const { coachesMap, fetchCoachesForDepartment, handleInstructorChange } = useInstructorSelect({
+		onError: (error) => {
+			modal.openModal({
+				title: '錯誤',
+				center: true,
+				children: <div>{error}</div>,
+			});
+		},
+	});
+
+	// 獲取教練選項的函數 - 使用當前用戶選擇的部門
+	const getCoachOptions = useCallback(
+		(rowDepartmentId: string) => {
+			// 使用當前登入用戶的部門ID，而不是預約的部門ID
+			const options = coachesMap[departmentId] || [{ value: '', label: '未指定' }];
+			return options;
+		},
+		[coachesMap, departmentId]
+	);
+
+	// 處理教練變更
+	const handleInstructorChangeWrapper = useCallback(
+		async (reservationId: string, newInstructor: string, row: any) => {
+			await handleInstructorChange(reservationId, newInstructor);
+		},
+		[handleInstructorChange]
+	);
+
+	// 創建動態表格配置
+	const tableConfig = useMemo(() => {
+		return createReservationsIndoorTableConfig(getCoachOptions, handleInstructorChangeWrapper);
+	}, [getCoachOptions, handleInstructorChangeWrapper]);
+
+	// 預加載當前部門的教練列表（只在進入頁面時 fetch 一次）
+	useEffect(() => {
+		if (departmentId) {
+			fetchCoachesForDepartment(departmentId);
+		}
+	}, [departmentId, fetchCoachesForDepartment]);
+
 	return (
 		<TablePageLayout
 			title='預約管理'
@@ -149,23 +184,23 @@ const IndoorCoursePage = () => {
 		>
 			<StyledSearchFilterWrapper>
 				<CoreFilter
-					tableId={configReservationsIndoorTable.tableId}
+					tableId={tableConfig.tableId}
 					tableDataCount={tableDataCount}
 					searchOptions={{ onKeyDown: handleSearch, value: keyword, placeholder: '搜尋學員或課程名稱' }}
-					unused={configReservationsIndoorTable?.unfilteredFields}
+					unused={tableConfig?.unfilteredFields}
 					queryDto={() => GetReservationsRequestDto}
 				/>
 			</StyledSearchFilterWrapper>
 
 			<CoreDynamicTable
-				id={configReservationsIndoorTable.tableId}
-				headData={configReservationsIndoorTable.columns}
+				id={tableConfig.tableId}
+				headData={tableConfig.columns}
 				dataCount={tableDataCount}
 				isLoading={tableDataLoading}
 			>
 				<CoreDynamicTableList<ReservationIndoorTableListResult>
 					rows={formatTableData as ReservationIndoorTableListResult[]}
-					tableConfig={configReservationsIndoorTable}
+					tableConfig={tableConfig}
 					handleTableRowClick={(rowData) => handleEditReservation(rowData.id)}
 				/>
 			</CoreDynamicTable>

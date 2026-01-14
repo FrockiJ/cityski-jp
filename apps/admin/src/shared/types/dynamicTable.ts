@@ -10,7 +10,7 @@ export interface TableConfig<T extends ListResultI, Q = never> {
 	unfilteredFields?: PropertyTypeFactory<Q>;
 }
 
-export type TableColumnType<T> = TableColumn<T> | TagTableColumn<T>;
+export type TableColumnType<T> = TableColumn<T> | TagTableColumn<T> | SelectTableColumn<T>;
 
 export interface TableColumn<T> {
 	name: string;
@@ -30,6 +30,20 @@ export interface TableColumn<T> {
 export interface TagTableColumn<T> extends TableColumn<T> {
 	type: ColumnType.TAG;
 	styles?: ColumnTagStyles;
+}
+
+export interface SelectTableColumn<T> extends TableColumn<T> {
+	type: ColumnType.SELECT;
+	getOptions: (row: T) => SelectOption[];
+	onSelectChange: (rowId: string, newValue: string, row: T) => Promise<void>;
+	isDisabled?: (row: T) => boolean;
+}
+
+export interface SelectOption {
+	label: string;
+	value: string | number;
+	isFixed?: boolean;
+	isDisabled?: boolean;
 }
 
 export interface ColumnTagStyle {

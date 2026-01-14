@@ -70,12 +70,14 @@ export const useReservationFormatTableData = (options?: Props) => {
 				// 基本資料結構
 				const baseData = {
 					id: reservation.id,
+					departmentId: reservation.departmentId || '',
 					no: reservation.reservationNo.toString(),
 					name: reservation.courseName || `預約 #${reservation.reservationNo}`,
 					status: getStatusText(reservation.reservationStatus),
+					reservationStatus: reservation.reservationStatus,
 					boardType: getSkiTypeText(reservation.skiType),
 					level: `LV.${getTeachingLevelText(reservation.teachingLevel)}`,
-					instructor: reservation.instructor || '未指定',
+					instructor: reservation.instructor || '',
 					beginTime: dayjs(reservation.classTime).format('YYYY/MM/DD HH:mm'),
 				};
 

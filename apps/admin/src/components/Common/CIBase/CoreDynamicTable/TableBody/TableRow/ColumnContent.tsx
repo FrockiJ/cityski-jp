@@ -1,11 +1,12 @@
 import { Box, FormControlLabel, Stack, Tooltip } from '@mui/material';
 
 import CoreButton from '@/CIBase/CoreButton';
+import CoreSelect from '@/CIBase/CoreSelect';
 import TableCell from '@/CIBase/CoreDynamicTable/TableBody/TableCell';
 import CoreSwitch from '@/CIBase/CoreSwitch';
 import Tag from '@/CIBase/Tag';
 import { ColumnType } from '@/shared/constants/enums';
-import { ListResultI, TableColumnType, TagTableColumn } from '@/shared/types/dynamicTable';
+import { ListResultI, TableColumnType, TagTableColumn, SelectTableColumn, SelectOption } from '@/shared/types/dynamicTable';
 
 import { StyledCount, StyledCountWrapper, StyledManagementWrapper, StyledTagGroup } from './styles';
 
@@ -194,6 +195,49 @@ export default function ColumnContent<T extends ListResultI>({
 							)}
 						</StyledCountWrapper>
 					)}
+				</TableCell>
+			);
+		case ColumnType.SELECT:
+			const selectColumn = column as SelectTableColumn<T>;
+			const selectOptions = selectColumn.getOptions(row);
+			const currentValue = column.key ? (row[column.key] || '') : '';
+			const selectedOption = selectOptions.find((opt) => opt.value === currentValue);
+			const isSelectDisabled = selectColumn.isDisabled ? selectColumn.isDisabled(row) : false;
+
+			// 如果禁用，直接顯示文字而不是禁用的下拉選單
+			if (isSelectDisabled) {
+				return (
+					<TableCell sx={{ ...column.sx }}>
+						{String(currentValue || '')}
+					</TableCell>
+				);
+			}
+
+			return (
+				<TableCell
+					sx={{ ...column.sx }}
+					onClick={(e) => {
+						// 阻止事件冒泡到表格行，避免觸發 handleTableRowClick
+						e.stopPropagation();
+					}}
+				>
+					<CoreSelect
+						options={selectOptions}
+						defaultValue={selectedOption}
+						placeholder='請選擇'
+						width='100%'
+						onChange={(option) => {
+							if (selectColumn.onSelectChange && !Array.isArray(option)) {
+								selectColumn.onSelectChange(id, String(option.value), row);
+							}
+						}}
+						sx={{
+							'.single-select > div': {
+								padding: '2px 0px 2px 6px !important',
+								minHeight: '32px',
+							}
+						}}
+					/>
 				</TableCell>
 			);
 		case ColumnType.BLANK:

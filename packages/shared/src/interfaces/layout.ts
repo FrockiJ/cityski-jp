@@ -46,7 +46,14 @@ export interface TableConfig<T extends ListResultI, Q = never> {
   unfilteredFields?: PropertyTypeFactory<Q>;
 }
 
-export type TableColumnType<T> = TableColumn<T> | TagTableColumn<T>;
+export interface SelectTableColumn<T> extends TableColumn<T> {
+  type: ColumnType.SELECT;
+  getOptions: (row: T) => SelectOption[];
+  onSelectChange: (rowId: string, newValue: string, row: T) => Promise<void>;
+  isDisabled?: (row: T) => boolean;
+}
+
+export type TableColumnType<T> = TableColumn<T> | TagTableColumn<T> | SelectTableColumn<T>;
 
 export interface TableColumn<T> {
   name: string;

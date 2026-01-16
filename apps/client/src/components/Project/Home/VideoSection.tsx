@@ -139,7 +139,7 @@ export default function VideoSection() {
 									</div>
 								</div>
 								<p className='mt-[8px] text-sm xs:text-basic'>
-									<div className='text-white truncate'>{video?.name}</div>
+									<div className='text-system-navy truncate'>{video?.name}</div>
 								</p>
 							</div>
 						</SwiperSlide>
@@ -209,40 +209,49 @@ export default function VideoSection() {
 						>
 							{videos.map((v, index) => (
 								<SwiperSlide key={v.id}>
-									{Math.abs(index - activeIndex) <= 1 && (
-										<div className={`${windowSize?.[0] <= 480 ? 'w-[calc(100vw)]' : 'w-[460px]'} m-auto`}>
-											<div className='relative'>
-												<div className='absolute inset-0 z-10' />
+									<div className={`${windowSize?.[0] <= 480 ? 'w-[calc(100vw)]' : 'w-[460px]'} m-auto`}>
+										<div className='relative'>
+											<div className='absolute inset-0 z-10' />
+											{index === activeIndex ? (
 												<YoutubeVideo
+													key={`${v.id}-active`}
 													size='lg'
 													videoId={getYoutubeEmbedCode(v.url)}
-													autoPlay={index === activeIndex}
+													autoPlay
 													loop
 												/>
-											</div>
-											<div
-												className={`h-40 px-[42px] ${windowSize?.[0] <= 480 ? 'w-[calc(100vw)] flex-col justify-center' : 'w-[460px] flex-col justify-center'}`}
-											>
-												<div className='flex flex-col w-[376px]'>
-													<div className='text-white truncate'>{v?.name}</div>
-													<button
-														className='bg-white text-black px-4 py-2 rounded-full w-fit text-center mt-3 flex items-center justify-center gap-1'
-														onClick={() => {
-															setIsOpen(false);
-															if (v?.buttonUrl) {
-																window.open(v.buttonUrl, '_blank');
-															}
-														}}
-													>
-														<span className='flex items-center'>
-															{v?.buttonName}
-															<ChevronRight size={16} className='mt-[5px]' />
-														</span>
-													</button>
+											) : (
+												<div className='yt-wrapper-lg'>
+													<img
+														src={`https://img.youtube.com/vi/${getYoutubeEmbedCode(v.url)}/hqdefault.jpg`}
+														alt={v.name}
+														className='w-full h-full object-cover rounded-2xl'
+													/>
 												</div>
+											)}
+										</div>
+										<div
+											className={`h-40 px-[42px] ${windowSize?.[0] <= 480 ? 'w-[calc(100vw)] flex-col justify-center' : 'w-[460px] flex-col justify-center'}`}
+										>
+											<div className='flex flex-col w-[376px]'>
+												<div className='text-white truncate'>{v?.name}</div>
+												<button
+													className='bg-white text-black px-4 py-2 rounded-full w-fit text-center mt-3 flex items-center justify-center gap-1'
+													onClick={() => {
+														setIsOpen(false);
+														if (v?.buttonUrl) {
+															window.open(v.buttonUrl, '_blank');
+														}
+													}}
+												>
+													<span className='flex items-center'>
+														{v?.buttonName}
+														<ChevronRight size={16} className='mt-[5px]' />
+													</span>
+												</button>
 											</div>
 										</div>
-									)}
+									</div>
 								</SwiperSlide>
 							))}
 						</Swiper>

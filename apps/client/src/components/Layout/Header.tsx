@@ -14,6 +14,7 @@ import ConfirmLogoutModal from '@/components/Project/Profile/ConfirmLogoutModal'
 import DividerIcon from '@/components/Project/Profile/DividerIcon';
 import { Button } from '@/components/ui/button';
 import { selectToken, selectUserInfo } from '@/state/slices/authSlice';
+import { selectPageTitle } from '@/state/slices/layoutSlice';
 
 import LogoIcon from '../Icon/LogoIcon';
 
@@ -78,6 +79,7 @@ export default function Header() {
 
 	const userInfo = useSelector(selectUserInfo);
 	const accessToken = useSelector(selectToken);
+	const pageTitle = useSelector(selectPageTitle);
 
 	// Update header title based on the route and section
 	useEffect(() => {
@@ -106,15 +108,18 @@ export default function Header() {
 				default:
 					setHeaderTitle(null);
 			}
-		} else if (pathname === '/member') {
-			// Only set to 會員專區 if there's no section
-			console.log('Setting title to 會員專區');
+		} else if (pathname === '/member' || pathname === '/member/home') {
 			setHeaderTitle('會員專區');
+		} else if (pathname === '/courses') {
+			setHeaderTitle('課程方案');
+		} else if (pathname === '/overseas') {
+			setHeaderTitle('海外教學');
+		} else if (pathname === '/courses/course-detail' && pageTitle) {
+			setHeaderTitle(pageTitle);
 		} else {
 			setHeaderTitle(null);
 		}
-		console.log('Header title set to:', headerTitle);
-	}, [pathname, section, searchParams]);
+	}, [pathname, section, searchParams, pageTitle]);
 
 	const handleBack = () => {
 		if (section) {
@@ -137,11 +142,11 @@ export default function Header() {
 					: 'bg-white shadow-[0px_0px_4px_0px_rgba(0,0,0,0.10),0px_1px_16px_0px_rgba(0,0,0,0.05)]'
 			} xs:min-w-[inherit]`}
 		>
-			<div className='w-[1200px] m-[auto] max-xs:bg-white'>
+			<div className='w-full max-w-[1200px] m-[auto] max-xs:bg-white'>
 				<header className='min-h-12 xs:min-h-[72px] flex items-center justify-center xs:justify-between'>
 					{/* Show back arrow, title on mobile for nested routes, show logo otherwise */}
 					<div className='xs:hidden flex items-center w-full'>
-						{(isNestedRoute || section) && (
+						{(isNestedRoute || section) && pathname !== '/member/home' && !(pathname === '/member' && !section) && (
 							<button onClick={handleBack} className='absolute left-4 p-2 pl-0' aria-label='Back'>
 								<ChevronLeft className='w-6 h-6 text-neutral-900' />
 							</button>

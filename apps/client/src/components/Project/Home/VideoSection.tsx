@@ -175,7 +175,7 @@ export default function VideoSection() {
 					</DialogTitle>
 					<div className='h-[calc(100vh-52px)] m-auto relative'>
 						{windowSize?.[0] > 480 && (
-							<div className='absolute left-1/2 ml-[264px] top-1/2 -translate-y-1/2 flex flex-col z-20'>
+							<div className='absolute left-1/2 ml-[220px] top-1/2 -translate-y-1/2 flex flex-col z-20'>
 								<div
 									className='cursor-pointer hover:opacity-80 transition-opacity'
 									onClick={() => dialogSwiperRef.current?.swiper.slidePrev()}
@@ -200,10 +200,11 @@ export default function VideoSection() {
 							}}
 							modules={[EffectCreative]}
 							slidesPerView={1}
+							loop={true}
 							initialSlide={activeIndex}
 							onSlideChange={(swiper) => {
-								setVideo(videos[swiper.activeIndex]);
-								setActiveIndex(swiper.activeIndex);
+								setVideo(videos[swiper.realIndex]);
+								setActiveIndex(swiper.realIndex);
 							}}
 							className='h-full'
 						>
@@ -225,7 +226,7 @@ export default function VideoSection() {
 													<img
 														src={`https://img.youtube.com/vi/${getYoutubeEmbedCode(v.url)}/hqdefault.jpg`}
 														alt={v.name}
-														className='w-full h-full object-cover rounded-2xl'
+														className='absolute top-0 left-0 w-full h-full object-cover rounded-2xl'
 													/>
 												</div>
 											)}

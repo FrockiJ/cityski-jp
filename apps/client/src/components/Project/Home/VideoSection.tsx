@@ -134,7 +134,7 @@ export default function VideoSection() {
 										<img
 											src={`https://img.youtube.com/vi/${video.embed}/hqdefault.jpg`}
 											alt='youtube image'
-											className='w-[227px] h-[403px] object-cover object-center'
+											className='w-[227px] h-[403px] object-cover object-center rounded-xl'
 										></img>
 									</div>
 								</div>

@@ -136,12 +136,14 @@ const FormikInput = React.memo(
 
 		const [showClearButton, setShowClearButton] = useState(false);
 		const [showPassword, setShowPassword] = useState(false);
+		const [isComposing, setIsComposing] = useState(false); // 追蹤 IME 輸入狀態
 
 		const inputRef = useRef<(HTMLInputElement | HTMLTextAreaElement) | null>(null);
 
 		const handleInputChangeValue = (e: React.ChangeEvent<any>) => {
 			if (e.target.value.length > 0) {
-				if (hasTextCountAdornment && e.target.value.length > maxTextCount) return;
+				// IME 輸入中不檢查字數限制，等輸入完成後再檢查
+				if (hasTextCountAdornment && !isComposing && e.target.value.length > maxTextCount) return;
 				setShowClearButton(true);
 			}
 			if (e.target.value.length === 0) {
@@ -157,7 +159,8 @@ const FormikInput = React.memo(
 
 		const handleTextareaChangeValue = (e: React.ChangeEvent<any>) => {
 			if (e.target.value.length > 0) {
-				if (hasTextCountAdornment && e.target.value.length > maxTextCount) return;
+				// IME 輸入中不檢查字數限制，等輸入完成後再檢查
+				if (hasTextCountAdornment && !isComposing && e.target.value.length > maxTextCount) return;
 				setShowClearButton(true);
 			}
 			if (e.target.value.length === 0) {
@@ -175,6 +178,19 @@ const FormikInput = React.memo(
 			helpers.setValue('');
 			setShowClearButton(false);
 			inputRef.current?.focus();
+		};
+
+		const handleCompositionStart = () => {
+			setIsComposing(true);
+		};
+
+		const handleCompositionEnd = (e: React.CompositionEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+			setIsComposing(false);
+			// IME 輸入完成後，如果超過字數限制則截斷
+			if (hasTextCountAdornment && e.currentTarget.value.length > maxTextCount) {
+				const truncated = e.currentTarget.value.slice(0, maxTextCount);
+				helpers.setValue(truncated);
+			}
 		};
 
 		return (
@@ -235,6 +251,8 @@ const FormikInput = React.memo(
 								autoFocus={autoFocus}
 								value={memoField.value}
 								onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleTextareaChangeValue(e)}
+								onCompositionStart={handleCompositionStart}
+								onCompositionEnd={handleCompositionEnd}
 								onBlur={(e: React.FocusEvent<any>) => {
 									memoField.onBlur;
 									if (onBlur) onBlur(e);
@@ -255,6 +273,8 @@ const FormikInput = React.memo(
 								autoFocus={autoFocus}
 								value={memoField.value}
 								onChange={handleInputChangeValue}
+								onCompositionStart={handleCompositionStart}
+								onCompositionEnd={handleCompositionEnd}
 								onBlur={(e: React.FocusEvent<any>) => {
 									memoField.onBlur;
 									if (onBlur) onBlur(e);

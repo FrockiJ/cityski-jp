@@ -318,6 +318,18 @@ export class RolesService {
           menus: formatIdList,
           updatedTime: new Date(),
         });
+
+        // 清除所有擁有該角色的使用者的 refresh token，強制重新登入
+        const usersWithRole = await this.urdRepo.find({
+          where: { role: { id: role.id } },
+          relations: ['user'],
+        });
+
+        for (const urd of usersWithRole) {
+          if (urd.user) {
+            await this.userRepo.update(urd.user.id, { refresh: null });
+          }
+        }
       }
 
       await this.rolesRepo.save(role);
@@ -340,6 +352,14 @@ export class RolesService {
       }
       if (role.name === Roles.COACH) {
         throw new CustomException('無法刪除教練角色', HttpStatus.BAD_REQUEST);
+      }
+
+      // 檢查是否有人使用該角色
+      const isRoleUsing = await this.urdRepo.findOne({
+        where: { role: { id } },
+      });
+      if (isRoleUsing) {
+        throw new CustomException('請先移除使用該角色的人員', HttpStatus.BAD_REQUEST);
       }
 
       // remove role
@@ -369,17 +389,34 @@ export class RolesService {
         where: { role: { id } },
       });
       if (!!isRoleUsing && role.status === RoleStatus.ACTIVE) {
-        throw new CustomException('請先移除後台人員', HttpStatus.BAD_REQUEST);
+        throw new CustomException('請先移除使用該角色的人員', HttpStatus.BAD_REQUEST);
       }
+
+      const newStatus =
+        role.status === RoleStatus.INACTIVE
+          ? RoleStatus.ACTIVE
+          : RoleStatus.INACTIVE;
 
       Object.assign(role, {
         ...role,
-        status:
-          role.status === RoleStatus.INACTIVE
-            ? RoleStatus.ACTIVE
-            : RoleStatus.INACTIVE,
+        status: newStatus,
       });
-      // remove role
+
+      // 停用角色時，清除所有擁有該角色的使用者的 refresh token
+      // 注意：基本上不會觸發，因為上方已檢查有人使用該角色時不能停用
+      if (newStatus === RoleStatus.INACTIVE) {
+        const usersWithRole = await this.urdRepo.find({
+          where: { role: { id: role.id } },
+          relations: ['user'],
+        });
+
+        for (const urd of usersWithRole) {
+          if (urd.user) {
+            await this.userRepo.update(urd.user.id, { refresh: null });
+          }
+        }
+      }
+
       await this.rolesRepo.save(role);
       // return;
     } catch (err) {

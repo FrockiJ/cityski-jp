@@ -460,6 +460,13 @@ export class AuthService {
           );
         }
 
+        // 驗證 refresh token 是否與資料庫中的一致（權限被修改時會清除）
+        if (!user.refresh || user.refresh !== refreshToken) {
+          throw new UnauthorizedException(
+            'Refresh token has been revoked. Please login again.',
+          );
+        }
+
         const savedUser = this.usersRepo.create({
           ...user,
           refresh: newRefreshToken,

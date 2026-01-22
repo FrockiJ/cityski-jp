@@ -216,13 +216,13 @@ export default function VideoSection() {
 											{index === activeIndex ? (
 												<YoutubeVideo
 													key={`${v.id}-active`}
-													size='lg'
+													size={windowSize?.[0] <= 480 ? 'md' : 'lg'}
 													videoId={getYoutubeEmbedCode(v.url)}
 													autoPlay
 													loop
 												/>
 											) : (
-												<div className='yt-wrapper-lg'>
+												<div className={windowSize?.[0] <= 480 ? 'yt-wrapper-md' : 'yt-wrapper-lg'}>
 													<img
 														src={`https://img.youtube.com/vi/${getYoutubeEmbedCode(v.url)}/hqdefault.jpg`}
 														alt={v.name}

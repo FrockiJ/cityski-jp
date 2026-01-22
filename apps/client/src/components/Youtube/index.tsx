@@ -7,7 +7,7 @@ type Props = {
 	videoId: string;
 	autoPlay?: boolean;
 	loop?: boolean;
-	size: 'sm' | 'lg';
+	size: 'sm' | 'md' | 'lg';
 };
 
 const YoutubeVideo = ({ videoId, autoPlay, loop, size = 'sm' }: Props) => {

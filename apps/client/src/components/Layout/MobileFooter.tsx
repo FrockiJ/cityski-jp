@@ -19,12 +19,12 @@ export default function MobileFooter() {
 			icon: '/image/footer/mobile/courses.svg',
 			activeIcon: '/image/footer/mobile/courses-active.svg',
 		},
-		{
-			title: '海外教學',
-			href: '/overseas',
-			icon: '/image/footer/mobile/overseas.svg',
-			activeIcon: '/image/footer/mobile/overseas-active.svg',
-		},
+		// {
+		// 	title: '海外教學',
+		// 	href: '/overseas',
+		// 	icon: '/image/footer/mobile/overseas.svg',
+		// 	activeIcon: '/image/footer/mobile/overseas-active.svg',
+		// },
 		{
 			title: '我的訂單',
 			href: '/member?section=current-orders',

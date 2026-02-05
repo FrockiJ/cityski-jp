@@ -20,7 +20,7 @@ import LogoIcon from '../Icon/LogoIcon';
 
 const NAV_LINK = [
 	{ title: '課程方案', href: '/courses' },
-	{ title: '海外教學', href: '/overseas' },
+	// { title: '海外教學', href: '/overseas' },
 	{ title: '我的訂單', href: '/member?section=current-orders' },
 ];
 

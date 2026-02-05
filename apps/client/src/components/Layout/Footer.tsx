@@ -12,7 +12,7 @@ import MobileFooter from './MobileFooter';
 
 const FOOTER_NAV_LINK = [
 	{ title: '課程方案', href: '/courses' },
-	{ title: '海外教學', href: '/overseas' },
+	// { title: '海外教學', href: '/overseas' },
 	{ title: '會員專區', href: '/member?section=personal-info' },
 	{ title: '聯絡我們', href: '/contact-us' },
 	{ title: '會員條款', href: '/terms-and-conditions' },

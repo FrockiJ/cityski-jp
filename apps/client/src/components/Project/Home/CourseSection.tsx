@@ -188,9 +188,10 @@ export default function CourseSection() {
 												clipPath={`url(#roundedPolygon${index})`}
 											/>
 											<image
-												className='home-svg-image object-cover'
+												className='home-svg-image'
 												clipPath={`url(#roundedPolygon${index})`}
 												href={process.env.NEXT_PUBLIC_AWS_S3_URL + course.image}
+												preserveAspectRatio='xMidYMid slice'
 												width={360}
 												height={400}
 											/>

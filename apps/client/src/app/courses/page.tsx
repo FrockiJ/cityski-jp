@@ -186,7 +186,7 @@ const CourseCategoryPage = () => {
 				{isMobile ? (
 					<MobileCourseCategoryPage courses={courses} />
 				) : (
-					<div className='flex flex-col gap-4 mt-9 w-full whitespace-nowrap'>
+					<div className='flex flex-col gap-4 mt-9 w-full'>
 						<div className='flex flex-wrap gap-4 max-xs:gap-5 items-start w-full max-xs:flex-col max-xs:items-center'>
 							{courses?.slice(0, 2).map((category, index) => (
 								<BlurFade key={index} delay={0.2 + index * 0.2} noGrow className='w-[calc(50%-8px)] aspect-square max-xs:min-h-0'>

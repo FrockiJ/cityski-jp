@@ -213,10 +213,10 @@ const CourseCategoryPage = () => {
 							</div>
 						</div>
 
-						<div className='flex gap-4 max-xs:gap-5 max-w-[25%] h-[288px]'>
+						<div className='flex flex-wrap gap-4 max-xs:gap-5 w-full'>
 							{/* Remaining items - normal squares */}
 							{courses?.slice(5).map((category, index) => (
-								<BlurFade key={index} delay={1.2 + index * 0.2}>
+								<BlurFade key={index} delay={1.2 + index * 0.2} noGrow className='w-[calc(25%-12px)] h-[288px]'>
 									<CourseCategoryCard {...category} />
 								</BlurFade>
 							))}

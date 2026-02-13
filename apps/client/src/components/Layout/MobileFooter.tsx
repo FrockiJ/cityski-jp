@@ -19,12 +19,12 @@ export default function MobileFooter() {
 			icon: '/image/footer/mobile/courses.svg',
 			activeIcon: '/image/footer/mobile/courses-active.svg',
 		},
-		{
-			title: '海外教學',
-			href: '/overseas',
-			icon: '/image/footer/mobile/overseas.svg',
-			activeIcon: '/image/footer/mobile/overseas-active.svg',
-		},
+		// {
+		// 	title: '海外教學',
+		// 	href: '/overseas',
+		// 	icon: '/image/footer/mobile/overseas.svg',
+		// 	activeIcon: '/image/footer/mobile/overseas-active.svg',
+		// },
 		{
 			title: '我的訂單',
 			href: '/member?section=current-orders',
@@ -39,7 +39,6 @@ export default function MobileFooter() {
 		},
 	];
 
-	if (pathname.includes('/courses')) return <div className='h-[20px]'></div>;
 	return (
 		<div className='fixed right-0 bottom-0 z-50 left-0 m-0 mt-auto bg-white shadow-[0px_2px_16px_0px_rgba(0,0,0,0.06)] xs:hidden'>
 			<nav>
@@ -54,11 +53,11 @@ export default function MobileFooter() {
 								key={nav.title}
 								className='min-w-[calc(100%/5)] min-h-[50px] flex flex-col gap-0.5 justify-center items-center'
 							>
-								<img src={isActive ? nav.activeIcon : nav.icon} alt={nav.title} className='w-6 h-6' />
 								<Link
 									href={nav.href}
-									className={`text-[11px] text-[#565656] ${isActive ? 'font-bold' : 'font-normal'}`}
+									className={`flex flex-col gap-0.5 items-center text-[11px] text-[#565656] ${isActive ? 'font-bold' : 'font-normal'}`}
 								>
+									<img src={isActive ? nav.activeIcon : nav.icon} alt={nav.title} className='w-6 h-6' />
 									{nav.title}
 								</Link>
 							</li>

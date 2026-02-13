@@ -24,13 +24,13 @@ export const menuItems = [
         sequence: 21,
         status: MenuStatus.ACTIVE,
       },
-      {
-        groupName: '',
-        name: '海外教學', // Overseas Lesson
-        path: '/reservation-management/overseas-lesson',
-        sequence: 22,
-        status: MenuStatus.ACTIVE,
-      },
+      // {
+      //   groupName: '',
+      //   name: '海外教學', // Overseas Lesson
+      //   path: '/reservation-management/overseas-lesson',
+      //   sequence: 22,
+      //   status: MenuStatus.ACTIVE,
+      // },
     ],
   },
   {
@@ -48,13 +48,13 @@ export const menuItems = [
         sequence: 31,
         status: MenuStatus.ACTIVE,
       },
-      {
-        groupName: '',
-        name: '海外教學', // Overseas Lesson
-        path: '/order-management/overseas-lesson',
-        sequence: 32,
-        status: MenuStatus.ACTIVE,
-      },
+      // {
+      //   groupName: '',
+      //   name: '海外教學', // Overseas Lesson
+      //   path: '/order-management/overseas-lesson',
+      //   sequence: 32,
+      //   status: MenuStatus.ACTIVE,
+      // },
     ],
   },
   {
@@ -72,13 +72,13 @@ export const menuItems = [
         sequence: 41,
         status: MenuStatus.ACTIVE,
       },
-      {
-        groupName: '',
-        name: '海外教學', // Overseas Lesson
-        path: '/course-products/overseas-lesson',
-        sequence: 42,
-        status: MenuStatus.ACTIVE,
-      },
+      // {
+      //   groupName: '',
+      //   name: '海外教學', // Overseas Lesson
+      //   path: '/course-products/overseas-lesson',
+      //   sequence: 42,
+      //   status: MenuStatus.ACTIVE,
+      // },
     ],
   },
   {
@@ -136,13 +136,13 @@ export const menuItems = [
         sequence: 81,
         status: MenuStatus.ACTIVE,
       },
-      {
-        groupName: '',
-        name: '海外教學', // Permissions and Personnel - User
-        path: '/content-management/overseas-lesson',
-        sequence: 82,
-        status: MenuStatus.ACTIVE,
-      },
+      // {
+      //   groupName: '',
+      //   name: '海外教學', // Permissions and Personnel - User
+      //   path: '/content-management/overseas-lesson',
+      //   sequence: 82,
+      //   status: MenuStatus.ACTIVE,
+      // },
     ],
   },
   {

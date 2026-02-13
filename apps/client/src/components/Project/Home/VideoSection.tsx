@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GetHomeVideoResponseDTO, ResponseWrapper } from '@repo/shared';
 import axios from 'axios';
 import { ChevronRight, X } from 'lucide-react';
+import { EffectCreative } from 'swiper/modules';
 import { Swiper, SwiperRef, SwiperSlide } from 'swiper/react';
 
 import { FadeIn } from '@/components/Effects/FadeIn';
@@ -14,6 +15,7 @@ import YoutubeVideo from '@/components/Youtube';
 import useSize from '@/hooks/useSize';
 
 import 'swiper/css/navigation';
+import 'swiper/css/effect-creative';
 
 import 'swiper/css';
 
@@ -38,11 +40,8 @@ export default function VideoSection() {
 	const [video, setVideo] = useState<GetHomeVideoResponseDTO | null>(null);
 	const [videos, setVideos] = useState<GetHomeVideoResponseDTO[]>([]);
 	const swiperRef = useRef<SwiperRef>(null);
-	const [touchStart, setTouchStart] = useState<number | null>(null);
-	const [touchEnd, setTouchEnd] = useState<number | null>(null);
-
-	// Minimum swipe distance for navigation (in px)
-	const minSwipeDistance = 50;
+	const dialogSwiperRef = useRef<SwiperRef>(null);
+	const [activeIndex, setActiveIndex] = useState(0);
 
 	useEffect(() => {
 		const getVideosData = async () => {
@@ -66,57 +65,23 @@ export default function VideoSection() {
 			if (!isOpen) return;
 
 			if (e.key === 'ArrowUp') {
-				const currentIndex = videos.findIndex((v) => v.id === video?.id);
-				const nextIndex = currentIndex === 0 ? videos.length - 1 : currentIndex - 1;
-				setVideo(videos[nextIndex]);
+				dialogSwiperRef.current?.swiper.slidePrev();
 			} else if (e.key === 'ArrowDown') {
-				const currentIndex = videos.findIndex((v) => v.id === video?.id);
-				const nextIndex = currentIndex === videos.length - 1 ? 0 : currentIndex + 1;
-				setVideo(videos[nextIndex]);
+				dialogSwiperRef.current?.swiper.slideNext();
 			}
 		};
 
 		window.addEventListener('keydown', handleKeyPress);
 		return () => window.removeEventListener('keydown', handleKeyPress);
-	}, [isOpen, video, videos]);
+	}, [isOpen]);
 
 	const handleOpenDialog = (video: GetHomeVideoResponseDTO) => {
+		const index = videos.findIndex((v) => v.id === video.id);
+		setActiveIndex(index);
 		setVideo(video);
 		setIsOpen(true);
 	};
 
-	const onTouchStart = (e: React.TouchEvent) => {
-		setTouchEnd(null);
-		setTouchStart(e.targetTouches[0].clientY);
-	};
-
-	const onTouchMove = (e: React.TouchEvent) => {
-		setTouchEnd(e.targetTouches[0].clientY);
-	};
-
-	const onTouchEnd = () => {
-		if (!touchStart || !touchEnd) return;
-
-		const distance = touchStart - touchEnd;
-		const isUpSwipe = distance > minSwipeDistance;
-		const isDownSwipe = distance < -minSwipeDistance;
-
-		if (isUpSwipe || isDownSwipe) {
-			const currentIndex = videos.findIndex((v) => v.id === video?.id);
-			let nextIndex;
-
-			if (isUpSwipe) {
-				nextIndex = currentIndex === videos.length - 1 ? 0 : currentIndex + 1;
-			} else {
-				nextIndex = currentIndex === 0 ? videos.length - 1 : currentIndex - 1;
-			}
-
-			setVideo(videos[nextIndex]);
-		}
-
-		setTouchStart(null);
-		setTouchEnd(null);
-	};
 	let formatVideos = videos.map((video) => {
 		const splitUrl = video.url.split('/');
 		let embed = splitUrl.at(-1).split('?si=')[0];
@@ -169,12 +134,12 @@ export default function VideoSection() {
 										<img
 											src={`https://img.youtube.com/vi/${video.embed}/hqdefault.jpg`}
 											alt='youtube image'
-											className='w-[227px] h-[403px] object-cover object-center'
+											className='w-[227px] h-[403px] object-cover object-center rounded-xl'
 										></img>
 									</div>
 								</div>
 								<p className='mt-[8px] text-sm xs:text-basic'>
-									<div className='text-white truncate'>{video?.name}</div>
+									<div className='text-system-navy truncate'>{video?.name}</div>
 								</p>
 							</div>
 						</SwiperSlide>
@@ -198,13 +163,7 @@ export default function VideoSection() {
 				)}
 			</div>
 			<Dialog open={isOpen} onOpenChange={setIsOpen}>
-				<DialogContent
-					hideIcon
-					className='p-0 w-full max-w-full h-full bg-black border-0 overflow-hidden'
-					onTouchStart={windowSize?.[0] <= 480 ? onTouchStart : undefined}
-					onTouchMove={windowSize?.[0] <= 480 ? onTouchMove : undefined}
-					onTouchEnd={windowSize?.[0] <= 480 ? onTouchEnd : undefined}
-				>
+				<DialogContent hideIcon className='p-0 w-full max-w-full h-full bg-black border-0 overflow-hidden'>
 					<DialogTitle className='h-[52px] relative'>
 						<button
 							onClick={() => setIsOpen(false)}
@@ -214,61 +173,89 @@ export default function VideoSection() {
 							<X size={24} />
 						</button>
 					</DialogTitle>
-					<div className='h-[calc(100vh-52px)] m-auto'>
-						{video && (
-							<div>
-								<div className={`${windowSize?.[0] <= 480 ? 'w-[calc(100vw)]' : 'w-[460px]'}`}>
-									<div className='relative'>
-										{windowSize?.[0] > 480 && (
-											<div className='absolute right-[-34px] top-1/2 -translate-y-1/2 flex flex-col'>
-												<div
-													className='cursor-pointer hover:opacity-80 transition-opacity'
-													onClick={() => {
-														const currentIndex = videos.findIndex((v) => v.id === video?.id);
-														const nextIndex = currentIndex === 0 ? videos.length - 1 : currentIndex - 1;
-														setVideo(videos[nextIndex]);
-													}}
-												>
-													<NavArrowUpDarkIcon />
-												</div>
-												<div
-													className='cursor-pointer hover:opacity-80 transition-opacity'
-													onClick={() => {
-														const currentIndex = videos.findIndex((v) => v.id === video?.id);
-														const nextIndex = currentIndex === videos.length - 1 ? 0 : currentIndex + 1;
-														setVideo(videos[nextIndex]);
-													}}
-												>
-													<NavArrowDownDarkIcon />
-												</div>
-											</div>
-										)}
-										<YoutubeVideo size='lg' videoId={getYoutubeEmbedCode(video.url)} autoPlay loop />
-									</div>
+					<div className='h-[calc(100vh-52px)] m-auto relative'>
+						{windowSize?.[0] > 480 && (
+							<div className='absolute left-1/2 ml-[220px] top-1/2 -translate-y-1/2 flex flex-col z-20'>
+								<div
+									className='cursor-pointer hover:opacity-80 transition-opacity'
+									onClick={() => dialogSwiperRef.current?.swiper.slidePrev()}
+								>
+									<NavArrowUpDarkIcon />
+								</div>
+								<div
+									className='cursor-pointer hover:opacity-80 transition-opacity'
+									onClick={() => dialogSwiperRef.current?.swiper.slideNext()}
+								>
+									<NavArrowDownDarkIcon />
 								</div>
 							</div>
 						)}
-						<div
-							className={`h-40 px-[42px] ${windowSize?.[0] <= 480 ? 'w-[calc(100vw)] flex-col justify-center' : 'w-[460px] flex-col justify-center'}`}
+						<Swiper
+							ref={dialogSwiperRef}
+							direction='vertical'
+							effect='creative'
+							creativeEffect={{
+								prev: { translate: [0, '-100%', 0] },
+								next: { translate: [0, '100%', 0] },
+							}}
+							modules={[EffectCreative]}
+							slidesPerView={1}
+							loop={true}
+							initialSlide={activeIndex}
+							onSlideChange={(swiper) => {
+								setVideo(videos[swiper.realIndex]);
+								setActiveIndex(swiper.realIndex);
+							}}
+							className='h-full'
 						>
-							<div className='flex flex-col w-[376px]'>
-								<div className='text-white truncate'>{video?.name}</div>
-								<button
-									className='bg-white text-black px-4 py-2 rounded-full w-fit text-center mt-3 flex items-center justify-center gap-1'
-									onClick={() => {
-										setIsOpen(false);
-										if (video?.buttonUrl) {
-											window.open(video.buttonUrl, '_blank');
-										}
-									}}
-								>
-									<span className='flex items-center'>
-										{video?.buttonName}
-										<ChevronRight size={16} className='mt-[5px]' />
-									</span>
-								</button>
-							</div>
-						</div>
+							{videos.map((v, index) => (
+								<SwiperSlide key={v.id}>
+									<div className={`${windowSize?.[0] <= 480 ? 'w-[calc(100vw)]' : 'w-[460px]'} m-auto`}>
+										<div className='relative'>
+											<div className='absolute inset-0 z-10' />
+											{index === activeIndex ? (
+												<YoutubeVideo
+													key={`${v.id}-active`}
+													size={windowSize?.[0] <= 480 ? 'md' : 'lg'}
+													videoId={getYoutubeEmbedCode(v.url)}
+													autoPlay
+													loop
+												/>
+											) : (
+												<div className={windowSize?.[0] <= 480 ? 'yt-wrapper-md' : 'yt-wrapper-lg'}>
+													<img
+														src={`https://img.youtube.com/vi/${getYoutubeEmbedCode(v.url)}/hqdefault.jpg`}
+														alt={v.name}
+														className='absolute top-0 left-0 w-full h-full object-cover rounded-2xl'
+													/>
+												</div>
+											)}
+										</div>
+										<div
+											className={`h-40 px-[42px] ${windowSize?.[0] <= 480 ? 'w-[calc(100vw)] flex-col justify-center' : 'w-[460px] flex-col justify-center'}`}
+										>
+											<div className='flex flex-col w-[376px]'>
+												<div className='text-white truncate'>{v?.name}</div>
+												<button
+													className='bg-white text-black px-4 py-2 rounded-full w-fit text-center mt-3 flex items-center justify-center gap-1'
+													onClick={() => {
+														setIsOpen(false);
+														if (v?.buttonUrl) {
+															window.open(v.buttonUrl, '_blank');
+														}
+													}}
+												>
+													<span className='flex items-center'>
+														{v?.buttonName}
+														<ChevronRight size={16} className='mt-[5px]' />
+													</span>
+												</button>
+											</div>
+										</div>
+									</div>
+								</SwiperSlide>
+							))}
+						</Swiper>
 					</div>
 				</DialogContent>
 			</Dialog>

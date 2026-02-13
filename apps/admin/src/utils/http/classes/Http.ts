@@ -97,6 +97,7 @@ export default class Http {
 						console.error('Error refreshing accessToken:', refreshError);
 					}
 				}
+
 				return Promise.reject(error);
 			},
 		);

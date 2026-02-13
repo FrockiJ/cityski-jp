@@ -1,6 +1,5 @@
 import React from 'react';
 
-import Button from '../Shared/Common/Button';
 import Course from '../TermsAndConditions/Course';
 
 const Terms = () => {
@@ -17,14 +16,16 @@ const Terms = () => {
 							下載文件
 						</span>
 					</a>
-					<Button variant='secondary' className='w-full h-10 xs:hidden'>
-						<a href='/pdf/Terms.pdf' download className='flex items-center gap-1'>
-							<img src='/image/terms/dl-docs.svg' alt='download-document' />
-							<span className='text-blue-600 hover:text-blue-700 text-sm'>
-								下載文件
-							</span>
-						</a>
-					</Button>
+					<a
+						href='/pdf/Terms.pdf'
+						download
+						className='flex items-center justify-center gap-1 w-full h-10 xs:hidden bg-white border border-solid border-zinc-300 rounded-lg'
+					>
+						<img src='/image/terms/dl-docs.svg' alt='download-document' />
+						<span className='text-blue-600 hover:text-blue-700 text-sm'>
+							下載文件
+						</span>
+					</a>
 				</div>
 
 				<Course />

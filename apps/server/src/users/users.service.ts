@@ -413,6 +413,8 @@ export class UsersService {
         // superAdmin can only edit name
         ...(user.id !== superAdmin.id && { status: updateUserData.status }),
         ...(user.id !== superAdmin.id && { userRolesDepartments }), // using cascade
+        // 清除 refresh token，強制使用者重新登入以取得新權限
+        ...(user.id !== superAdmin.id && { refresh: null }),
       });
 
       await this.usersRepo.save(savedUser);
@@ -443,6 +445,8 @@ export class UsersService {
         status: UserStatus.DELETE,
         updatedUser: userId,
         updatedTime: new Date(),
+        // 清除 refresh token
+        refresh: null,
       });
       await this.usersRepo.save(savedUser);
     } catch (err) {
@@ -464,14 +468,19 @@ export class UsersService {
         throw new CustomException('無法操作系統管理員', HttpStatus.BAD_REQUEST);
       }
 
+      // 如果要變成 INACTIVE，清除 refresh token 強制登出
+      const newStatus =
+        user.status === UserStatus.INACTIVE
+          ? UserStatus.ACTIVE
+          : UserStatus.INACTIVE;
+
       Object.assign(user, {
         ...user,
-        status:
-          user.status === UserStatus.INACTIVE
-            ? UserStatus.ACTIVE
-            : UserStatus.INACTIVE,
+        status: newStatus,
+        // 停用時清除 refresh token
+        ...(newStatus === UserStatus.INACTIVE && { refresh: null }),
       });
-      // update role
+      // update user
       await this.usersRepo.save(user);
       // return;
     } catch (err) {

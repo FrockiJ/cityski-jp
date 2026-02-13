@@ -186,38 +186,37 @@ const CourseCategoryPage = () => {
 				{isMobile ? (
 					<MobileCourseCategoryPage courses={courses} />
 				) : (
-					<div className='flex flex-col gap-4 mt-9 w-full whitespace-nowrap'>
+					<div className='flex flex-col gap-4 mt-9 w-full'>
 						<div className='flex flex-wrap gap-4 max-xs:gap-5 items-start w-full max-xs:flex-col max-xs:items-center'>
 							{courses?.slice(0, 2).map((category, index) => (
-								<BlurFade key={index} delay={0.2 + index * 0.2} className='max-w-[50%] aspect-square max-xs:min-h-0'>
+								<BlurFade key={index} delay={0.2 + index * 0.2} noGrow className='w-[calc(50%-8px)] aspect-square max-xs:min-h-0'>
 									<CourseCategoryCard {...category} />
 								</BlurFade>
 							))}
 						</div>
 						<div className='flex flex-wrap gap-4 max-xs:gap-5 items-start w-full max-xs:flex-col max-xs:items-center'>
 							{/* Third item - wider */}
-
-							<div className='flex-1 flex-grow w-[50%] h-[288px] '>
+							<div className='w-[calc(50%-8px)] h-[288px]'>
 								{courses?.[2] && (
-									<BlurFade delay={0.6}>
+									<BlurFade delay={0.6} noGrow>
 										<CourseCategoryCard {...courses[2]} />
 									</BlurFade>
 								)}
 							</div>
-							<div className='flex flex-1 flex-grow w-[50%] h-[288px] gap-4 max-xs:gap-5'>
+							<div className='flex w-[calc(50%-8px)] h-[288px] gap-4 max-xs:gap-5'>
 								{/* Fourth and Fifth items - normal squares */}
 								{courses?.slice(3, 5).map((category, index) => (
-									<BlurFade key={index} delay={0.8 + index * 0.2}>
+									<BlurFade key={index} delay={0.8 + index * 0.2} noGrow className='w-[calc(50%-8px)]'>
 										<CourseCategoryCard {...category} />
 									</BlurFade>
 								))}
 							</div>
 						</div>
 
-						<div className='flex gap-4 max-xs:gap-5 max-w-[25%] h-[288px]'>
+						<div className='flex flex-wrap gap-4 max-xs:gap-5 w-full'>
 							{/* Remaining items - normal squares */}
 							{courses?.slice(5).map((category, index) => (
-								<BlurFade key={index} delay={1.2 + index * 0.2}>
+								<BlurFade key={index} delay={1.2 + index * 0.2} noGrow className='w-[calc(25%-12px)] h-[288px]'>
 									<CourseCategoryCard {...category} />
 								</BlurFade>
 							))}

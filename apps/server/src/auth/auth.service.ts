@@ -304,6 +304,14 @@ export class AuthService {
         .addOrderBy('subPage.sequence', 'ASC')
         .getOne();
 
+      // 暫時隱藏海外教學相關頁面，恢復時移除 filter 即可
+      const HIDDEN_PATHS = [
+        '/reservation-management/overseas-lesson',
+        '/order-management/overseas-lesson',
+        '/course-products/overseas-lesson',
+        '/content-management/overseas-lesson',
+      ];
+
       const formattedMenus: MenuDTO[] = roleWithMenus.menus.map((menu) => {
         return {
           id: menu.id,
@@ -313,7 +321,9 @@ export class AuthService {
           sequence: menu.sequence,
           status: menu.status,
           icon: menu.icon,
-          subPages: menu.subPages,
+          subPages: menu.subPages?.filter(
+            (subPage) => !HIDDEN_PATHS.includes(subPage.path),
+          ),
         };
       });
 
@@ -457,6 +467,13 @@ export class AuthService {
           throw new CustomException(
             'Refresh Token Invalid',
             HttpStatus.BAD_REQUEST,
+          );
+        }
+
+        // 驗證 refresh token 是否與資料庫中的一致（權限被修改時會清除）
+        if (!user.refresh || user.refresh !== refreshToken) {
+          throw new UnauthorizedException(
+            'Refresh token has been revoked. Please login again.',
           );
         }
 

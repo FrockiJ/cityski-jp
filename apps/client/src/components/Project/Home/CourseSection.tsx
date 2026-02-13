@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GetClientCoursesResponseDTO, GetDepartmentsResponseDTO, ResponseWrapper } from '@repo/shared';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FreeMode } from 'swiper/modules';
+import { Autoplay, FreeMode } from 'swiper/modules';
 import { Swiper, SwiperRef, SwiperSlide } from 'swiper/react';
 
 import { FadeIn } from '@/components/Effects/FadeIn';
@@ -146,7 +146,15 @@ export default function CourseSection() {
 				</div>
 				{/* desktop */}
 				<FadeIn className='hidden xs:ml-[52px] xs:block'>
-					<Swiper ref={swiperRef} freeMode={true} spaceBetween={52} slidesPerView='auto' modules={[FreeMode]}>
+					<Swiper
+						ref={swiperRef}
+						freeMode={true}
+						spaceBetween={52}
+						slidesPerView='auto'
+						loop={true}
+						autoplay={{ delay: 3000, disableOnInteraction: false }}
+						modules={[FreeMode, Autoplay]}
+					>
 						{courses?.map((course, index) => (
 							<SwiperSlide key={index} style={{ width: '360px', height: '480px', display: 'flex' }}>
 								<div
@@ -180,9 +188,10 @@ export default function CourseSection() {
 												clipPath={`url(#roundedPolygon${index})`}
 											/>
 											<image
-												className='home-svg-image object-cover'
+												className='home-svg-image'
 												clipPath={`url(#roundedPolygon${index})`}
 												href={process.env.NEXT_PUBLIC_AWS_S3_URL + course.image}
+												preserveAspectRatio='xMidYMid slice'
 												width={360}
 												height={400}
 											/>

@@ -68,6 +68,9 @@ export const layoutSlice = createSlice({
 		setThemeMode: (state: LayoutSliceState, { payload }: PayloadAction<'dark' | 'light'>) => {
 			state.themeMode = payload;
 		},
+		setPageTitle: (state: LayoutSliceState, { payload }: PayloadAction<string>) => {
+			state.pageTitle = payload;
+		},
 	},
 });
 
@@ -118,6 +121,12 @@ export const selectThemeMode = (state: {
 	};
 }) => state.layout.themeMode;
 
+export const selectPageTitle = (state: {
+	layout: {
+		pageTitle: string;
+	};
+}) => state.layout.pageTitle;
+
 export const {
 	setLayout,
 	setLayoutTransition,
@@ -128,6 +137,7 @@ export const {
 	closeMessageModal,
 	removeMessageModal,
 	setThemeMode,
+	setPageTitle,
 } = layoutSlice.actions;
 
 export default layoutSlice.reducer;

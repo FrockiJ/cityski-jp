@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
+import { UserStatus } from '@repo/shared';
 import { Request } from 'express';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
@@ -46,6 +47,11 @@ export class AuthGuard implements CanActivate {
           'userRolesDepartments.department',
         ],
       });
+
+      // 檢查使用者狀態，如果被停用則拒絕存取
+      if (!user || user.status !== UserStatus.ACTIVE) {
+        throw new UnauthorizedException('Account is inactive or not found');
+      }
 
       // attaching roles and departments to request
 

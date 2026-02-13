@@ -1,8 +1,11 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useDispatch } from 'react-redux';
 import { CourseBkgType, CourseCancelPolicyType, GetCourseDetailResponseDTO, ResponseWrapper } from '@repo/shared';
 import { useSearchParams } from 'next/navigation';
+
+import { setPageTitle } from '@/state/slices/layoutSlice';
 
 import CourseBookingForm from '@/components/Project/Courses/CourseDetail/CourseBookingForm';
 import MobileBookingForm from '@/components/Project/Courses/CourseDetail/CourseBookingForm/MobileBookingForm';
@@ -19,6 +22,7 @@ import axios from '@/lib/api';
 
 const CourseDetailPage = () => {
 	const searchParams = useSearchParams();
+	const dispatch = useDispatch();
 
 	const id = searchParams.get('id');
 	const [courseDetail, setCourseDetail] = useState<GetCourseDetailResponseDTO>();
@@ -42,6 +46,16 @@ const CourseDetailPage = () => {
 		};
 		getCourseDetail(id);
 	}, [id]);
+
+	// Set page title when course detail is loaded
+	useEffect(() => {
+		if (courseDetail?.name) {
+			dispatch(setPageTitle(courseDetail.name));
+		}
+		return () => {
+			dispatch(setPageTitle(''));
+		};
+	}, [courseDetail?.name, dispatch]);
 
 	const images =
 		courseDetail?.attachments.map((image) => ({
